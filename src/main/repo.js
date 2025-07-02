@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
-const git = require('isomorphic-git');
-const http = require('isomorphic-git/http/node');
+import fs from 'fs';
+import path from 'path';
+import git from 'isomorphic-git';
+import http from 'isomorphic-git/http/node/index.js';
 
 async function cloneRepo(repoUrl, targetDir) {
   if (!fs.existsSync(targetDir)) {
@@ -17,10 +17,10 @@ async function cloneRepo(repoUrl, targetDir) {
     dir,
     url: `https://${hostname}${pathname}`,
     singleBranch: true,
-    depth: 1,
+    depth: 1
   });
 
   return `Cloned ${repoUrl} to ${dir}`;
 }
 
-module.exports = { cloneRepo };
+export { cloneRepo };

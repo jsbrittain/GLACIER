@@ -15,10 +15,10 @@ describe('docker module', () => {
       Cmd: ['true'], // container exits immediately
       Tty: false
     });
-  
+
     await container.start();
     await container.wait(); // Wait for it to exit
-  
+
     const result = await docker.clearStoppedContainers();
     expect(Array.isArray(result)).toBe(true);
     expect(result).toContain(container.id);

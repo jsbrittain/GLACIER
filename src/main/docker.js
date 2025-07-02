@@ -1,9 +1,15 @@
-const Docker = require('dockerode');
+import Docker from 'dockerode';
+
 const isWindows = process.platform === 'win32';
-const docker = new Docker({ socketPath: isWindows ? '//./pipe/docker_engine' : '/var/run/docker.sock' });
+const docker = new Docker({
+  socketPath: isWindows ? '//./pipe/docker_engine' : '/var/run/docker.sock'
+});
 
 async function buildAndRunContainer(folderPath, imageName) {
-  const tarStream = await docker.buildImage({ context: folderPath, src: ['Dockerfile'] }, { t: imageName });
+  const tarStream = await docker.buildImage(
+    { context: folderPath, src: ['Dockerfile'] },
+    { t: imageName }
+  );
   await new Promise((resolve, reject) => {
     docker.modem.followProgress(tarStream, (err, res) => (err ? reject(err) : resolve(res)));
   });
@@ -22,7 +28,7 @@ async function listContainers() {
 
 async function clearStoppedContainers() {
   const containers = await docker.listContainers({ all: true });
-  const stopped = containers.filter(c => c.State !== 'running');
+  const stopped = containers.filter((c) => c.State !== 'running');
   const results = [];
   for (const info of stopped) {
     const container = docker.getContainer(info.Id);
@@ -32,10 +38,5 @@ async function clearStoppedContainers() {
   return results;
 }
 
-module.exports = {
-  buildAndRunContainer,
-  listContainers,
-  clearStoppedContainers,
-  _docker: docker
-};
-
+export { buildAndRunContainer, listContainers, clearStoppedContainers };
+export const _docker = docker;

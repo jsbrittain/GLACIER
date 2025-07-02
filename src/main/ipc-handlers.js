@@ -1,8 +1,8 @@
-const { ipcMain } = require('electron');
-const { buildAndRunContainer, listContainers, clearStoppedContainers } = require('./docker');
-const { cloneRepo } = require('./repo');
+import { ipcMain } from 'electron';
+import { buildAndRunContainer, listContainers, clearStoppedContainers } from './docker.js';
+import { cloneRepo } from './repo.js';
 
-module.exports = function registerIpcHandlers() {
+export function registerIpcHandlers() {
   ipcMain.handle('build-and-run-container', async (event, folderPath, imageName) => {
     return buildAndRunContainer(folderPath, imageName);
   });
@@ -18,4 +18,4 @@ module.exports = function registerIpcHandlers() {
   ipcMain.handle('clone-repo', async (event, repoUrl, targetDir) => {
     return cloneRepo(repoUrl, targetDir);
   });
-};
+}

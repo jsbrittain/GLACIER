@@ -67,10 +67,22 @@ export default function App() {
       <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
         <Box sx={{ width: 240 }} role="presentation">
           <List>
-            <ListItem button onClick={() => { setView('workflow'); setDrawerOpen(false); }}>
+            <ListItem
+              button
+              onClick={() => {
+                setView('workflow');
+                setDrawerOpen(false);
+              }}
+            >
               <ListItemText primary="Clone & Run" />
             </ListItem>
-            <ListItem button onClick={() => { setView('placeholder'); setDrawerOpen(false); }}>
+            <ListItem
+              button
+              onClick={() => {
+                setView('placeholder');
+                setDrawerOpen(false);
+              }}
+            >
               <ListItemText primary="Placeholder" />
             </ListItem>
           </List>

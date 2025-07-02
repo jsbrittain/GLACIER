@@ -8,11 +8,11 @@ export default defineConfig({
   base: './',
   build: {
     outDir: '../../public',
-    emptyOutDir: true,
+    emptyOutDir: true
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, 'src/renderer'),
-    },
-  },
+      '@': path.resolve(__dirname, 'src/renderer')
+    }
+  }
 });

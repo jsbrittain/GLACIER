@@ -1,6 +1,10 @@
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
-const registerIpcHandlers = require('./ipc-handlers');
+import { app, BrowserWindow } from 'electron';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { registerIpcHandlers } from './ipc-handlers.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let mainWindow;
 
