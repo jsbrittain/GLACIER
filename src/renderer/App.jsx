@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
 import {
   AppBar,
   Box,
@@ -15,7 +16,10 @@ import {
   Typography
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import { CssBaseline } from '@mui/material';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import SettingsIcon from '@mui/icons-material/Settings';
+import ListItemIcon from '@mui/material/ListItemIcon';
+
 import WorkflowPage from './pages/Workflow';
 import SettingsPage from './pages/Settings';
 
@@ -69,38 +73,46 @@ export default function App() {
       <Box sx={{ display: 'flex' }}>
         <AppBar position="fixed">
           <Toolbar>
-            <IconButton color="inherit" edge="start" onClick={() => setDrawerOpen(true)}>
+            <IconButton color="inherit" edge="start" onClick={() => setDrawerOpen((prev) => !prev)}>
               <MenuIcon />
             </IconButton>
-            <Typography variant="h6" noWrap component="div">
+            <Typography variant="h6" noWrap component="div" sx={{ ml: 1 }}>
               Workflow Runner
             </Typography>
           </Toolbar>
         </AppBar>
 
-        <Drawer anchor="left" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
-          <Box sx={{ width: 240 }} role="presentation">
-            <List>
-              <ListItem
-                button
-                onClick={() => {
-                  setView('workflow');
-                  setDrawerOpen(false);
-                }}
-              >
-                <ListItemText primary="Clone & Run" />
-              </ListItem>
-              <ListItem
-                button
-                onClick={() => {
-                  setView('settings');
-                  setDrawerOpen(false);
-                }}
-              >
-                <ListItemText primary="Settings" />
-              </ListItem>
-            </List>
-          </Box>
+        <Drawer
+          variant="permanent"
+          open={drawerOpen}
+          sx={{
+            width: drawerOpen ? 240 : 56,
+            flexShrink: 0,
+            '& .MuiDrawer-paper': {
+              width: drawerOpen ? 240 : 56,
+              overflowX: 'hidden',
+              transition: (theme) =>
+                theme.transitions.create('width', {
+                  easing: theme.transitions.easing.sharp,
+                  duration: theme.transitions.duration.enteringScreen
+                })
+            }
+          }}
+        >
+          <List>
+            <ListItem button onClick={() => setView('workflow')}>
+              <ListItemIcon>
+                <PlayArrowIcon />
+              </ListItemIcon>
+              {drawerOpen && <ListItemText primary="Workflow" />}
+            </ListItem>
+            <ListItem button onClick={() => setView('settings')}>
+              <ListItemIcon>
+                <SettingsIcon />
+              </ListItemIcon>
+              {drawerOpen && <ListItemText primary="Settings" />}
+            </ListItem>
+          </List>
         </Drawer>
 
         <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8 }}>

@@ -6,6 +6,7 @@ export default {
       reporter: ['text', 'json', 'html'],
       exclude: [
         'tests/',
+        'eslint.config.js',
         'vitest.config.js',
         'vite.config.js',
         'src/preload/**',
