@@ -1,0 +1,21 @@
+{
+  "name": "runner",
+  "version": "0.1.0",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "vitest run  --coverage"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "electron": "^37.1.0",
+    "vitest": "^3.2.4",
+    "@vitest/coverage-v8": "^3.2.4"
+  },
+  "dependencies": {
+    "dockerode": "^4.0.7",
+    "isomorphic-git": "^1.32.1"
+  }
+}
