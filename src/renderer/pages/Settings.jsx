@@ -1,5 +1,6 @@
 import React from 'react';
 import { Container, Typography, Switch, FormControlLabel, TextField } from '@mui/material';
+import { API } from '../services/api.js';
 
 export default function SettingsPage({
   darkMode,
@@ -10,7 +11,7 @@ export default function SettingsPage({
   const handlePathChange = (e) => {
     const newPath = e.target.value;
     setCollectionsPath(newPath);
-    window.electronAPI.setCollectionsPath(newPath);
+    API.setCollectionsPath(newPath);
   };
 
   return (

@@ -37,8 +37,6 @@ export async function cloneRepo(repoRef) {
     depth: 1
   });
 
-  console.log('[cloneRepo] returning:', { name: `${owner}/${repo}`, path: targetDir });
-
   return {
     name: `${owner}/${repo}`,
     path: targetDir
@@ -62,5 +60,13 @@ export async function syncRepo({ path: repoPath }) {
   } catch (err) {
     console.warn('sync failed:', err);
     return { status: 'error', message: err.message };
+  }
+}
+
+export async function deleteRepo(repoPath) {
+  try {
+    await fs.rm(repoPath, { recursive: true, force: true });
+  } catch (err) {
+    throw new Error(`Failed to delete repo at ${repoPath}: ${err.message}`);
   }
 }

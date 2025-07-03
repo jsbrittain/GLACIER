@@ -22,6 +22,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 
 import WorkflowPage from './pages/Workflow';
 import SettingsPage from './pages/Settings';
+import { API } from './services/api.js';
 
 const defaultRepoUrl = 'jsbrittain/workflow-runner-testworkflow';
 const defaultImageName = 'testworkflow';
@@ -67,8 +68,7 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const path = await window.electronAPI.getCollectionsPath();
-      console.log('Loaded collections path: ', path);
+      const path = await API.getCollectionsPath();
       setCollectionsPath(path);
     })();
   }, []);
@@ -81,16 +81,16 @@ export default function App() {
   const handlePathChange = (e) => {
     const value = e.target.value;
     setCollectionsPath(value);
-    window.electronAPI.setCollectionsPath(value);
+    API.setCollectionsPath(value);
   };
 
   const handleList = async () => {
-    const containers = await window.electronAPI.listContainers();
+    const containers = await API.listContainers();
     setOutput(JSON.stringify(containers, null, 2));
   };
 
   const handleBuildRun = async () => {
-    const id = await window.electronAPI.buildAndRunContainer(folderPath, imageName);
+    const id = await API.buildAndRunContainer(folderPath, imageName);
     alert('Container built and started with ID: ' + id);
   };
 

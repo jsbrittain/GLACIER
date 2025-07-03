@@ -1,4 +1,3 @@
-// File: src/renderer/pages/Workflow.jsx
 import React, { useEffect, useState } from 'react';
 import {
   Button,
@@ -12,6 +11,7 @@ import {
   Snackbar,
   Alert
 } from '@mui/material';
+import { API } from '../services/api.js';
 
 export default function WorkflowPage({
   repoUrl,
@@ -36,20 +36,19 @@ export default function WorkflowPage({
 
   useEffect(() => {
     (async () => {
-      const list = await window.electronAPI.getCollections();
+      const list = await API.getCollections();
       setRepos(list);
     })();
   }, []);
 
   const handleClone = async () => {
     try {
-      const result = await window.electronAPI.cloneRepo(repoUrl);
-      console.log('[UI] clone result:', result);
+      const result = await API.cloneRepo(repoUrl);
       if (result?.path) {
         setTargetDir(result.path);
         setFolderPath(result.path);
         logMessage(`Cloned ${result.name} to ${result.path}`, 'success');
-        const list = await window.electronAPI.getCollections();
+        const list = await API.getCollections();
         setRepos(list);
       } else {
         logMessage('Clone failed or returned nothing', 'error');
@@ -102,7 +101,7 @@ export default function WorkflowPage({
                     variant="contained"
                     onClick={async () => {
                       try {
-                        const id = await window.electronAPI.runRepo(repo);
+                        const id = await API.runRepo(repo);
                         logMessage(`Container started: ${id}`, 'success');
                       } catch (err) {
                         console.error(err);
@@ -117,7 +116,7 @@ export default function WorkflowPage({
                     variant="outlined"
                     onClick={async () => {
                       try {
-                        const result = await window.electronAPI.syncRepo(repo);
+                        const result = await API.syncRepo(repo);
                         if (result?.status === 'ok') {
                           logMessage('Repo synced', 'success');
                         } else {

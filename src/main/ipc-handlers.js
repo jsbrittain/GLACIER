@@ -5,7 +5,7 @@ import http from 'isomorphic-git/http/node/index.cjs';
 import { ipcMain } from 'electron';
 import { buildAndRunContainer, listContainers, clearStoppedContainers, runRepo } from './docker.js';
 import { cloneRepo, syncRepo } from './repo.js';
-import { getDefaultCollectionsDir, getCollectionsPath } from './paths.js';
+import { getDefaultCollectionsDir, getCollectionsPath, getCollections } from './paths.js';
 import store from './store.js';
 
 export function registerIpcHandlers() {
@@ -22,9 +22,7 @@ export function registerIpcHandlers() {
   });
 
   ipcMain.handle('clone-repo', async (event, repoUrl) => {
-    const result = await cloneRepo(repoUrl);
-    console.log('[IPC] returning from clone-repo:', result); // ✅ log here
-    return result;
+    return await cloneRepo(repoUrl);
   });
 
   ipcMain.handle('get-collections-path', () => {

@@ -2,27 +2,26 @@
 
 ## Quick start
 
+To build and run the electron app:
+
 ```
 npm install
 npm start
 ```
 
+You can also package the app for distribution (the app will be placed in `/dist`):
+
+```
+npm run dist
+```
+
 ## Usage
 
-Use the default repository:
+Within the application:
 
-```
-https://github.com/jsbrittain/workflow-runner-testworkflow.git
-```
+- Clone the default repository: `jsbrittain/workflow-runner-testworkflow`
+- Click the run button on the workflow card to launch the container/workflow
 
-Select a local folder to place the repository (the folder will be created if it does not exist), e.g. `/Users/username/Desktop/testworkflow`.
+## Web deployment
 
-Select `Clone Repo`.
-
-The path to the Dockerfile will update to the cloned repository path. The assigned image name can be left as `testworkflow` or changed to a custom name.
-
-Select `Build & Run` to build the Docker image and run the container.
-
-Check Docker Desktop logs to see the output of the workflow.
-
-Clicking `List containers` will show the currently running containers. This will probably be empty since the default container runs momentarily and exits. However, you can customise the Dockerfile to run a long-running process to test this feature.
+The application is build using Electron, but this repository also supports web server deployment. To run the web server, run `node index.js` from inside the `\api-server` folder. This will serve the electron front-end while providing a backend API that calls the backend code. The same code is used for frontend and backend components, although the API interface must be maintained in-line with Electron's interface.

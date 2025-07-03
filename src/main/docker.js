@@ -62,3 +62,35 @@ export async function runRepo({ name, path: repoPath }) {
   await container.start();
   return container.id;
 }
+
+export async function getContainerLogs(containerId) {
+  const container = docker.getContainer(containerId);
+  const logStream = await container.logs({
+    follow: false,
+    stdout: true,
+    stderr: true,
+    timestamps: false
+  });
+
+  return new Promise((resolve, reject) => {
+    let logs = '';
+    logStream.on('data', (chunk) => {
+      logs += chunk.toString();
+    });
+    logStream.on('end', () => resolve(logs));
+    logStream.on('error', reject);
+  });
+}
+
+export async function stopContainer(containerId) {
+  const container = docker.getContainer(containerId);
+  try {
+    await container.stop();
+  } catch (err) {
+    if (err.statusCode === 304) {
+      // container already stopped
+      return;
+    }
+    throw err;
+  }
+}
