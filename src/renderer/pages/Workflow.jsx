@@ -1,67 +1,169 @@
-import React from 'react';
-import { Button, Container, Paper, Stack, TextField } from '@mui/material';
+// File: src/renderer/pages/Workflow.jsx
+import React, { useEffect, useState } from 'react';
+import {
+  Button,
+  Container,
+  Paper,
+  Stack,
+  TextField,
+  Typography,
+  Box,
+  Grid,
+  Snackbar,
+  Alert
+} from '@mui/material';
 
 export default function WorkflowPage({
   repoUrl,
   setRepoUrl,
   targetDir,
+  drawerOpen,
   setTargetDir,
-  folderPath,
-  setFolderPath,
-  imageName,
-  setImageName,
-  output,
-  setOutput,
-  onClone,
-  onBuildRun,
-  onList,
-  onClear
+  setFolderPath
 }) {
+  const [repos, setRepos] = useState([]);
+  const [message, setMessage] = useState('');
+  const [severity, setSeverity] = useState('info');
+  const [open, setOpen] = useState(false);
+  const [log, setLog] = useState([]);
+
+  const logMessage = (text, level = 'info') => {
+    setLog((prev) => [...prev.slice(-9), text]);
+    setMessage(text);
+    setSeverity(level);
+    setOpen(true);
+  };
+
+  useEffect(() => {
+    (async () => {
+      const list = await window.electronAPI.getCollections();
+      setRepos(list);
+    })();
+  }, []);
+
+  const handleClone = async () => {
+    try {
+      const result = await window.electronAPI.cloneRepo(repoUrl);
+      console.log('[UI] clone result:', result);
+      if (result?.path) {
+        setTargetDir(result.path);
+        setFolderPath(result.path);
+        logMessage(`Cloned ${result.name} to ${result.path}`, 'success');
+        const list = await window.electronAPI.getCollections();
+        setRepos(list);
+      } else {
+        logMessage('Clone failed or returned nothing', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      logMessage('Clone operation failed', 'error');
+    }
+  };
+
   return (
-    <Container>
-      <Stack spacing={2}>
-        <TextField
-          label="GitHub repo URL"
-          fullWidth
-          value={repoUrl}
-          onChange={(e) => setRepoUrl(e.target.value)}
-        />
-        <TextField
-          label="Local clone path"
-          fullWidth
-          value={targetDir}
-          onChange={(e) => setTargetDir(e.target.value)}
-        />
-        <Button variant="contained" onClick={onClone}>
-          Clone Repo
-        </Button>
-        <TextField
-          label="Path to folder with Dockerfile"
-          fullWidth
-          value={folderPath}
-          onChange={(e) => setFolderPath(e.target.value)}
-        />
-        <TextField
-          label="Assign image name"
-          fullWidth
-          value={imageName}
-          onChange={(e) => setImageName(e.target.value)}
-        />
-        <Stack direction="row" spacing={2}>
-          <Button variant="contained" onClick={onBuildRun}>
-            Build & Run
-          </Button>
-          <Button variant="outlined" onClick={onList}>
-            List Containers
-          </Button>
-          <Button variant="outlined" color="warning" onClick={onClear}>
-            Clear Stopped
-          </Button>
-        </Stack>
-        <Paper sx={{ p: 2, mt: 2, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>
-          {output}
+    <Container sx={{ pb: 12 }}>
+      {' '}
+      {/* extra space for fixed log */}
+      <Stack spacing={3}>
+        <Paper variant="outlined" sx={{ p: 2 }}>
+          <Typography variant="h6" gutterBottom>
+            Clone a GitHub Repository
+          </Typography>
+          <Stack direction="row" spacing={2} alignItems="center">
+            <Typography>Repo:</Typography>
+            <TextField
+              value={repoUrl}
+              onChange={(e) => setRepoUrl(e.target.value)}
+              size="small"
+              fullWidth
+            />
+            <Button variant="contained" onClick={handleClone} size="small">
+              Clone
+            </Button>
+          </Stack>
+          {targetDir && (
+            <Typography variant="body2" sx={{ mt: 1, color: 'gray' }}>
+              Cloning to: {targetDir}
+            </Typography>
+          )}
         </Paper>
+
+        <Typography variant="h6">Local Repositories</Typography>
+        <Grid container spacing={2}>
+          {repos.map((repo) => (
+            <Grid item xs={12} sm={6} md={4} key={repo.path}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle1" gutterBottom>
+                  {repo.name}
+                </Typography>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={async () => {
+                      try {
+                        const id = await window.electronAPI.runRepo(repo);
+                        logMessage(`Container started: ${id}`, 'success');
+                      } catch (err) {
+                        console.error(err);
+                        logMessage('Run failed', 'error');
+                      }
+                    }}
+                  >
+                    Run
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={async () => {
+                      try {
+                        const result = await window.electronAPI.syncRepo(repo);
+                        if (result?.status === 'ok') {
+                          logMessage('Repo synced', 'success');
+                        } else {
+                          throw new Error(result?.message || 'Unknown sync failure');
+                        }
+                      } catch (err) {
+                        console.error(err);
+                        logMessage('Sync failed', 'error');
+                      }
+                    }}
+                  >
+                    Sync
+                  </Button>
+                </Stack>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
       </Stack>
+      <Paper
+        variant="outlined"
+        sx={{
+          position: 'fixed',
+          bottom: 0,
+          left: drawerOpen ? 240 : 56,
+          right: 0,
+          height: 120,
+          overflowY: 'auto',
+          bgcolor: 'background.default',
+          px: 2,
+          py: 1,
+          borderTop: '1px solid rgba(0,0,0,0.12)'
+        }}
+      >
+        <Typography variant="caption" color="text.secondary">
+          Log
+        </Typography>
+        <Box component="pre" sx={{ m: 0, fontSize: '0.75rem', whiteSpace: 'pre-wrap' }}>
+          {log.join('\n')}
+        </Box>
+      </Paper>
+      <Snackbar open={open} autoHideDuration={3000} onClose={() => setOpen(false)}>
+        <Alert onClose={() => setOpen(false)} severity={severity} sx={{ width: '100%' }}>
+          {message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 }

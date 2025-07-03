@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import {
@@ -23,11 +23,30 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import WorkflowPage from './pages/Workflow';
 import SettingsPage from './pages/Settings';
 
-const defaultRepoUrl = 'https://github.com/jsbrittain/workflow-runner-testworkflow.git';
+const defaultRepoUrl = 'jsbrittain/workflow-runner-testworkflow';
 const defaultImageName = 'testworkflow';
+
+function computeTargetDir(repoUrl, basePath) {
+  try {
+    if (repoUrl.includes('://')) {
+      const url = new URL(repoUrl);
+      const [owner, repo] = url.pathname
+        .replace(/^\//, '')
+        .replace(/\.git$/, '')
+        .split('/');
+      return `${basePath}/${owner}/${repo}`;
+    } else if (repoUrl.includes('/')) {
+      const [owner, repo] = repoUrl.replace(/\.git$/, '').split('/');
+      return `${basePath}/${owner}/${repo}`;
+    }
+  } catch {
+    return '';
+  }
+}
 
 export default function App() {
   const [repoUrl, setRepoUrl] = useState(defaultRepoUrl);
+  const [collectionsPath, setCollectionsPath] = useState('');
   const [targetDir, setTargetDir] = useState('');
   const [folderPath, setFolderPath] = useState('');
   const [imageName, setImageName] = useState(defaultImageName);
@@ -46,20 +65,28 @@ export default function App() {
     [darkMode]
   );
 
-  const handleClone = async () => {
-    const result = await window.electronAPI.cloneRepo(repoUrl, targetDir);
-    setFolderPath(targetDir);
-    alert(result);
+  useEffect(() => {
+    (async () => {
+      const path = await window.electronAPI.getCollectionsPath();
+      console.log('Loaded collections path: ', path);
+      setCollectionsPath(path);
+    })();
+  }, []);
+
+  useEffect(() => {
+    const predictedPath = computeTargetDir(repoUrl, collectionsPath);
+    setTargetDir(predictedPath);
+  }, [repoUrl, collectionsPath]);
+
+  const handlePathChange = (e) => {
+    const value = e.target.value;
+    setCollectionsPath(value);
+    window.electronAPI.setCollectionsPath(value);
   };
 
   const handleList = async () => {
     const containers = await window.electronAPI.listContainers();
     setOutput(JSON.stringify(containers, null, 2));
-  };
-
-  const handleClear = async () => {
-    const removed = await window.electronAPI.clearStoppedContainers();
-    alert('Removed containers:\n' + removed.join('\n'));
   };
 
   const handleBuildRun = async () => {
@@ -128,13 +155,17 @@ export default function App() {
               setImageName={setImageName}
               output={output}
               setOutput={setOutput}
-              onClone={handleClone}
               onBuildRun={handleBuildRun}
               onList={handleList}
-              onClear={handleClear}
+              drawerOpen={drawerOpen}
             />
           ) : (
-            <SettingsPage darkMode={darkMode} setDarkMode={setDarkMode} />
+            <SettingsPage
+              darkMode={darkMode}
+              setDarkMode={setDarkMode}
+              collectionsPath={collectionsPath}
+              setCollectionsPath={setCollectionsPath}
+            />
           )}
         </Box>
       </Box>

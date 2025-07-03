@@ -16,8 +16,10 @@ describe('repo.cloneRepo', () => {
       'https://github.com/jsbrittain/workflow-runner-testworkflow',
       TEST_DIR
     );
-    expect(result).toContain('Cloned');
-    expect(fs.existsSync(path.join(TEST_DIR, '.git'))).toBe(true);
+    expect(result).toBeTypeOf('object');
+    expect(typeof result.path).toBe('string');
+    expect(result.path).toMatch(/jsbrittain[\\/]+workflow-runner-testworkflow$/);
+    expect(fs.existsSync(path.join(result.path, '.git'))).toBe(true);
     if (fs.existsSync(TEST_DIR)) fs.rmSync(TEST_DIR, { recursive: true, force: true });
   });
 });

@@ -1,26 +1,66 @@
-import fs from 'fs';
+import { getDefaultCollectionsDir } from './paths.js';
 import path from 'path';
+import fs from 'fs';
 import git from 'isomorphic-git';
-import http from 'isomorphic-git/http/node/index.js';
+import http from 'isomorphic-git/http/node/index.cjs';
 
-async function cloneRepo(repoUrl, targetDir) {
-  if (!fs.existsSync(targetDir)) {
-    fs.mkdirSync(targetDir, { recursive: true });
+export async function cloneRepo(repoRef) {
+  let owner, repo;
+
+  try {
+    // Try to parse as full URL
+    const url = new URL(repoRef);
+    if (!url.hostname.includes('github.com')) throw new Error();
+    [owner, repo] = url.pathname
+      .replace(/^\//, '')
+      .replace(/\.git$/, '')
+      .split('/');
+  } catch {
+    // Fallback to short form
+    if (!repoRef.includes('/') || repoRef.split('/').length !== 2) {
+      throw new Error('Invalid repo format. Use either "owner/repo" or full GitHub URL.');
+    }
+    [owner, repo] = repoRef.replace(/\\.git$/, '').split('/');
   }
 
-  const { pathname, hostname } = new URL(repoUrl);
-  const dir = path.resolve(targetDir);
+  const collectionsDir = getDefaultCollectionsDir();
+  const targetDir = path.join(collectionsDir, owner, repo);
+
+  fs.mkdirSync(targetDir, { recursive: true });
 
   await git.clone({
     fs,
     http,
-    dir,
-    url: `https://${hostname}${pathname}`,
+    dir: targetDir,
+    url: `https://github.com/${owner}/${repo}.git`,
     singleBranch: true,
     depth: 1
   });
 
-  return `Cloned ${repoUrl} to ${dir}`;
+  console.log('[cloneRepo] returning:', { name: `${owner}/${repo}`, path: targetDir });
+
+  return {
+    name: `${owner}/${repo}`,
+    path: targetDir
+  };
 }
 
-export { cloneRepo };
+export async function syncRepo({ path: repoPath }) {
+  try {
+    await git.pull({
+      fs,
+      http,
+      dir: repoPath,
+      singleBranch: true,
+      fastForwardOnly: true,
+      author: {
+        name: 'workflow-runner',
+        email: 'noreply@localhost'
+      }
+    });
+    return { status: 'ok' };
+  } catch (err) {
+    console.warn('sync failed:', err);
+    return { status: 'error', message: err.message };
+  }
+}

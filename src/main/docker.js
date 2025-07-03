@@ -40,3 +40,25 @@ async function clearStoppedContainers() {
 
 export { buildAndRunContainer, listContainers, clearStoppedContainers };
 export const _docker = docker;
+
+export async function runRepo({ name, path: repoPath }) {
+  const imageName = name.replace('/', '-');
+
+  const tarStream = await docker.buildImage(
+    { context: repoPath, src: ['Dockerfile'] },
+    { t: imageName }
+  );
+
+  await new Promise((resolve, reject) => {
+    docker.modem.followProgress(tarStream, (err, res) => (err ? reject(err) : resolve(res)));
+  });
+
+  const container = await docker.createContainer({
+    Image: imageName,
+    Cmd: ['echo', 'Running ' + name],
+    Tty: true
+  });
+
+  await container.start();
+  return container.id;
+}
