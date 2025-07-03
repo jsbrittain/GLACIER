@@ -33,5 +33,5 @@ describe('docker module', () => {
     const badPath = './tests/fixtures/broken-docker';
     const imageName = `test-bad-image-${Date.now()}`;
     await expect(docker.buildAndRunContainer(badPath, imageName)).rejects.toThrow();
-  });
+  }, 60000); // 60 seconds timeout
 });

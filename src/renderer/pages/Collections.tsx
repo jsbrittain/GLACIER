@@ -13,26 +13,18 @@ import {
 } from '@mui/material';
 import { API } from '../services/api.js';
 
-export default function WorkflowPage({
+export default function CollectionsPage({
   repoUrl,
   setRepoUrl,
   targetDir,
   drawerOpen,
   setTargetDir,
-  setFolderPath
+  setFolderPath,
+  addToLauncherQueue,
+  logMessage
 }) {
   const [repos, setRepos] = useState([]);
-  const [message, setMessage] = useState('');
-  const [severity, setSeverity] = useState('info');
   const [open, setOpen] = useState(false);
-  const [log, setLog] = useState([]);
-
-  const logMessage = (text, level = 'info') => {
-    setLog((prev) => [...prev.slice(-9), text]);
-    setMessage(text);
-    setSeverity(level);
-    setOpen(true);
-  };
 
   useEffect(() => {
     (async () => {
@@ -96,19 +88,7 @@ export default function WorkflowPage({
                   {repo.name}
                 </Typography>
                 <Stack direction="row" spacing={1}>
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={async () => {
-                      try {
-                        const id = await API.runRepo(repo);
-                        logMessage(`Container started: ${id}`, 'success');
-                      } catch (err) {
-                        console.error(err);
-                        logMessage('Run failed', 'error');
-                      }
-                    }}
-                  >
+                  <Button size="small" variant="contained" onClick={() => addToLauncherQueue(repo)}>
                     Run
                   </Button>
                   <Button
@@ -136,33 +116,6 @@ export default function WorkflowPage({
           ))}
         </Grid>
       </Stack>
-      <Paper
-        variant="outlined"
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: drawerOpen ? 240 : 56,
-          right: 0,
-          height: 120,
-          overflowY: 'auto',
-          bgcolor: 'background.default',
-          px: 2,
-          py: 1,
-          borderTop: '1px solid rgba(0,0,0,0.12)'
-        }}
-      >
-        <Typography variant="caption" color="text.secondary">
-          Log
-        </Typography>
-        <Box component="pre" sx={{ m: 0, fontSize: '0.75rem', whiteSpace: 'pre-wrap' }}>
-          {log.join('\n')}
-        </Box>
-      </Paper>
-      <Snackbar open={open} autoHideDuration={3000} onClose={() => setOpen(false)}>
-        <Alert onClose={() => setOpen(false)} severity={severity} sx={{ width: '100%' }}>
-          {message}
-        </Alert>
-      </Snackbar>
     </Container>
   );
 }

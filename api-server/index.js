@@ -1,5 +1,5 @@
 import express from 'express';
-import { cloneRepo, syncRepo } from '../src/main/repo.js';
+import { cloneRepo, syncRepo, getWorkflowParams } from '../src/main/repo.js';
 import { getCollections, getCollectionsPath, getDefaultCollectionsDir } from '../src/main/paths.js';
 import { runRepo } from '../src/main/docker.js';
 
@@ -116,6 +116,19 @@ app.post('/api/delete-repo', async (req, res) => {
     const { repoPath } = req.body;
     await deleteRepo(repoPath); // implement a function that deletes the folder
     res.json({ status: 'deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/workflow-params', async (req, res) => {
+  try {
+    const repoPath = req.query.repoPath;
+    if (!repoPath) {
+      return res.status(400).json({ error: 'Missing repoPath query parameter' });
+    }
+    const params = await getWorkflowParams(repoPath);
+    res.json(params);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

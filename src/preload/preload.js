@@ -10,5 +10,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setCollectionsPath: (path) => ipcRenderer.invoke('set-collections-path', path),
   getCollections: () => ipcRenderer.invoke('get-collections'),
   runRepo: (repo) => ipcRenderer.invoke('run-repo', repo),
-  syncRepo: (repo) => ipcRenderer.invoke('sync-repo', repo)
+  syncRepo: (repo) => ipcRenderer.invoke('sync-repo', repo),
+  getWorkflowParams: (repoPath) => ipcRenderer.invoke('get-workflow-params', repoPath)
 });

@@ -1,6 +1,7 @@
 import { getDefaultCollectionsDir } from './paths.js';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
+import yaml from 'js-yaml';
 import git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node/index.cjs';
 
@@ -68,5 +69,34 @@ export async function deleteRepo(repoPath) {
     await fs.rm(repoPath, { recursive: true, force: true });
   } catch (err) {
     throw new Error(`Failed to delete repo at ${repoPath}: ${err.message}`);
+  }
+}
+
+export function getWorkflowParams(repoPath) {
+  const yamlPath = path.join(repoPath, 'workflow.yaml');
+
+  try {
+    if (!fs.existsSync(yamlPath)) {
+      return {};
+    }
+
+    const fileContents = fs.readFileSync(yamlPath, 'utf8');
+    const data = yaml.load(fileContents);
+
+    // Assuming the YAML has a 'parameters' section as in your sample
+    if (data && typeof data === 'object' && data.parameters) {
+      const params = {};
+
+      for (const [key, val] of Object.entries(data.parameters)) {
+        params[key] = val.default !== undefined ? val.default : '';
+      }
+
+      return params;
+    }
+
+    return {};
+  } catch (err) {
+    console.error(`Failed to read workflow params from ${yamlPath}:`, err);
+    return {};
   }
 }

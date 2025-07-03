@@ -23,3 +23,41 @@ describe('repo.cloneRepo', () => {
     if (fs.existsSync(TEST_DIR)) fs.rmSync(TEST_DIR, { recursive: true, force: true });
   });
 });
+
+describe('getWorkflowParams', () => {
+  const testRepoDir = path.resolve(__dirname, 'fixtures/test-repo');
+
+  it('returns empty object if workflow.yaml is missing', () => {
+    const params = repo.getWorkflowParams(testRepoDir);
+    expect(params).toEqual({});
+  });
+
+  it('correctly parses parameters from workflow.yaml', () => {
+    // Setup: create test-repo/workflow.yaml with sample content
+    const yamlContent = `
+parameters:
+  input_path:
+    description: Input directory
+    default: /data/in
+    type: string
+  threads:
+    description: Number of threads
+    default: 4
+    type: integer
+`;
+    const yamlPath = path.join(testRepoDir, 'workflow.yaml');
+    fs.mkdirSync(testRepoDir, { recursive: true });
+    fs.writeFileSync(yamlPath, yamlContent, 'utf8');
+
+    const params = repo.getWorkflowParams(testRepoDir);
+
+    expect(params).toEqual({
+      input_path: '/data/in',
+      threads: 4
+    });
+
+    // Cleanup
+    fs.unlinkSync(yamlPath);
+    fs.rmdirSync(testRepoDir);
+  });
+});

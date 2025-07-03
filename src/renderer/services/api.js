@@ -14,7 +14,8 @@ const electronAPI = isElectron
       setCollectionsPath: (path) => window.electronAPI.setCollectionsPath(path),
       getContainerLogs: (containerId) => window.electronAPI.getContainerLogs(containerId),
       stopContainer: (containerId) => window.electronAPI.stopContainer(containerId),
-      deleteRepo: (repoPath) => window.electronAPI.deleteRepo(repoPath)
+      deleteRepo: (repoPath) => window.electronAPI.deleteRepo(repoPath),
+      getWorkflowParams: (repoPath) => window.electronAPI.getWorkflowParams(repoPath)
     }
   : null;
 
@@ -110,6 +111,12 @@ const httpAPI = {
       body: JSON.stringify({ repoPath })
     });
     if (!res.ok) throw new Error(`Failed to delete repo: ${res.statusText}`);
+    return res.json();
+  },
+
+  getWorkflowParams: async (repoPath) => {
+    const res = await fetch(`/api/workflow-params?repoPath=${encodeURIComponent(repoPath)}`);
+    if (!res.ok) throw new Error('Failed to fetch workflow params');
     return res.json();
   }
 };
