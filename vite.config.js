@@ -3,11 +3,11 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
+  root: 'src/renderer', // React app source folder
   plugins: [react()],
-  root: 'src/renderer',
   base: './',
   build: {
-    outDir: '../../public',
+    outDir: '../../dist/renderer', // Output folder for built frontend
     emptyOutDir: true
   },
   resolve: {

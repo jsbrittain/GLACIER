@@ -1,7 +1,11 @@
 import express from 'express';
-import { cloneRepo, syncRepo, getWorkflowParams } from '../src/main/repo.js';
-import { getCollections, getCollectionsPath, getDefaultCollectionsDir } from '../src/main/paths.js';
-import { runRepo } from '../src/main/docker.js';
+import { cloneRepo, syncRepo, getWorkflowParams } from '../dist/main/repo.js';
+import {
+  listCollections,
+  getCollectionsPath,
+  getDefaultCollectionsDir
+} from '../dist/main/paths.js';
+import { runRepo } from '../dist/main/docker.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,10 +15,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(express.json());
 
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, '../dist/renderer')));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
+  res.sendFile(path.join(__dirname, '../dist/renderer/index.html'));
 });
 
 app.post('/api/clone', async (req, res) => {
@@ -35,7 +39,7 @@ app.post('/api/run', async (req, res) => {
 
 app.post('/api/sync', async (req, res) => {
   try {
-    res.json(await syncRepo(req.body));
+    res.json(await syncRepo(req.body?.path));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -43,7 +47,7 @@ app.post('/api/sync', async (req, res) => {
 
 app.get('/api/collections', async (_, res) => {
   try {
-    res.json(await getCollectionsPath());
+    res.json(await listCollections());
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

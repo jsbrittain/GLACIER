@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "es2020",
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "allowJs": false,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/main/**/*", "src/preload/**/*", "src/types/isomorphic-git-http-node.d.ts"],
+  "exclude": ["node_modules", "dist"]
+}

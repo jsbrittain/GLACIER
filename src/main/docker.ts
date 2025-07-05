@@ -1,11 +1,13 @@
 import Docker from 'dockerode';
+import { Readable } from 'stream';
+import { Repo } from '../types.js';
 
 const isWindows = process.platform === 'win32';
 const docker = new Docker({
   socketPath: isWindows ? '//./pipe/docker_engine' : '/var/run/docker.sock'
 });
 
-async function buildAndRunContainer(folderPath, imageName) {
+async function buildAndRunContainer(folderPath: string, imageName: string) {
   const tarStream = await docker.buildImage(
     { context: folderPath, src: ['Dockerfile'] },
     { t: imageName }
@@ -41,7 +43,7 @@ async function clearStoppedContainers() {
 export { buildAndRunContainer, listContainers, clearStoppedContainers };
 export const _docker = docker;
 
-export async function runRepo({ name, path: repoPath }) {
+export async function runRepo({ name, path: repoPath }: Repo) {
   const imageName = name.replace('/', '-');
 
   const tarStream = await docker.buildImage(
@@ -63,18 +65,18 @@ export async function runRepo({ name, path: repoPath }) {
   return container.id;
 }
 
-export async function getContainerLogs(containerId) {
+export async function getContainerLogs(containerId: string) {
   const container = docker.getContainer(containerId);
-  const logStream = await container.logs({
+  const logStream = (await container.logs({
     follow: false,
     stdout: true,
     stderr: true,
     timestamps: false
-  });
+  })) as unknown as Readable;
 
   return new Promise((resolve, reject) => {
     let logs = '';
-    logStream.on('data', (chunk) => {
+    logStream.on('data', (chunk: Buffer) => {
       logs += chunk.toString();
     });
     logStream.on('end', () => resolve(logs));
@@ -82,12 +84,12 @@ export async function getContainerLogs(containerId) {
   });
 }
 
-export async function stopContainer(containerId) {
+export async function stopContainer(containerId: string) {
   const container = docker.getContainer(containerId);
   try {
     await container.stop();
   } catch (err) {
-    if (err.statusCode === 304) {
+    if ((err as any).statusCode === 304) {
       // container already stopped
       return;
     }

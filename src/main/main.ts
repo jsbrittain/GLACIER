@@ -1,7 +1,8 @@
 import { app, BrowserWindow } from 'electron';
-import path from 'path';
+import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { registerIpcHandlers } from './ipc-handlers.js';
+import * as fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,12 +14,16 @@ function createWindow() {
     width: 800,
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname, '../preload/preload.js'),
+      preload: path.join(__dirname, './preload.js'),
       contextIsolation: true,
       nodeIntegration: false
     }
   });
-  mainWindow.loadFile(path.join(__dirname, '../../public/index.html'));
+  const indexPath = path.join(__dirname, '../renderer/index.html');
+  mainWindow.loadFile(indexPath);
+  mainWindow.webContents.on('did-fail-load', () => {
+    console.error('Failed to load index.html');
+  });
 }
 
 app.whenReady().then(() => {

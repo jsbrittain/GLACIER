@@ -44,7 +44,7 @@ const httpAPI = {
     const res = await fetch('/api/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(repo)
+      body: JSON.stringify({ path: repo })
     });
     if (!res.ok) throw new Error(`Sync failed: ${res.statusText}`);
     return res.json();

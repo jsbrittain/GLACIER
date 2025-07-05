@@ -1,11 +1,13 @@
 {
   "name": "workflow-runner",
   "version": "0.1.0",
-  "main": "src/main/main.js",
+  "main": "dist/main/main.js",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build:backend": "tsc",
+    "build:frontend": "vite build",
+    "build": "npm run build:backend && npm run build:frontend",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -39,6 +41,8 @@
     }
   },
   "devDependencies": {
+    "@types/dockerode": "^3.3.42",
+    "@types/js-yaml": "^4.0.9",
     "@vitejs/plugin-react": "^4.6.0",
     "@vitest/coverage-v8": "^3.2.4",
     "electron": "^37.1.0",
@@ -58,10 +62,11 @@
     "@mui/icons-material": "^7.2.0",
     "@mui/material": "^7.2.0",
     "dockerode": "^4.0.7",
-    "electron-store": "^10.1.0",
+    "electron-store": "8.2.0",
     "isomorphic-git": "^1.32.1",
     "platformdirs": "^4.3.8-rc3",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "typescript": "^5.8.3"
   }
 }

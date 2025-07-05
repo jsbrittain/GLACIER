@@ -1,11 +1,19 @@
 import { getDefaultCollectionsDir } from './paths.js';
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 import yaml from 'js-yaml';
 import git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node/index.cjs';
 
-export async function cloneRepo(repoRef) {
+interface WorkflowData {
+  parameters?: Record<string, any>;
+}
+
+interface Params {
+  [key: string]: any;
+}
+
+export async function cloneRepo(repoRef: string) {
   let owner, repo;
 
   try {
@@ -44,12 +52,12 @@ export async function cloneRepo(repoRef) {
   };
 }
 
-export async function syncRepo({ path: repoPath }) {
+export async function syncRepo(path: string) {
   try {
     await git.pull({
       fs,
       http,
-      dir: repoPath,
+      dir: path,
       singleBranch: true,
       fastForwardOnly: true,
       author: {
@@ -58,21 +66,26 @@ export async function syncRepo({ path: repoPath }) {
       }
     });
     return { status: 'ok' };
-  } catch (err) {
-    console.warn('sync failed:', err);
-    return { status: 'error', message: err.message };
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      return { status: 'error', message: err.message };
+    }
+    return { status: 'error', message: String(err) };
   }
 }
 
-export async function deleteRepo(repoPath) {
+export async function deleteRepo(repoPath: string) {
   try {
-    await fs.rm(repoPath, { recursive: true, force: true });
-  } catch (err) {
-    throw new Error(`Failed to delete repo at ${repoPath}: ${err.message}`);
+    await fs.promises.rm(repoPath, { recursive: true, force: true });
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      throw new Error(`Failed to delete repo at ${repoPath}: ${err.message}`);
+    }
+    throw new Error(`Failed to delete repo at ${repoPath}: ${String(err)}`);
   }
 }
 
-export function getWorkflowParams(repoPath) {
+export function getWorkflowParams(repoPath: string) {
   const yamlPath = path.join(repoPath, 'workflow.yaml');
 
   try {
@@ -81,11 +94,11 @@ export function getWorkflowParams(repoPath) {
     }
 
     const fileContents = fs.readFileSync(yamlPath, 'utf8');
-    const data = yaml.load(fileContents);
+    const data = yaml.load(fileContents) as WorkflowData;
 
     // Assuming the YAML has a 'parameters' section as in your sample
     if (data && typeof data === 'object' && data.parameters) {
-      const params = {};
+      const params: Params = {};
 
       for (const [key, val] of Object.entries(data.parameters)) {
         params[key] = val.default !== undefined ? val.default : '';

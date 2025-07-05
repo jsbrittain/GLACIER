@@ -29,6 +29,7 @@ export default function CollectionsPage({
   useEffect(() => {
     (async () => {
       const list = await API.getCollections();
+      console.log('Fetched collections:', list);
       setRepos(list);
     })();
   }, []);
@@ -82,6 +83,7 @@ export default function CollectionsPage({
         <Typography variant="h6">Local Repositories</Typography>
         <Grid container spacing={2}>
           {repos.map((repo) => (
+            /* @ts-ignore */
             <Grid item xs={12} sm={6} md={4} key={repo.path}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="subtitle1" gutterBottom>
@@ -96,7 +98,7 @@ export default function CollectionsPage({
                     variant="outlined"
                     onClick={async () => {
                       try {
-                        const result = await API.syncRepo(repo);
+                        const result = await API.syncRepo(repo.path);
                         if (result?.status === 'ok') {
                           logMessage('Repo synced', 'success');
                         } else {
