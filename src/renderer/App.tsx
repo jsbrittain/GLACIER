@@ -193,19 +193,19 @@ export default function App() {
           }}
         >
           <List>
-            <ListItem button onClick={() => setView('collections')}>
+            <ListItem button id="menuCollections" onClick={() => setView('collections')}>
               <ListItemIcon>
                 <CollectionsIcon />
               </ListItemIcon>
               {drawerOpen && <ListItemText primary="Collections" />}
             </ListItem>
-            <ListItem button onClick={() => setView('launcher')}>
+            <ListItem button id="menuLauncher" onClick={() => setView('launcher')}>
               <ListItemIcon>
                 <LauncherIcon />
               </ListItemIcon>
               {drawerOpen && <ListItemText primary="Launcher" />}
             </ListItem>
-            <ListItem button onClick={() => setView('settings')}>
+            <ListItem button id="menuSettings" onClick={() => setView('settings')}>
               <ListItemIcon>
                 <SettingsIcon />
               </ListItemIcon>
@@ -221,14 +221,7 @@ export default function App() {
               setRepoUrl={setRepoUrl}
               targetDir={targetDir}
               setTargetDir={setTargetDir}
-              folderPath={folderPath}
               setFolderPath={setFolderPath}
-              imageName={imageName}
-              setImageName={setImageName}
-              output={output}
-              setOutput={setOutput}
-              onBuildRun={handleBuildRun}
-              onList={handleList}
               drawerOpen={drawerOpen}
               addToLauncherQueue={addToLauncherQueue}
               logMessage={logMessage}
@@ -240,7 +233,6 @@ export default function App() {
               selectedTab={selectedLauncherTab}
               setSelectedTab={setSelectedLauncherTab}
               onLaunch={handleLaunch}
-              logMessage={logMessage}
             />
           ) : (
             <SettingsPage
@@ -266,8 +258,20 @@ export default function App() {
             borderTop: '1px solid rgba(0,0,0,0.12)'
           }}
         >
-          <Box component="pre" sx={{ m: 0, fontSize: '0.75rem', whiteSpace: 'pre-wrap' }}>
-            {log.join('\n')}
+          <Box
+            id="logMessage"
+            component="pre"
+            sx={{ m: 0, fontSize: '0.75rem', whiteSpace: 'pre-wrap' }}
+          >
+            {log.map((line, index) => (
+              <Typography
+                key={index}
+                variant="body2"
+                color={severity === 'error' ? 'error.main' : 'text.primary'}
+              >
+                {line}
+              </Typography>
+            ))}
           </Box>
         </Paper>
         <Snackbar open={open} autoHideDuration={3000} onClose={() => setOpen(false)}>

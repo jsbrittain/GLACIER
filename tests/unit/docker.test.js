@@ -2,20 +2,13 @@ import os from 'os';
 import { describe, it, expect } from 'vitest';
 import * as docker from '../../src/main/docker.js';
 
-const isDockerSupported = os.platform() === 'linux'
-
-describe(isDockerSupported ? 'docker module' : 'docker module (skipped on non-Linux)', () => {
-  if (!isDockerSupported) {
-    it.skip('skipped due to unsupported platform', () => {})
-    return
-  }
-
+describe('docker module', () => {
   it('builds and starts a container from a minimal Dockerfile', async () => {
     const path = './tests/unit/fixtures/minimal-docker';
     const imageName = `test-image-${Date.now()}`;
     const id = await docker.buildAndRunContainer(path, imageName);
     expect(typeof id).toBe('string');
-  });
+  }, 60000); // 60 seconds timeout
 
   it('removes stopped containers', async () => {
     const container = await docker._docker.createContainer({

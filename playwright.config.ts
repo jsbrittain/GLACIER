@@ -9,7 +9,7 @@ export default defineConfig({
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:3030',
-    trace: 'on-first-retry',
+    trace: 'on-first-retry'
   },
 
   projects: [
@@ -18,36 +18,36 @@ export default defineConfig({
       use: {
         browserName: 'chromium',
         baseURL: 'http://localhost:3030',
-        ...devices['Desktop Chrome'],
-      },
+        ...devices['Desktop Chrome']
+      }
     },
     {
       name: 'Web (firefox)',
       use: {
         browserName: 'firefox',
         baseURL: 'http://localhost:3030',
-        ...devices['Desktop Firefox'],
-      },
+        ...devices['Desktop Firefox']
+      }
     },
     {
       name: 'Web (webkit)',
       use: {
         browserName: 'webkit',
         baseURL: 'http://localhost:3030',
-        ...devices['Desktop Safari'],
-      },
+        ...devices['Desktop Safari']
+      }
     },
     {
       name: 'Electron',
       use: {
         browserName: 'chromium',
-        ...devices['Desktop Chrome'],
-      },
-    },
+        ...devices['Desktop Chrome']
+      }
+    }
   ],
   webServer: {
     command: 'npm run server',
     url: 'http://localhost:3030',
-    reuseExistingServer: !process.env.CI,
-  },
+    reuseExistingServer: !process.env.CI
+  }
 });
