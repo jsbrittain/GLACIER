@@ -61,7 +61,7 @@ export async function syncRepo(path: string) {
       singleBranch: true,
       fastForwardOnly: true,
       author: {
-        name: 'workflow-runner',
+        name: 'IceFlow',
         email: 'noreply@localhost'
       }
     });
