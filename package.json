@@ -1,5 +1,5 @@
 {
-  "name": "workflow-runner",
+  "name": "IceFlow",
   "version": "0.1.0",
   "main": "dist/main/main.js",
   "type": "module",
@@ -19,8 +19,8 @@
   "license": "ISC",
   "description": "",
   "build": {
-    "appId": "com.example.workflowrunner",
-    "productName": "WorkflowRunner",
+    "appId": "com.kraemerlab.iceflow",
+    "productName": "IceFlow",
     "directories": {
       "buildResources": "assets",
       "output": "dist"

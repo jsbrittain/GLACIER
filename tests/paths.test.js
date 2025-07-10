@@ -8,9 +8,9 @@ describe('getDefaultCollectionsDir', () => {
     expect(typeof result).toBe('string');
   });
 
-  it('ends with /workflow-runner/collections', () => {
+  it('ends with /IceFlow/collections', () => {
     const path = getDefaultCollectionsDir();
-    expect(path).toMatch(/workflow-runner[\\/]+collections$/);
+    expect(path).toMatch(/IceFlow[\\/]+collections$/);
   });
 
   it('can be created if missing', () => {

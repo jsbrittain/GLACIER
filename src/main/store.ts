@@ -11,7 +11,7 @@ const store = new Store<StoreSchema>({
       default: ''
     }
   },
-  name: 'workflow-runner'
+  name: 'IceFlow'
 });
 
 export default store;

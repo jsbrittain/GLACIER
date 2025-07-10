@@ -5,7 +5,7 @@ import store from './store.js';
 import { Repo } from '../types.js';
 
 export function getDefaultCollectionsDir(): string {
-  return path.join(userDataDir('workflow-runner'), 'collections');
+  return path.join(userDataDir('IceFlow'), 'collections');
 }
 
 export function getCollectionsPath(): string {

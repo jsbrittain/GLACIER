@@ -1,4 +1,4 @@
-# Workflow Runner
+# IceFlow
 
 ## Quick start
 
