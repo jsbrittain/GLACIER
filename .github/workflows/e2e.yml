@@ -1,15 +1,14 @@
 name: End-to-end tests
+
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_call:
+  workflow_dispatch:
+
 jobs:
-  e2e:
+  e2e-tests:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     

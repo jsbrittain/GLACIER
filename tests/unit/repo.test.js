@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import * as repo from '../src/main/repo.js';
+import * as repo from '../../src/main/repo.js';
 
 const TEST_DIR = path.resolve('./tmp/test-clone');
 

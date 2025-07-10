@@ -1,9 +1,17 @@
+import os from 'os';
 import { describe, it, expect } from 'vitest';
-import * as docker from '../src/main/docker.js';
+import * as docker from '../../src/main/docker.js';
 
-describe('docker module', () => {
+const isDockerSupported = os.platform() === 'linux'
+
+describe(isDockerSupported ? 'docker module' : 'docker module (skipped on non-Linux)', () => {
+  if (!isDockerSupported) {
+    it.skip('skipped due to unsupported platform', () => {})
+    return
+  }
+
   it('builds and starts a container from a minimal Dockerfile', async () => {
-    const path = './tests/fixtures/minimal-docker';
+    const path = './tests/unit/fixtures/minimal-docker';
     const imageName = `test-image-${Date.now()}`;
     const id = await docker.buildAndRunContainer(path, imageName);
     expect(typeof id).toBe('string');
@@ -30,7 +38,7 @@ describe('docker module', () => {
   });
 
   it('throws when Docker build fails', async () => {
-    const badPath = './tests/fixtures/broken-docker';
+    const badPath = './tests/unit/fixtures/broken-docker';
     const imageName = `test-bad-image-${Date.now()}`;
     await expect(docker.buildAndRunContainer(badPath, imageName)).rejects.toThrow();
   }, 60000); // 60 seconds timeout
