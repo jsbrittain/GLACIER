@@ -1,5 +1,9 @@
 # IceFlow
 
+[![IceFlow](https://github.com/kraemer-lab/IceFlow/actions/workflows/IceFlow.yml/badge.svg)](https://github.com/kraemer-lab/IceFlow/actions/workflows/IceFlow.yml)
+
+**I**nteractive **C**ontrol **E**nvironment **F**or **L**ab **O**rientated **W**orkflows
+
 ## Quick start
 
 To build and run the electron app:
