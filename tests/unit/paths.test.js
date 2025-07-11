@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getDefaultCollectionsDir } from '../src/main/paths.js';
+import { getDefaultCollectionsDir } from '../../src/main/paths.js';
 import fs from 'fs';
 
 describe('getDefaultCollectionsDir', () => {

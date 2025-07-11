@@ -1,13 +1,14 @@
+import os from 'os';
 import { describe, it, expect } from 'vitest';
-import * as docker from '../src/main/docker.js';
+import * as docker from '../../src/main/docker.js';
 
 describe('docker module', () => {
   it('builds and starts a container from a minimal Dockerfile', async () => {
-    const path = './tests/fixtures/minimal-docker';
+    const path = './tests/unit/fixtures/minimal-docker';
     const imageName = `test-image-${Date.now()}`;
     const id = await docker.buildAndRunContainer(path, imageName);
     expect(typeof id).toBe('string');
-  });
+  }, 60000); // 60 seconds timeout
 
   it('removes stopped containers', async () => {
     const container = await docker._docker.createContainer({
@@ -30,7 +31,7 @@ describe('docker module', () => {
   });
 
   it('throws when Docker build fails', async () => {
-    const badPath = './tests/fixtures/broken-docker';
+    const badPath = './tests/unit/fixtures/broken-docker';
     const imageName = `test-bad-image-${Date.now()}`;
     await expect(docker.buildAndRunContainer(badPath, imageName)).rejects.toThrow();
   }, 60000); // 60 seconds timeout

@@ -1,0 +1,41 @@
+name: Unit tests
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run unit tests
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test 2>&1 | tee coverage.txt
+          cat coverage.txt
+      - name: Display coverage report in Summary
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        run: |
+          echo '### Coverage Report' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat coverage.txt | awk '/^-{10,}\|/{p=1} p' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        with:
+          name: coverage-report
+          path: coverage/

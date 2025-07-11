@@ -1,0 +1,22 @@
+name: IceFlow
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+
+jobs:
+  unit-tests:
+    uses: ./.github/workflows/unit.yml
+  e2e-tests:
+    uses: ./.github/workflows/e2e.yml

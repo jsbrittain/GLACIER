@@ -64,12 +64,18 @@ export default function CollectionsPage({
           <Stack direction="row" spacing={2} alignItems="center">
             <Typography>Repo:</Typography>
             <TextField
+              id="collections-repo-url"
               value={repoUrl}
               onChange={(e) => setRepoUrl(e.target.value)}
               size="small"
               fullWidth
             />
-            <Button variant="contained" onClick={handleClone} size="small">
+            <Button
+              id="collections-clone-button"
+              variant="contained"
+              onClick={handleClone}
+              size="small"
+            >
               Clone
             </Button>
           </Stack>
@@ -90,10 +96,16 @@ export default function CollectionsPage({
                   {repo.name}
                 </Typography>
                 <Stack direction="row" spacing={1}>
-                  <Button size="small" variant="contained" onClick={() => addToLauncherQueue(repo)}>
+                  <Button
+                    id={`collections-run-${repo.name}`}
+                    size="small"
+                    variant="contained"
+                    onClick={() => addToLauncherQueue(repo)}
+                  >
                     Run
                   </Button>
                   <Button
+                    id={`collections-sync-${repo.name}`}
                     size="small"
                     variant="outlined"
                     onClick={async () => {
