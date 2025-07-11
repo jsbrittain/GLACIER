@@ -16,7 +16,7 @@ function TabPanel({ children, value, index }) {
   return value === index ? <Box sx={{ p: 2, flexGrow: 1 }}>{children}</Box> : null;
 }
 
-export default function LauncherPage({
+export default function RunsPage({
   launcherQueue,
   setLauncherQueue,
   selectedTab,
@@ -42,7 +42,7 @@ export default function LauncherPage({
   return (
     <Container>
       <Typography variant="h5" gutterBottom>
-        Launcher
+        Runs
       </Typography>
 
       <Box sx={{ width: '100%' }}>

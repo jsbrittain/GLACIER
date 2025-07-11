@@ -26,7 +26,7 @@ export default function SettingsPage({
       />
 
       <TextField
-        label="Collections Directory"
+        label="Library folder"
         fullWidth
         value={collectionsPath}
         onChange={handlePathChange}

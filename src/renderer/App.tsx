@@ -19,18 +19,22 @@ import {
   Alert
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import CollectionsIcon from '@mui/icons-material/Hub';
-import LauncherIcon from '@mui/icons-material/PlayArrow';
+import HubIcon from '@mui/icons-material/Hub';
+import LibraryIcon from '@mui/icons-material/Apps';
+import RunsIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ListItemIcon from '@mui/material/ListItemIcon';
 
-import CollectionsPage from './pages/Collections';
+import HubPage from './pages/Hub';
+import LibraryPage from './pages/Library';
+import RunsPage from './pages/Runs';
 import SettingsPage from './pages/Settings';
-import LauncherPage from './pages/Launcher';
 import { API } from './services/api.js';
 
 const defaultRepoUrl = 'jsbrittain/workflow-runner-testworkflow';
 const defaultImageName = 'testworkflow';
+
+type navbar_page = 'hub' | 'library' | 'runs' | 'settings';
 
 function computeTargetDir(repoUrl, basePath) {
   try {
@@ -58,7 +62,7 @@ export default function App() {
   const [imageName, setImageName] = useState(defaultImageName);
   const [output, setOutput] = useState('');
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [view, setView] = useState('collections');
+  const [view, setView] = useState<navbar_page>('hub');
   const [darkMode, setDarkMode] = useState(false);
   const [launcherQueue, setLauncherQueue] = useState([]);
   const [selectedLauncherTab, setSelectedLauncherTab] = useState(0);
@@ -128,7 +132,7 @@ export default function App() {
       setLauncherQueue((prev) => {
         const newQueue = [...prev, { repo, params, name: generateUniqueName(repo.name, prev) }];
         setSelectedLauncherTab(newQueue.length - 1);
-        setView('launcher');
+        setView('runs');
         return newQueue;
       });
     } catch (err) {
@@ -136,7 +140,7 @@ export default function App() {
       setLauncherQueue((prev) => {
         const newQueue = [...prev, { repo, params: {}, name: generateUniqueName(repo.name, prev) }];
         setSelectedLauncherTab(newQueue.length - 1);
-        setView('launcher');
+        setView('runs');
         return newQueue;
       });
     }
@@ -193,19 +197,25 @@ export default function App() {
           }}
         >
           <List>
-            <ListItem button id="menuCollections" onClick={() => setView('collections')}>
+            <ListItem button id="sidebar-hub-button" onClick={() => setView('hub')}>
               <ListItemIcon>
-                <CollectionsIcon />
+                <HubIcon />
               </ListItemIcon>
-              {drawerOpen && <ListItemText primary="Collections" />}
+              {drawerOpen && <ListItemText primary="Hub" />}
             </ListItem>
-            <ListItem button id="menuLauncher" onClick={() => setView('launcher')}>
+            <ListItem button id="sidebar-library-button" onClick={() => setView('library')}>
               <ListItemIcon>
-                <LauncherIcon />
+                <LibraryIcon />
               </ListItemIcon>
-              {drawerOpen && <ListItemText primary="Launcher" />}
+              {drawerOpen && <ListItemText primary="Library" />}
             </ListItem>
-            <ListItem button id="menuSettings" onClick={() => setView('settings')}>
+            <ListItem button id="sidebar-runs-button" onClick={() => setView('runs')}>
+              <ListItemIcon>
+                <RunsIcon />
+              </ListItemIcon>
+              {drawerOpen && <ListItemText primary="Runs" />}
+            </ListItem>
+            <ListItem button id="sidebar-settings-button" onClick={() => setView('settings')}>
               <ListItemIcon>
                 <SettingsIcon />
               </ListItemIcon>
@@ -215,8 +225,8 @@ export default function App() {
         </Drawer>
 
         <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8 }}>
-          {view === 'collections' ? (
-            <CollectionsPage
+          {view === 'hub' ? (
+            <HubPage
               repoUrl={repoUrl}
               setRepoUrl={setRepoUrl}
               targetDir={targetDir}
@@ -226,22 +236,33 @@ export default function App() {
               addToLauncherQueue={addToLauncherQueue}
               logMessage={logMessage}
             />
-          ) : view === 'launcher' ? (
-            <LauncherPage
+          ) : view === 'library' ? (
+            <LibraryPage
+              repoUrl={repoUrl}
+              setRepoUrl={setRepoUrl}
+              targetDir={targetDir}
+              setTargetDir={setTargetDir}
+              setFolderPath={setFolderPath}
+              drawerOpen={drawerOpen}
+              addToLauncherQueue={addToLauncherQueue}
+              logMessage={logMessage}
+            />
+          ) : view === 'runs' ? (
+            <RunsPage
               launcherQueue={launcherQueue}
               setLauncherQueue={setLauncherQueue}
               selectedTab={selectedLauncherTab}
               setSelectedTab={setSelectedLauncherTab}
               onLaunch={handleLaunch}
             />
-          ) : (
+          ) : view === 'settings' ? (
             <SettingsPage
               darkMode={darkMode}
               setDarkMode={setDarkMode}
               collectionsPath={collectionsPath}
               setCollectionsPath={setCollectionsPath}
             />
-          )}
+          ) : null}
         </Box>
         <Paper
           variant="outlined"
