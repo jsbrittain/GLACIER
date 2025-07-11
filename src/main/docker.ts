@@ -6,7 +6,7 @@ import { Readable, Duplex } from 'stream';
 import { promises as fs } from 'fs';
 
 const isWindows = process.platform === 'win32';
-const docker = new Docker();
+export const docker = new Docker();
 
 export async function buildAndRunContainer(folderPath: string, imageName: string) {
   const tarStream = await docker.buildImage(
@@ -124,7 +124,6 @@ export async function runRepo_Nextflow(repoPath: string, name: string) {
   (stream as Duplex).destroy();
 
   console.log('Nextflow run complete');
-  process.exit(result.StatusCode);
 
   await container.start();
   return container.id;

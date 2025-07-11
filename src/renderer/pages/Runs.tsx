@@ -11,6 +11,15 @@ import {
   Button,
   Alert
 } from '@mui/material';
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemAvatar from '@mui/material/ListItemAvatar';
+import Avatar from '@mui/material/Avatar';
+import NotStartedIcon from '@mui/icons-material/NotStarted';
+import DeleteIcon from '@mui/icons-material/Delete';
+import IconButton from '@mui/material/IconButton';
 
 function TabPanel({ children, value, index }) {
   return value === index ? <Box sx={{ p: 2, flexGrow: 1 }}>{children}</Box> : null;
@@ -21,7 +30,9 @@ export default function RunsPage({
   setLauncherQueue,
   selectedTab,
   setSelectedTab,
-  onLaunch
+  onLaunch,
+  item,
+  setItem
 }) {
   const handleTabChange = (event, newIndex) => {
     setSelectedTab(newIndex);
@@ -41,43 +52,40 @@ export default function RunsPage({
 
   return (
     <Container>
-      <Typography variant="h5" gutterBottom>
-        Runs
-      </Typography>
+      {item === '' ? (
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="h5" gutterBottom>
+            Runs
+          </Typography>
 
-      <Box sx={{ width: '100%' }}>
-        <Tabs
-          orientation="horizontal"
-          value={selectedTab}
-          onChange={handleTabChange}
-          variant="standard"
-          sx={{
-            '& .MuiTab-root': {
-              backgroundColor: 'action.hover',
-              borderRadius: 1,
-              padding: '6px 12px',
-              marginRight: 1,
-              '&.Mui-selected': {
-                backgroundColor: 'primary.main',
-                color: 'primary.contrastText',
-                fontWeight: 'bold'
-              },
-              '&:hover': {
-                backgroundColor: 'action.selected'
-              }
-            },
-            borderBottom: 'none'
-          }}
-        >
-          {launcherQueue.map(({ name }, idx) => (
-            <Tab key={name} label={name} />
-          ))}
-        </Tabs>
-
-        {launcherQueue.map(({ repo, params, name }, idx) => (
-          <TabPanel key={name} value={selectedTab} index={idx}>
+          <List>
+            {launcherQueue.map(({ repo, params, name }, idx) => (
+              <Paper key={idx} elevation={2} sx={{ mb: 2, p: 1 }}>
+                <ListItemButton
+                  onClick={() => {
+                    setItem(name);
+                    setSelectedTab(idx);
+                  }}
+                >
+                  <ListItemAvatar>
+                    <Avatar>
+                      <NotStartedIcon />
+                    </Avatar>
+                  </ListItemAvatar>
+                  <ListItemText primary={name} secondary={repo.name} />
+                </ListItemButton>
+              </Paper>
+            ))}
+          </List>
+        </Box>
+      ) : (
+        launcherQueue
+          .filter(({ name }) => name === item)
+          .map(({ repo, params, name }, idx) => (
             <Paper variant="outlined" sx={{ p: 2, height: '100%', boxSizing: 'border-box' }}>
-              <Typography variant="h6">{name}</Typography>
+              <Typography variant="h6">
+                [{name}] {repo.name}
+              </Typography>
               <Alert severity="warning">Parameters are not currently passed to the workflow.</Alert>
               <Stack spacing={2} sx={{ mt: 1 }}>
                 {Object.entries(params).map(([key, val]) => (
@@ -100,9 +108,8 @@ export default function RunsPage({
                 </Button>
               </Stack>
             </Paper>
-          </TabPanel>
-        ))}
-      </Box>
+          ))
+      )}
     </Container>
   );
 }

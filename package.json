@@ -71,6 +71,7 @@
     "platformdirs": "^4.3.8-rc3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "unique-names-generator": "^4.7.1"
   }
 }

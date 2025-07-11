@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator';
 import { CssBaseline } from '@mui/material';
 import {
   AppBar,
@@ -70,6 +71,7 @@ export default function App() {
   const [severity, setSeverity] = useState('info');
   const [message, setMessage] = useState('');
   const [open, setOpen] = useState(false);
+  const [item, setItem] = useState('');
 
   const theme = useMemo(
     () =>
@@ -115,14 +117,15 @@ export default function App() {
   };
 
   function generateUniqueName(baseName, queue) {
-    let newName = baseName;
-    let counter = 1;
+    let newName = '';
     const existingNames = new Set(queue.map((item) => item.name));
-
-    while (existingNames.has(newName)) {
-      newName = `${baseName}-${counter}`;
-      counter += 1;
-    }
+    do {
+      newName = uniqueNamesGenerator({
+        dictionaries: [adjectives, animals],
+        separator: '-',
+        length: 2
+      });
+    } while (existingNames.has(newName));
     return newName;
   }
 
@@ -174,7 +177,7 @@ export default function App() {
               <MenuIcon />
             </IconButton>
             <Typography variant="h6" noWrap component="div" sx={{ ml: 1 }}>
-              Workflow Runner
+              IceFlow
             </Typography>
           </Toolbar>
         </AppBar>
@@ -209,7 +212,14 @@ export default function App() {
               </ListItemIcon>
               {drawerOpen && <ListItemText primary="Library" />}
             </ListItem>
-            <ListItem button id="sidebar-runs-button" onClick={() => setView('runs')}>
+            <ListItem
+              button
+              id="sidebar-runs-button"
+              onClick={() => {
+                setItem('');
+                setView('runs');
+              }}
+            >
               <ListItemIcon>
                 <RunsIcon />
               </ListItemIcon>
@@ -254,6 +264,8 @@ export default function App() {
               selectedTab={selectedLauncherTab}
               setSelectedTab={setSelectedLauncherTab}
               onLaunch={handleLaunch}
+              item={item}
+              setItem={setItem}
             />
           ) : view === 'settings' ? (
             <SettingsPage
