@@ -1,12 +1,12 @@
+import * as os from 'os';
+import * as path from 'path';
 import Docker from 'dockerode';
-import { Readable } from 'stream';
 import { Repo } from '../types.js';
+import { Readable, Duplex } from 'stream';
 import { promises as fs } from 'fs';
 
 const isWindows = process.platform === 'win32';
-const docker = new Docker({
-  socketPath: isWindows ? '//./pipe/docker_engine' : '/var/run/docker.sock'
-});
+const docker = new Docker();
 
 export async function buildAndRunContainer(folderPath: string, imageName: string) {
   const tarStream = await docker.buildImage(
@@ -41,33 +41,90 @@ export async function clearStoppedContainers() {
   return results;
 }
 
-export const _docker = docker;
+function toDockerPath(p: string) {
+  if (os.platform() === 'win32') {
+    const resolved = path.resolve(p);
+    return '/' + resolved.replace(/\\/g, '/').replace(/^([A-Za-z]):/, (_, d) => d.toLowerCase());
+  }
+  return path.resolve(p);
+}
 
 export async function runRepo_Nextflow(repoPath: string, name: string) {
-  /* Run nextflow using Dockerfile */
-
-  const imageName = name.replace('/', '-');
+  const dockerPath = toDockerPath(repoPath);
   const platform = 'linux/amd64';
 
-  const tarStream = await docker.buildImage(
-    { context: repoPath, src: ['Dockerfile'] },
-    { t: imageName, platform: platform }
-  );
-
+  console.log(`Building Docker image "nextflow-conda"...`);
   await new Promise((resolve, reject) => {
-    docker.modem.followProgress(tarStream, (err, res) => (err ? reject(err) : resolve(res)));
+    docker.buildImage(
+      {
+        context: repoPath,
+        src: ['Dockerfile']
+      },
+      { t: 'nextflow-conda', platform: platform },
+      (err, output) => {
+        if (err) return reject(err);
+        if (!output) return reject(new Error('No output from Docker build'));
+        output.pipe(process.stdout);
+        output.on('end', resolve);
+      }
+    );
   });
+
+  const binds = [
+    '/tmp:/tmp',
+    `${dockerPath}:${dockerPath}`,
+    '/var/run/docker.sock:/var/run/docker.sock'
+  ];
+
+  console.log(`Running Nextflow in container from: ${dockerPath}`);
 
   const container = await docker.createContainer({
-    Image: imageName,
+    Image: 'nextflow-conda',
     Tty: true,
-    Volumes: {
-      '/var/run/docker.sock': {},
-      repoPath: {},
-      '/tmp': {}
+    OpenStdin: true,
+    AttachStdout: true,
+    AttachStderr: true,
+    HostConfig: {
+      Binds: binds
     },
-    WorkingDir: repoPath
+    WorkingDir: dockerPath,
+    Cmd: ['nextflow', 'run', 'main.nf'],
+    platform: platform
   });
+
+  const stream = await container.attach({
+    stream: true,
+    stdout: true,
+    stderr: true,
+    stdin: true
+  });
+
+  stream.pipe(process.stdout);
+
+  await container.start();
+
+  // Handle SIGINT (Ctrl+C)
+  process.on('SIGINT', async () => {
+    console.log('\nInterrupted — stopping container...');
+    try {
+      await container.stop({ t: 5 });
+      await container.remove();
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error('Failed to stop/remove container:', e.message);
+      } else {
+        console.error('Failed to stop/remove container:', e);
+      }
+    }
+    process.exit(1);
+  });
+
+  const result = await container.wait();
+
+  (stream as Duplex).destroy();
+
+  console.log('Nextflow run complete');
+  process.exit(result.StatusCode);
 
   await container.start();
   return container.id;
