@@ -1,13 +1,14 @@
+import * as os from 'os';
+import * as path from 'path';
 import Docker from 'dockerode';
-import { Readable } from 'stream';
 import { Repo } from '../types.js';
+import { Readable, Duplex } from 'stream';
+import { promises as fs } from 'fs';
 
 const isWindows = process.platform === 'win32';
-const docker = new Docker({
-  socketPath: isWindows ? '//./pipe/docker_engine' : '/var/run/docker.sock'
-});
+export const docker = new Docker();
 
-async function buildAndRunContainer(folderPath: string, imageName: string) {
+export async function buildAndRunContainer(folderPath: string, imageName: string) {
   const tarStream = await docker.buildImage(
     { context: folderPath, src: ['Dockerfile'] },
     { t: imageName }
@@ -24,11 +25,11 @@ async function buildAndRunContainer(folderPath: string, imageName: string) {
   return container.id;
 }
 
-async function listContainers() {
+export async function listContainers() {
   return await docker.listContainers();
 }
 
-async function clearStoppedContainers() {
+export async function clearStoppedContainers() {
   const containers = await docker.listContainers({ all: true });
   const stopped = containers.filter((c) => c.State !== 'running');
   const results = [];
@@ -40,10 +41,95 @@ async function clearStoppedContainers() {
   return results;
 }
 
-export { buildAndRunContainer, listContainers, clearStoppedContainers };
-export const _docker = docker;
+function toDockerPath(p: string) {
+  if (os.platform() === 'win32') {
+    const resolved = path.resolve(p);
+    return '/' + resolved.replace(/\\/g, '/').replace(/^([A-Za-z]):/, (_, d) => d.toLowerCase());
+  }
+  return path.resolve(p);
+}
 
-export async function runRepo({ name, path: repoPath }: Repo) {
+export async function runRepo_Nextflow(repoPath: string, name: string) {
+  const dockerPath = toDockerPath(repoPath);
+  const platform = 'linux/amd64';
+
+  console.log(`Building Docker image "nextflow-conda"...`);
+  await new Promise((resolve, reject) => {
+    docker.buildImage(
+      {
+        context: repoPath,
+        src: ['Dockerfile']
+      },
+      { t: 'nextflow-conda', platform: platform },
+      (err, output) => {
+        if (err) return reject(err);
+        if (!output) return reject(new Error('No output from Docker build'));
+        output.pipe(process.stdout);
+        output.on('end', resolve);
+      }
+    );
+  });
+
+  const binds = [
+    '/tmp:/tmp',
+    `${dockerPath}:${dockerPath}`,
+    '/var/run/docker.sock:/var/run/docker.sock'
+  ];
+
+  console.log(`Running Nextflow in container from: ${dockerPath}`);
+
+  const container = await docker.createContainer({
+    Image: 'nextflow-conda',
+    Tty: true,
+    OpenStdin: true,
+    AttachStdout: true,
+    AttachStderr: true,
+    HostConfig: {
+      Binds: binds
+    },
+    WorkingDir: dockerPath,
+    Cmd: ['nextflow', 'run', 'main.nf'],
+    platform: platform
+  });
+
+  const stream = await container.attach({
+    stream: true,
+    stdout: true,
+    stderr: true,
+    stdin: true
+  });
+
+  stream.pipe(process.stdout);
+
+  await container.start();
+
+  // Handle SIGINT (Ctrl+C)
+  process.on('SIGINT', async () => {
+    console.log('\nInterrupted — stopping container...');
+    try {
+      await container.stop({ t: 5 });
+      await container.remove();
+    } catch (e) {
+      if (e instanceof Error) {
+        console.error('Failed to stop/remove container:', e.message);
+      } else {
+        console.error('Failed to stop/remove container:', e);
+      }
+    }
+    process.exit(1);
+  });
+
+  const result = await container.wait();
+
+  (stream as Duplex).destroy();
+
+  console.log('Nextflow run complete');
+
+  await container.start();
+  return container.id;
+}
+
+export async function runRepo_Docker(repoPath: string, name: string) {
   const imageName = name.replace('/', '-');
 
   const tarStream = await docker.buildImage(
@@ -63,6 +149,32 @@ export async function runRepo({ name, path: repoPath }: Repo) {
 
   await container.start();
   return container.id;
+}
+
+export async function runRepo({ name, path: repoPath }: Repo) {
+  if (!repoPath || !(await fs.stat(repoPath)).isDirectory()) {
+    throw new Error(`Invalid repository path: ${repoPath}`);
+  }
+
+  // Identify repository type (nextflow, docker, etc.)
+  const nextflowPAth = `${repoPath}/nextflow.config`;
+  const dockerfilePath = `${repoPath}/Dockerfile`;
+  const nextflowExists = await fs
+    .stat(nextflowPAth)
+    .then(() => true)
+    .catch(() => false);
+  const dockerExists = await fs
+    .stat(dockerfilePath)
+    .then(() => true)
+    .catch(() => false);
+
+  if (nextflowExists) {
+    return runRepo_Nextflow(repoPath, name);
+  } else if (dockerExists) {
+    return runRepo_Docker(repoPath, name);
+  } else {
+    throw new Error(`Unsupported repository type in ${repoPath}`);
+  }
 }
 
 export async function getContainerLogs(containerId: string) {

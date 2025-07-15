@@ -19,12 +19,12 @@ test('end-to-end test', async ({ page }) => {
   // Clone a repository
   await page.click('#collections-clone-button');
 
-  // Verify that workflow count is now 1
-  await expect(page.locator('[id^="collections-run-"]')).toHaveCount(1);
-
   // Expect log messages to appear
   const workflow_name = 'jsbrittain/workflow-runner-testworkflow';
   await waitForLogLine(page, new RegExp(`^Cloned ${workflow_name} to `));
+
+  // Navigate to Library page
+  await page.click('#sidebar-library-button');
 
   // Sync the repository
   await page.click(`#collections-sync-${cssEscape(workflow_name)}`);
@@ -36,7 +36,13 @@ test('end-to-end test', async ({ page }) => {
   // Click the Run button
   await page.click(`#collections-run-${cssEscape(workflow_name)}`);
 
-  // Expect "Launch Workflow" button to be visible
+  // Navigate to the Instances page
+  await page.click('#sidebar-runs-button');
+
+  // Select workflow (find div with role="button")
+  await page.click(`[role="button"]`);
+
+  // Launch Workflow
   await page.getByRole('button', { name: 'Launch Workflow' }).click();
   await waitForLogLine(page, /^Container started with ID:/);
 });

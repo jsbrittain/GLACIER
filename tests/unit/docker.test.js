@@ -11,7 +11,7 @@ describe('docker module', () => {
   }, 60000); // 60 seconds timeout
 
   it('removes stopped containers', async () => {
-    const container = await docker._docker.createContainer({
+    const container = await docker.docker.createContainer({
       Image: 'alpine',
       Cmd: ['true'], // container exits immediately
       Tty: false
