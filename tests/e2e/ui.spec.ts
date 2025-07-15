@@ -36,6 +36,12 @@ test('end-to-end test', async ({ page }) => {
   // Click the Run button
   await page.click(`#collections-run-${cssEscape(workflow_name)}`);
 
+  // Navigate to the Instances page
+  await page.click('#sidebar-runs-button');
+
+  // Select workflow (find div with role="button")
+  await page.click(`[role="button"]`);
+
   // Launch Workflow
   await page.getByRole('button', { name: 'Launch Workflow' }).click();
   await waitForLogLine(page, /^Container started with ID:/);
