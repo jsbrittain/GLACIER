@@ -27,7 +27,8 @@ export function listCollections(): Repo[] {
     for (const repo of repoDirs) {
       const repoPath = path.join(ownerPath, repo);
       if (fs.statSync(repoPath).isDirectory()) {
-        repos.push({ name: `${owner}/${repo}`, path: repoPath });
+        const url = `${owner}/${repo}`;
+        repos.push({ name: url, path: repoPath, url: url });
       }
     }
   }

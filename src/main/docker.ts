@@ -2,6 +2,7 @@ import * as os from 'os';
 import * as path from 'path';
 import Docker from 'dockerode';
 import { Repo } from '../types.js';
+import { spawn } from 'child_process';
 import { Readable, Duplex } from 'stream';
 import { promises as fs } from 'fs';
 
@@ -49,7 +50,7 @@ function toDockerPath(p: string) {
   return path.resolve(p);
 }
 
-export async function runRepo_Nextflow(repoPath: string, name: string) {
+export async function runRepo_NextflowDocker(repoPath: string, name: string) {
   const dockerPath = toDockerPath(repoPath);
   const platform = 'linux/amd64';
 
@@ -127,6 +128,41 @@ export async function runRepo_Nextflow(repoPath: string, name: string) {
 
   await container.start();
   return container.id;
+}
+
+export async function runRepo_Nextflow(repoPath: string, name: string) {
+  // Launch nextflow natively on host system
+
+  // TODO:
+  //   - Create a separate instance folder
+  //   - Dump parameters to file
+  //   - Launch nextflow with folder/params redirect
+  //   - Capture logs
+  //
+  // Not all of this needs to be handled in this function, although it does make sense
+  // that we create the instance when the workflow is ready to run (after params are set)
+
+  const workDir = path.resolve(os.tmpdir(), 'nextflow-work', name.replace('/', '-'));
+
+  const cmd = spawn('nextflow', ['run', path.resolve(repoPath, 'main.nf'), '-work-dir', workDir], {
+    cwd: workDir,
+    stdio: 'pipe'
+  });
+
+  let output = '';
+  cmd.stdout.on('data', (data: any) => {
+    output += data.toString();
+    process.stdout.write(data);
+  });
+
+  cmd.stderr.on('data', (data: any) => {
+    output += data.toString();
+    process.stderr.write(data);
+  });
+
+  cmd.on('close', (code) => {
+    console.log(`Nextflow process exited with code ${code}`);
+  });
 }
 
 export async function runRepo_Docker(repoPath: string, name: string) {

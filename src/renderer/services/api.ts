@@ -15,7 +15,8 @@ const electronAPI = isElectron
       getContainerLogs: (containerId) => window.electronAPI.getContainerLogs(containerId),
       stopContainer: (containerId) => window.electronAPI.stopContainer(containerId),
       deleteRepo: (repoPath) => window.electronAPI.deleteRepo(repoPath),
-      getWorkflowParams: (repoPath) => window.electronAPI.getWorkflowParams(repoPath)
+      getWorkflowParams: (repoPath) => window.electronAPI.getWorkflowParams(repoPath),
+      getWorkflowSchema: (repoPath) => window.electronAPI.getWorkflowSchema(repoPath)
     }
   : null;
 

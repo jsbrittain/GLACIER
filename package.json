@@ -63,8 +63,12 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@jsonforms/core": "^3.7.0-alpha.1",
+    "@jsonforms/material-renderers": "^3.7.0-alpha.1",
+    "@jsonforms/react": "^3.7.0-alpha.1",
     "@mui/icons-material": "^7.2.0",
     "@mui/material": "^7.2.0",
+    "ajv": "^8.17.1",
     "dockerode": "^4.0.7",
     "electron-store": "8.2.0",
     "isomorphic-git": "^1.32.1",

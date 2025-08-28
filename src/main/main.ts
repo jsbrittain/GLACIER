@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { registerIpcHandlers } from './ipc-handlers.js';
@@ -7,10 +7,10 @@ import * as fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let mainWindow;
+let win: BrowserWindow;
 
 function createWindow() {
-  mainWindow = new BrowserWindow({
+  win = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
@@ -20,8 +20,8 @@ function createWindow() {
     }
   });
   const indexPath = path.join(__dirname, '../renderer/index.html');
-  mainWindow.loadFile(indexPath);
-  mainWindow.webContents.on('did-fail-load', () => {
+  win.loadFile(indexPath);
+  win.webContents.on('did-fail-load', () => {
     console.error('Failed to load index.html');
   });
 }
@@ -37,4 +37,19 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+ipcMain.handle('pick-file', async (_evt, opts?: { filters?: Electron.FileFilter[] }) => {
+  const res = await dialog.showOpenDialog(win, {
+    properties: ['openFile'],
+    filters: opts?.filters
+  });
+  return res.canceled ? null : (res.filePaths[0] ?? null);
+});
+
+ipcMain.handle('pick-directory', async () => {
+  const res = await dialog.showOpenDialog(win, {
+    properties: ['openDirectory']
+  });
+  return res.canceled ? null : (res.filePaths[0] ?? null);
 });

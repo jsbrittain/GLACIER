@@ -4,7 +4,7 @@ import git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node/index.cjs';
 import { ipcMain } from 'electron';
 import { buildAndRunContainer, listContainers, clearStoppedContainers, runRepo } from './docker.js';
-import { cloneRepo, syncRepo, getWorkflowParams } from './repo.js';
+import { cloneRepo, syncRepo, getWorkflowParams, getWorkflowSchema } from './repo.js';
 import { getDefaultCollectionsDir, listCollections } from './paths.js';
 import store from './store.js';
 import { Repo } from '../types.js';
@@ -38,8 +38,8 @@ export function registerIpcHandlers() {
     return listCollections();
   });
 
-  ipcMain.handle('run-repo', async (event, { name, path: repoPath }) => {
-    return runRepo({ name, path: repoPath });
+  ipcMain.handle('run-repo', async (event, { name, path: repoPath, url }) => {
+    return runRepo({ name, path: repoPath, url });
   });
 
   ipcMain.handle('sync-repo', async (event, path: string) => {
@@ -48,5 +48,9 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('get-workflow-params', async (event, repoPath) => {
     return getWorkflowParams(repoPath);
+  });
+
+  ipcMain.handle('get-workflow-schema', async (event, repoPath) => {
+    return getWorkflowSchema(repoPath);
   });
 }

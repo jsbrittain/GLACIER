@@ -36,8 +36,9 @@ const defaultRepoUrl = 'jsbrittain/workflow-runner-testworkflow';
 const defaultImageName = 'testworkflow';
 
 type navbar_page = 'hub' | 'library' | 'runs' | 'settings';
+type severityLevels = 'info' | 'success' | 'warning' | 'error';
 
-function computeTargetDir(repoUrl, basePath) {
+const computeTargetDir = (repoUrl, basePath) => {
   try {
     if (repoUrl.includes('://')) {
       const url = new URL(repoUrl);
@@ -53,7 +54,7 @@ function computeTargetDir(repoUrl, basePath) {
   } catch {
     return '';
   }
-}
+};
 
 export default function App() {
   const [repoUrl, setRepoUrl] = useState(defaultRepoUrl);
@@ -68,7 +69,7 @@ export default function App() {
   const [launcherQueue, setLauncherQueue] = useState([]);
   const [selectedLauncherTab, setSelectedLauncherTab] = useState(0);
   const [log, setLog] = useState([]);
-  const [severity, setSeverity] = useState('info');
+  const [severity, setSeverity] = useState<severityLevels>('info');
   const [message, setMessage] = useState('');
   const [open, setOpen] = useState(false);
   const [item, setItem] = useState('');
@@ -116,7 +117,7 @@ export default function App() {
     logMessage(`Container started with ID: ${id}`, 'success');
   };
 
-  function generateUniqueName(baseName, queue) {
+  const generateUniqueName = (baseName, queue) => {
     let newName = '';
     const existingNames = new Set(queue.map((item) => item.name));
     do {
@@ -127,7 +128,7 @@ export default function App() {
       });
     } while (existingNames.has(newName));
     return newName;
-  }
+  };
 
   const addToLauncherQueue = async (repo) => {
     try {
@@ -149,7 +150,7 @@ export default function App() {
     }
   };
 
-  const logMessage = (text, level = 'info') => {
+  const logMessage = (text, level: severityLevels = 'info') => {
     setLog((prev) => [...prev.slice(-9), text]);
     setMessage(text);
     setSeverity(level);
@@ -234,7 +235,16 @@ export default function App() {
           </List>
         </Drawer>
 
-        <Box component="main" sx={{ flexGrow: 1, p: 3, mt: 8 }}>
+        {/* Reserve space for the fixed log panel at the bottom */}
+        <Box
+          component="main"
+          sx={(theme) => ({
+            flexGrow: 1,
+            p: 3,
+            mt: 8, // below AppBar
+            pb: `calc(120px + ${theme.spacing(2)})` // make room for the 120px log panel + a little spacing
+          })}
+        >
           {view === 'hub' ? (
             <HubPage
               repoUrl={repoUrl}
@@ -276,9 +286,10 @@ export default function App() {
             />
           ) : null}
         </Box>
+
         <Paper
           variant="outlined"
-          sx={{
+          sx={(theme) => ({
             position: 'fixed',
             bottom: 0,
             left: drawerOpen ? 240 : 56,
@@ -288,8 +299,12 @@ export default function App() {
             bgcolor: 'background.default',
             px: 2,
             py: 1,
-            borderTop: '1px solid rgba(0,0,0,0.12)'
-          }}
+            borderTop: '1px solid rgba(0,0,0,0.12)',
+            transition: theme.transitions.create('left', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen
+            })
+          })}
         >
           <Box
             id="logMessage"
@@ -307,6 +322,7 @@ export default function App() {
             ))}
           </Box>
         </Paper>
+
         <Snackbar open={open} autoHideDuration={3000} onClose={() => setOpen(false)}>
           <Alert onClose={() => setOpen(false)} severity={severity} sx={{ width: '100%' }}>
             {message}

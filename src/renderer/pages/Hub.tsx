@@ -23,26 +23,40 @@ export default function HubPage({
   addToLauncherQueue,
   logMessage
 }) {
-  const [repos, setRepos] = useState([]);
+  const [installedRepos, setInstalledRepos] = useState([]);
   const [open, setOpen] = useState(false);
 
+  const repos = [
+    {
+      name: 'Minimal Docker Workflow',
+      url: 'jsbrittain/workflow-runner-testworkflow'
+    },
+    {
+      name: 'Minimal Nextflow Workflow',
+      url: 'jsbrittain/workflow-runner-test-nextflow'
+    },
+    {
+      name: 'Artic Network MPXV Analysis',
+      url: 'https://github.com/artic-network/artic-mpxv-nf'
+    }
+  ];
+
+  const updateInstalledRepos = async () => {
+    const list = await API.getCollections();
+    setInstalledRepos(list);
+  };
+
   useEffect(() => {
-    (async () => {
-      const list = await API.getCollections();
-      console.log('Fetched collections:', list);
-      setRepos(list);
-    })();
+    updateInstalledRepos();
   }, []);
 
-  const handleClone = async () => {
+  const cloneRepo = async (repoUrl) => {
     try {
       const result = await API.cloneRepo(repoUrl);
       if (result?.path) {
         setTargetDir(result.path);
         setFolderPath(result.path);
         logMessage(`Cloned ${result.name} to ${result.path}`, 'success');
-        const list = await API.getCollections();
-        setRepos(list);
       } else {
         logMessage('Clone failed or returned nothing', 'error');
       }
@@ -50,6 +64,11 @@ export default function HubPage({
       console.error(err);
       logMessage('Clone operation failed', 'error');
     }
+    updateInstalledRepos();
+  };
+
+  const isRepoInstalled = (repoUrl) => {
+    return installedRepos.some((repo) => repo.url === repoUrl);
   };
 
   return (
@@ -73,7 +92,7 @@ export default function HubPage({
             <Button
               id="collections-clone-button"
               variant="contained"
-              onClick={handleClone}
+              onClick={() => cloneRepo(repoUrl)}
               size="small"
             >
               Clone
@@ -85,6 +104,30 @@ export default function HubPage({
             </Typography>
           )}
         </Paper>
+
+        <Grid container spacing={2}>
+          {repos.map((repo) => (
+            /* @ts-ignore */
+            <Grid item xs={12} sm={6} md={4} key={repo.url}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Typography variant="subtitle1" gutterBottom>
+                  {repo.name}
+                </Typography>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    id={`hub-install-${repo.name}`}
+                    size="small"
+                    variant="contained"
+                    onClick={() => cloneRepo(repo.url)}
+                    disabled={isRepoInstalled(repo.url)}
+                  >
+                    Install
+                  </Button>
+                </Stack>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
       </Stack>
     </Container>
   );
