@@ -119,6 +119,12 @@ const httpAPI = {
     const res = await fetch(`/api/workflow-params?repoPath=${encodeURIComponent(repoPath)}`);
     if (!res.ok) throw new Error('Failed to fetch workflow params');
     return res.json();
+  },
+
+  getWorkflowSchema: async (repoPath) => {
+    const res = await fetch(`/api/workflow-schema?repoPath=${encodeURIComponent(repoPath)}`);
+    if (!res.ok) throw new Error('Failed to fetch workflow schema');
+    return res.json();
   }
 };
 

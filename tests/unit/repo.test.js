@@ -27,12 +27,17 @@ describe('repo.cloneRepo', () => {
 describe('getWorkflowParams', () => {
   const testRepoDir = path.resolve(__dirname, 'fixtures/test-repo');
 
-  it('returns empty object if workflow.yaml is missing', () => {
-    const params = repo.getWorkflowParams(testRepoDir);
+  // delete workflow.yaml if it exists
+  if (fs.existsSync(path.join(testRepoDir, 'workflow.yaml'))) {
+    fs.unlinkSync(path.join(testRepoDir, 'workflow.yaml'));
+  }
+
+  it('returns empty object if workflow.yaml is missing', async () => {
+    const params = await repo.getWorkflowParams(testRepoDir);
     expect(params).toEqual({});
   });
 
-  it('correctly parses parameters from workflow.yaml', () => {
+  it('correctly parses parameters from workflow.yaml', async () => {
     // Setup: create test-repo/workflow.yaml with sample content
     const yamlContent = `
 parameters:
@@ -49,7 +54,7 @@ parameters:
     fs.mkdirSync(testRepoDir, { recursive: true });
     fs.writeFileSync(yamlPath, yamlContent, 'utf8');
 
-    const params = repo.getWorkflowParams(testRepoDir);
+    const params = await repo.getWorkflowParams(testRepoDir);
 
     expect(params).toEqual({
       input_path: '/data/in',

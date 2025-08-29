@@ -38,8 +38,8 @@ export function registerIpcHandlers() {
     return listCollections();
   });
 
-  ipcMain.handle('run-repo', async (event, { name, path: repoPath, url }) => {
-    return runRepo({ name, path: repoPath, url });
+  ipcMain.handle('run-repo', async (event, repo) => {
+    return runRepo(repo);
   });
 
   ipcMain.handle('sync-repo', async (event, path: string) => {

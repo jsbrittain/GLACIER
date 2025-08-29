@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getCollectionsPath: () => ipcRenderer.invoke('get-collections-path'),
   setCollectionsPath: (path: string) => ipcRenderer.invoke('set-collections-path', path),
   getCollections: () => ipcRenderer.invoke('get-collections'),
-  runRepo: (repo: string) => ipcRenderer.invoke('run-repo', repo),
+  runRepo: (repo: any) => ipcRenderer.invoke('run-repo', repo),
   syncRepo: (repo: string) => ipcRenderer.invoke('sync-repo', repo),
   getWorkflowParams: (repoPath: string) => ipcRenderer.invoke('get-workflow-params', repoPath),
   pickFile: (filters?: Electron.FileFilter[]) => ipcRenderer.invoke('pick-file', { filters }),

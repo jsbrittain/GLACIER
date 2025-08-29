@@ -44,5 +44,5 @@ test('end-to-end test', async ({ page }) => {
 
   // Launch Workflow
   await page.getByRole('button', { name: 'Launch Workflow' }).click();
-  await waitForLogLine(page, /^Container started with ID:/);
+  await waitForLogLine(page, /^Launched workflow/);
 });

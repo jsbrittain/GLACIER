@@ -13,7 +13,7 @@ interface Params {
   [key: string]: any;
 }
 
-export const cloneRepo = async (repoRef: string) => {
+export async function cloneRepo(repoRef: string) {
   let owner, repo;
 
   try {
@@ -51,9 +51,9 @@ export const cloneRepo = async (repoRef: string) => {
     path: targetDir,
     url: `${owner}/${repo}`
   };
-};
+}
 
-export const syncRepo = async (path: string) => {
+export async function syncRepo(path: string) {
   try {
     await git.pull({
       fs,
@@ -73,9 +73,9 @@ export const syncRepo = async (path: string) => {
     }
     return { status: 'error', message: String(err) };
   }
-};
+}
 
-export const deleteRepo = async (repoPath: string) => {
+export async function deleteRepo(repoPath: string) {
   try {
     await fs.promises.rm(repoPath, { recursive: true, force: true });
   } catch (err: unknown) {
@@ -84,9 +84,9 @@ export const deleteRepo = async (repoPath: string) => {
     }
     throw new Error(`Failed to delete repo at ${repoPath}: ${String(err)}`);
   }
-};
+}
 
-export const getWorkflowParams = async (repoPath: string) => {
+export async function getWorkflowParams(repoPath: string) {
   const yamlPath = path.join(repoPath, 'workflow.yaml');
 
   try {
@@ -113,9 +113,9 @@ export const getWorkflowParams = async (repoPath: string) => {
     console.error(`Failed to read workflow params from ${yamlPath}:`, err);
     return {};
   }
-};
+}
 
-export const getWorkflowSchema = async (repoPath: string) => {
+export async function getWorkflowSchema(repoPath: string) {
   const schemaPath = path.join(repoPath, 'nextflow_schema.json');
   try {
     if (!fs.existsSync(schemaPath)) {
@@ -126,6 +126,6 @@ export const getWorkflowSchema = async (repoPath: string) => {
     const schema = JSON.parse(fileContents);
     return schema;
   } catch (err) {
-    throw new Error(`Failed to read schema from ${schemaPath}: ${String(err)}`);
+    return {};
   }
-};
+}

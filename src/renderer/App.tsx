@@ -112,11 +112,6 @@ export default function App() {
     alert('Container built and started with ID: ' + id);
   };
 
-  const handleLaunch = async (repo, params) => {
-    const id = await API.runRepo(repo);
-    logMessage(`Container started with ID: ${id}`, 'success');
-  };
-
   const generateUniqueName = (baseName, queue) => {
     let newName = '';
     const existingNames = new Set(queue.map((item) => item.name));
@@ -273,7 +268,7 @@ export default function App() {
               setLauncherQueue={setLauncherQueue}
               selectedTab={selectedLauncherTab}
               setSelectedTab={setSelectedLauncherTab}
-              onLaunch={handleLaunch}
+              logMessage={logMessage}
               item={item}
               setItem={setItem}
             />

@@ -1,5 +1,5 @@
 import express from 'express';
-import { cloneRepo, syncRepo, getWorkflowParams } from '../dist/main/repo.js';
+import { cloneRepo, syncRepo, getWorkflowParams, getWorkflowSchema } from '../dist/main/repo.js';
 import {
   listCollections,
   getCollectionsPath,
@@ -133,6 +133,19 @@ app.get('/api/workflow-params', async (req, res) => {
     }
     const params = await getWorkflowParams(repoPath);
     res.json(params);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/workflow-schema', async (req, res) => {
+  try {
+    const repoPath = req.query.repoPath;
+    if (!repoPath) {
+      return res.status(400).json({ error: 'Missing repoPath query parameter' });
+    }
+    const schema = await getWorkflowSchema(repoPath);
+    res.json(schema);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

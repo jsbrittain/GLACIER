@@ -6,6 +6,8 @@ import { spawn } from 'child_process';
 import { Readable, Duplex } from 'stream';
 import { promises as fs } from 'fs';
 
+type paramsT = { [key: string]: any };
+
 const isWindows = process.platform === 'win32';
 export const docker = new Docker();
 
@@ -50,7 +52,7 @@ function toDockerPath(p: string) {
   return path.resolve(p);
 }
 
-export async function runRepo_NextflowDocker(repoPath: string, name: string) {
+export async function runRepo_NextflowDocker(repoPath: string, name: string, params: paramsT) {
   const dockerPath = toDockerPath(repoPath);
   const platform = 'linux/amd64';
 
@@ -130,24 +132,25 @@ export async function runRepo_NextflowDocker(repoPath: string, name: string) {
   return container.id;
 }
 
-export async function runRepo_Nextflow(repoPath: string, name: string) {
+export async function runRepo_Nextflow(repoPath: string, name: string, params: paramsT) {
   // Launch nextflow natively on host system
 
-  // TODO:
-  //   - Create a separate instance folder
-  //   - Dump parameters to file
-  //   - Launch nextflow with folder/params redirect
-  //   - Capture logs
-  //
-  // Not all of this needs to be handled in this function, although it does make sense
-  // that we create the instance when the workflow is ready to run (after params are set)
-
+  // Create a unique work directory for this run
   const workDir = path.resolve(os.tmpdir(), 'nextflow-work', name.replace('/', '-'));
+  await fs.mkdir(workDir, { recursive: true });
 
-  const cmd = spawn('nextflow', ['run', path.resolve(repoPath, 'main.nf'), '-work-dir', workDir], {
-    cwd: workDir,
-    stdio: 'pipe'
-  });
+  // Save parameters to a file in the work directory
+  const paramsFile = path.resolve(workDir, 'params.json');
+  fs.writeFile(paramsFile, JSON.stringify(params, null, 2), 'utf8');
+
+  const cmd = spawn(
+    'nextflow',
+    ['run', path.resolve(repoPath, 'main.nf'), '-work-dir', workDir, '-params-file', paramsFile],
+    {
+      cwd: workDir,
+      stdio: 'pipe'
+    }
+  );
 
   let output = '';
   cmd.stdout.on('data', (data: any) => {
@@ -165,7 +168,7 @@ export async function runRepo_Nextflow(repoPath: string, name: string) {
   });
 }
 
-export async function runRepo_Docker(repoPath: string, name: string) {
+export async function runRepo_Docker(repoPath: string, name: string, params: paramsT) {
   const imageName = name.replace('/', '-');
 
   const tarStream = await docker.buildImage(
@@ -187,7 +190,7 @@ export async function runRepo_Docker(repoPath: string, name: string) {
   return container.id;
 }
 
-export async function runRepo({ name, path: repoPath }: Repo) {
+export async function runRepo({ name, path: repoPath, params }: Repo) {
   if (!repoPath || !(await fs.stat(repoPath)).isDirectory()) {
     throw new Error(`Invalid repository path: ${repoPath}`);
   }
@@ -205,9 +208,9 @@ export async function runRepo({ name, path: repoPath }: Repo) {
     .catch(() => false);
 
   if (nextflowExists) {
-    return runRepo_Nextflow(repoPath, name);
+    return runRepo_Nextflow(repoPath, name, params || {});
   } else if (dockerExists) {
-    return runRepo_Docker(repoPath, name);
+    return runRepo_Docker(repoPath, name, params || {});
   } else {
     throw new Error(`Unsupported repository type in ${repoPath}`);
   }

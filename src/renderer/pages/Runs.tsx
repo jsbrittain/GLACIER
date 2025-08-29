@@ -27,7 +27,12 @@ import { buildUISchema } from './buildUISchema';
 import { renderers } from './renderers';
 import { API } from '../services/api.js';
 
-const ajv = new Ajv({ allErrors: true, strict: false });
+const ajv = new Ajv({
+  useDefaults: true, // populate all fields (if not provided)
+  allErrors: true,
+  strict: false
+});
+
 // add custom AJV formats
 ajv.addFormat('file-path', {
   type: 'string',
@@ -50,12 +55,17 @@ export default function RunsPage({
   setLauncherQueue,
   selectedTab,
   setSelectedTab,
-  onLaunch,
+  logMessage,
   item,
   setItem
 }) {
   const [data, setData] = useState<Record<string, unknown>>({});
   const [schema, setSchema] = useState<Record<string, unknown> | null>({});
+
+  const onLaunch = async (repo, data) => {
+    const id = await API.runRepo({ ...repo, params: data });
+    logMessage(`Launched workflow ${repo.name} with run ID ${id}`);
+  };
 
   useEffect(() => {
     const get_schema = async () => {
@@ -70,7 +80,7 @@ export default function RunsPage({
   }, [launcherQueue, item]);
 
   // Read schema and compile with AJV
-  const validate = useMemo(() => ajv.compile(schema), []);
+  const validate = useMemo(() => ajv.compile(schema), [schema]);
 
   // Build the UI schema with stepper options
   const uischema = buildUISchema(schema, { showHidden: false });
@@ -100,6 +110,10 @@ export default function RunsPage({
   }
 
   const activeWorkflow = launcherQueue[selectedTab];
+
+  const isEmpty = (obj) => {
+    return Object.keys(obj).length === 0;
+  };
 
   return (
     <Container>
@@ -137,22 +151,25 @@ export default function RunsPage({
               <Typography variant="h6">
                 [{name}] {repo.name}
               </Typography>
-              <Alert severity="warning">Parameters are not currently passed to the workflow.</Alert>
               <Stack spacing={2} sx={{ mt: 1 }}>
                 <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
-                  <JsonForms
-                    schema={schema}
-                    uischema={uischema}
-                    data={data}
-                    renderers={renderers}
-                    onChange={({ data, errors }) => setData(data)}
-                    ajv={ajv}
-                  />
+                  {!isEmpty(schema) ? (
+                    <JsonForms
+                      schema={schema}
+                      uischema={uischema}
+                      data={data}
+                      renderers={renderers}
+                      onChange={({ data, errors }) => setData(data)}
+                      ajv={ajv}
+                    />
+                  ) : (
+                    <Typography>No parameters.</Typography>
+                  )}
                 </Paper>
                 <Button
                   disabled={schemaErrors !== null}
                   variant="contained"
-                  onClick={() => onLaunch(repo, params)}
+                  onClick={() => onLaunch(repo, data)}
                 >
                   Launch Workflow
                 </Button>
