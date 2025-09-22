@@ -24,7 +24,7 @@ jobs:
         run: npx playwright install --with-deps
       - name: Platform specific CI setup
         run: ./tests/e2e/ci-setup.sh
-      - name: Build IceFlow
+      - name: Build GLACIER
         run: npm run build
       - name: Run Playwright tests
         run: npx playwright test

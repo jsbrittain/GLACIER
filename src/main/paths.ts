@@ -6,9 +6,8 @@ import store from './store.js';
 import { IRepo } from './types';
 
 export function getDefaultCollectionsDir(): string {
-  // return path.join(userDataDir('IceFlow'), 'collections');
   const homeDir = os.homedir();
-  return path.join(homeDir, 'IceFlow');
+  return path.join(homeDir, 'GLACIER');
 }
 
 export function getCollectionsPath(): string {

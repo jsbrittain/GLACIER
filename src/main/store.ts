@@ -11,7 +11,7 @@ const store = new Store<StoreSchema>({
       default: ''
     }
   },
-  name: 'IceFlow'
+  name: 'GLACIER'
 });
 
 export default store;

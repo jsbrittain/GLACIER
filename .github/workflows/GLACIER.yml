@@ -1,4 +1,4 @@
-name: IceFlow
+name: GLACIER
 
 on:
   workflow_dispatch:

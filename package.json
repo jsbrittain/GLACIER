@@ -1,5 +1,5 @@
 {
-  "name": "IceFlow",
+  "name": "GLACIER",
   "version": "0.1.0",
   "main": "dist/main/main.js",
   "type": "module",
@@ -20,8 +20,8 @@
   "license": "ISC",
   "description": "",
   "build": {
-    "appId": "com.kraemerlab.iceflow",
-    "productName": "IceFlow",
+    "appId": "com.jsbrittain.GLACIER",
+    "productName": "GLACIER",
     "directories": {
       "buildResources": "assets",
       "output": "dist"

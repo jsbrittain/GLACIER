@@ -108,7 +108,7 @@ export async function syncRepo(path: string) {
       singleBranch: true,
       fastForwardOnly: true,
       author: {
-        name: 'IceFlow',
+        name: 'GLACIER',
         email: 'noreply@localhost'
       }
     });

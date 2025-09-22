@@ -175,7 +175,7 @@ export default function App() {
               <MenuIcon />
             </IconButton>
             <Typography variant="h6" noWrap component="div" sx={{ ml: 1 }}>
-              IceFlow
+              GLACIER
             </Typography>
           </Toolbar>
         </AppBar>

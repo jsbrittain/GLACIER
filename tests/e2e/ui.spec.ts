@@ -10,11 +10,11 @@ async function waitForLogLine(page: Page, text: string | RegExp, timeout = 60000
 }
 
 test('should show title', async ({ page }) => {
-  await expect(page).toHaveTitle(/IceFlow/i);
+  await expect(page).toHaveTitle(/GLACIER/i);
 });
 
 test('end-to-end test', async ({ page }) => {
-  await expect(page).toHaveTitle(/IceFlow/i);
+  await expect(page).toHaveTitle(/GLACIER/i);
 
   // Clone a repository
   await page.click('#collections-clone-button');

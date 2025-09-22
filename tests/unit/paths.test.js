@@ -8,9 +8,9 @@ describe('getDefaultCollectionsDir', () => {
     expect(typeof result).toBe('string');
   });
 
-  it('ends with /IceFlow/collections', () => {
+  it('ends with /GLACIER/collections', () => {
     const path = getDefaultCollectionsDir();
-    expect(path).toMatch(/IceFlow$/);
+    expect(path).toMatch(/GLACIER$/);
   });
 
   it('can be created if missing', () => {

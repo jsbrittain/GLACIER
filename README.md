@@ -1,8 +1,14 @@
-# IceFlow
+# GLACIER
 
-[![IceFlow](https://github.com/kraemer-lab/IceFlow/actions/workflows/IceFlow.yml/badge.svg)](https://github.com/kraemer-lab/IceFlow/actions/workflows/IceFlow.yml)
+[![GLACIER](https://github.com/jsbrittain/GLACIER/actions/workflows/GLACIER.yml/badge.svg)](https://github.com/jsbrittain/GLACIER/actions/workflows/GLACIER.yml)
 
-**I**nteractive **C**ontrol **E**nvironment **F**or **L**ab **O**rientated **W**orkflows
+**G**raphical<br>
+**L**aunchpad for<br>
+**A**nalysis,<br>
+**C**omputation,<br>
+**I**nference and<br>
+**E**xplication of<br>
+**R**esults
 
 ## Quick start
 
