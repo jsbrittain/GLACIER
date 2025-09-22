@@ -2,8 +2,15 @@ const isElectron = Boolean(window?.electronAPI);
 
 const electronAPI = isElectron
   ? {
+      createWorkflowInstance: (workflow_id) =>
+        window.electronAPI.createWorkflowInstance(workflow_id),
+      runWorkflow: (instance, params) => window.electronAPI.runWorkflow(instance, params),
+      listWorkflowInstances: () => window.electronAPI.listWorkflowInstances(),
+      getWorkflowInstanceLogs: (instance, logType) =>
+        window.electronAPI.getWorkflowInstanceLogs(instance, logType),
+
+      // Legacy calls
       cloneRepo: (repoRef) => window.electronAPI.cloneRepo(repoRef),
-      runRepo: (repo) => window.electronAPI.runRepo(repo),
       syncRepo: (repo) => window.electronAPI.syncRepo(repo),
       getCollections: () => window.electronAPI.getCollections(),
       buildAndRunContainer: (folder, image) =>
@@ -21,6 +28,16 @@ const electronAPI = isElectron
   : null;
 
 const httpAPI = {
+  createWorkflowInstance: async (workflow_id) => {
+    const res = await fetch('/api/create-workflow-instance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workflow_id })
+    });
+    if (!res.ok) throw new Error(`Failed to create workflow instance: ${res.statusText}`);
+    return res.json();
+  },
+
   cloneRepo: async (repoRef) => {
     const res = await fetch('/api/clone', {
       method: 'POST',

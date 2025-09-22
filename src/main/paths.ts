@@ -1,20 +1,24 @@
+import * as os from 'os';
 import path from 'path';
-import { userDataDir } from 'platformdirs';
+// import { userDataDir } from 'platformdirs';
 import fs from 'fs';
 import store from './store.js';
-import { Repo } from '../types.js';
+import { IRepo } from './types';
 
 export function getDefaultCollectionsDir(): string {
-  return path.join(userDataDir('IceFlow'), 'collections');
+  // return path.join(userDataDir('IceFlow'), 'collections');
+  const homeDir = os.homedir();
+  return path.join(homeDir, 'IceFlow');
 }
 
 export function getCollectionsPath(): string {
   return store.get('collectionsPath') || getDefaultCollectionsDir();
 }
 
-export function listCollections(): Repo[] {
+/*
+export function listCollections(): IRepo[] {
   const base = getCollectionsPath();
-  const repos: Repo[] = [];
+  const repos: IRepo[] = [];
 
   if (!fs.existsSync(base)) return repos;
 
@@ -35,3 +39,4 @@ export function listCollections(): Repo[] {
 
   return repos;
 }
+*/

@@ -5,12 +5,14 @@ import {
   getCollectionsPath,
   getDefaultCollectionsDir
 } from '../dist/main/paths.js';
+import { Collection } from '../dist/main/collection.js';
 import { runRepo } from '../dist/main/docker.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const collection = Collection.getInstance();
 
 const app = express();
 app.use(express.json());
@@ -21,52 +23,60 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/renderer/index.html'));
 });
 
-app.post('/api/clone', async (req, res) => {
+app.post('/api/create-workflow-instance', async (req, res) => {
   try {
-    res.json(await cloneRepo(req.body.repoRef));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/run', async (req, res) => {
-  try {
-    res.json(await runRepo(req.body));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/sync', async (req, res) => {
-  try {
-    res.json(await syncRepo(req.body?.path));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/collections', async (_, res) => {
-  try {
-    res.json(await listCollections());
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/collections-path', (req, res) => {
-  try {
-    res.send(getDefaultCollectionsDir()); // Should store a server-side path
+    res.json(await collection.createWorkflowInstance(req.body));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // Build and Run container
-app.post('/api/build-run', async (req, res) => {
+app.post('/api/build-and-run-container', async (req, res) => {
   try {
     const { folder, image } = req.body;
     const result = await buildAndRunContainer(folder, image);
     res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/clone-repo', async (req, res) => {
+  try {
+    res.json(await collection.cloneRepo(req.body));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/run-repo', async (req, res) => {
+  try {
+    res.json(await collection.runRepo(req.body));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/sync-repo', async (req, res) => {
+  try {
+    res.json(await collection.syncRepo(req.body?.path));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/get-collections', async (_, res) => {
+  try {
+    res.json(await collection.listCollections());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/get-collections-path', (req, res) => {
+  try {
+    res.json(collection.getCollectionsPath());
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

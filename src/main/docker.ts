@@ -1,10 +1,12 @@
 import * as os from 'os';
 import * as path from 'path';
+import * as fs_sync from 'fs';
 import Docker from 'dockerode';
-import { Repo } from '../types.js';
+import { IRepo } from './types';
 import { spawn } from 'child_process';
 import { Readable, Duplex } from 'stream';
 import { promises as fs } from 'fs';
+import { IWorkflowInstance, IWorkflowParams } from './collection.js';
 
 type paramsT = { [key: string]: any };
 
@@ -132,40 +134,72 @@ export async function runRepo_NextflowDocker(repoPath: string, name: string, par
   return container.id;
 }
 
-export async function runRepo_Nextflow(repoPath: string, name: string, params: paramsT) {
+export async function runWorkflowNextflow(instance: IWorkflowInstance, params: paramsT) {
   // Launch nextflow natively on host system
+  const name = instance.name;
+  const instancePath = instance.path;
+  const workPath = path.resolve(instancePath, 'work');
+  await fs.mkdir(workPath, { recursive: true });
+  const projectPath = instance.workflow_version?.path || instancePath;
 
-  // Create a unique work directory for this run
-  const workDir = path.resolve(os.tmpdir(), 'nextflow-work', name.replace('/', '-'));
-  await fs.mkdir(workDir, { recursive: true });
-
-  // Save parameters to a file in the work directory
-  const paramsFile = path.resolve(workDir, 'params.json');
+  // Save parameters to a file in the instance folder
+  const paramsFile = path.resolve(instancePath, 'params.json');
   fs.writeFile(paramsFile, JSON.stringify(params, null, 2), 'utf8');
 
-  const cmd = spawn(
+  // Clear logs and set to append
+  if (!fs_sync.existsSync(instancePath)) {
+    fs_sync.mkdirSync(instancePath, { recursive: true });
+  }
+  if (!fs_sync.existsSync(path.resolve(instancePath, 'stdout.log'))) {
+    fs_sync.writeFileSync(path.resolve(instancePath, 'stdout.log'), '');
+  }
+  fs_sync.truncateSync(path.resolve(instancePath, 'stdout.log'), 0);
+  const stdout = fs_sync.openSync(path.resolve(instancePath, 'stdout.log'), 'a');
+  if (!fs_sync.existsSync(path.resolve(instancePath, 'stderr.log'))) {
+    fs_sync.writeFileSync(path.resolve(instancePath, 'stderr.log'), '');
+  }
+  fs_sync.truncateSync(path.resolve(instancePath, 'stderr.log'), 0);
+  const stderr = fs_sync.openSync(path.resolve(instancePath, 'stderr.log'), 'a');
+
+  const weblog_server = 'http://localhost:3000';
+  const cmd = [
+    'run',
+    path.resolve(projectPath, 'main.nf'),
+    '-work-dir', workPath,
+    '-params-file', paramsFile,
+    '-with-weblog', weblog_server,
+    '-with-trace'
+  ]
+
+  console.log(`Spawning nextflow with command: nextflow ${cmd.join(' ')} from ${instancePath}`);
+  const p = spawn(
     'nextflow',
-    ['run', path.resolve(repoPath, 'main.nf'), '-work-dir', workDir, '-params-file', paramsFile],
+    cmd,
     {
-      cwd: workDir,
-      stdio: 'pipe'
+      cwd: instancePath,
+      stdio: ['ignore', stdout, stderr],  // stdin ignored
+      detached: true,
     }
   );
 
-  let output = '';
-  cmd.stdout.on('data', (data: any) => {
-    output += data.toString();
-    process.stdout.write(data);
-  });
+  p.unref();  // allow the parent to exit independently
 
-  cmd.stderr.on('data', (data: any) => {
-    output += data.toString();
-    process.stderr.write(data);
-  });
+  return p.pid;
 
-  cmd.on('close', (code) => {
-    console.log(`Nextflow process exited with code ${code}`);
-  });
+  // let output = '';
+  // p.stdout.on('data', (data: any) => {
+  //   output += data.toString();
+  //   process.stdout.write(data);
+  // });
+
+  // p.stderr.on('data', (data: any) => {
+  //   output += data.toString();
+  //   process.stderr.write(data);
+  // });
+
+  // p.on('close', (code) => {
+  //   console.log(`Nextflow process exited with code ${code}`);
+  // });
 }
 
 export async function runRepo_Docker(repoPath: string, name: string, params: paramsT) {
@@ -190,14 +224,21 @@ export async function runRepo_Docker(repoPath: string, name: string, params: par
   return container.id;
 }
 
-export async function runRepo({ name, path: repoPath, params }: Repo) {
-  if (!repoPath || !(await fs.stat(repoPath)).isDirectory()) {
-    throw new Error(`Invalid repository path: ${repoPath}`);
+interface IRunWorkflowArgs {
+  instance: IWorkflowInstance,
+  params: IWorkflowParams,
+}
+
+export async function runWorkflow({instance, params}: IRunWorkflowArgs) {
+  const projectPath = instance.workflow_version.path;
+
+  if (!projectPath || !(await fs.stat(projectPath)).isDirectory()) {
+    throw new Error(`Invalid repository path: ${projectPath}`);
   }
 
   // Identify repository type (nextflow, docker, etc.)
-  const nextflowPAth = `${repoPath}/nextflow.config`;
-  const dockerfilePath = `${repoPath}/Dockerfile`;
+  const nextflowPAth = `${projectPath}/nextflow.config`;
+  const dockerfilePath = `${projectPath}/Dockerfile`;
   const nextflowExists = await fs
     .stat(nextflowPAth)
     .then(() => true)
@@ -208,11 +249,11 @@ export async function runRepo({ name, path: repoPath, params }: Repo) {
     .catch(() => false);
 
   if (nextflowExists) {
-    return runRepo_Nextflow(repoPath, name, params || {});
+    return runWorkflowNextflow(instance, params);
   } else if (dockerExists) {
-    return runRepo_Docker(repoPath, name, params || {});
+    return runRepo_Docker(projectPath, instance.name, params || {});
   } else {
-    throw new Error(`Unsupported repository type in ${repoPath}`);
+    throw new Error(`Unsupported repository type in ${projectPath}`);
   }
 }
 

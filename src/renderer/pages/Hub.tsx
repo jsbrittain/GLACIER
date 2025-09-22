@@ -20,7 +20,6 @@ export default function HubPage({
   drawerOpen,
   setTargetDir,
   setFolderPath,
-  addToLauncherQueue,
   logMessage
 }) {
   const [installedRepos, setInstalledRepos] = useState([]);
@@ -37,7 +36,7 @@ export default function HubPage({
     },
     {
       name: 'Artic Network MPXV Analysis',
-      url: 'https://github.com/artic-network/artic-mpxv-nf'
+      url: 'artic-network/artic-mpxv-nf'
     }
   ];
 

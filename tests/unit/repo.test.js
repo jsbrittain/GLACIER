@@ -17,8 +17,10 @@ describe('repo.cloneRepo', () => {
       TEST_DIR
     );
     expect(result).toBeTypeOf('object');
-    expect(typeof result.path).toBe('string');
-    expect(result.path).toMatch(/jsbrittain[\\/]+workflow-runner-testworkflow$/);
+    expect(typeof result.owner).toBe('string');
+    expect(typeof result.repo).toBe('string');
+    const owner_repo = `${result.owner}/${result.repo}`;
+    expect(owner_repo).toMatch(/jsbrittain[\\/]+workflow-runner-testworkflow$/);
     expect(fs.existsSync(path.join(result.path, '.git'))).toBe(true);
     if (fs.existsSync(TEST_DIR)) fs.rmSync(TEST_DIR, { recursive: true, force: true });
   });

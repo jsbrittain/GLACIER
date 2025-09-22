@@ -4,6 +4,8 @@ import * as path from 'path';
 import yaml from 'js-yaml';
 import git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node/index.cjs';
+import { IRepo } from './types.js';
+import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator';
 
 interface WorkflowData {
   parameters?: Record<string, any>;
@@ -13,12 +15,33 @@ interface Params {
   [key: string]: any;
 }
 
-export async function cloneRepo(repoRef: string) {
-  let owner, repo;
+export interface ICloneRepo {
+  owner: string,
+  repo: string,
+  version: string,
+  url: string,
+  path: string,
+}
 
+export async function cloneRepo(
+  repoUrl: string,
+  workflowDir: string,
+  branch: string | null = null,
+  tag: string | null = null,
+): Promise<ICloneRepo> {
+  let owner: string = '';
+  let repo: string = '';
+  let version: string | null = null;
+
+  // Either branch or tag can be specified (but not both), otherwise default branch
+  if ((branch !== null) && (tag !== null)) {
+    throw new Error('Either branch or tag must be specified, not both.');
+  }
+
+  // Interpret repository reference as short-form or full URL
   try {
     // Try to parse as full URL
-    const url = new URL(repoRef);
+    const url = new URL(repoUrl);
     if (!url.hostname.includes('github.com')) throw new Error();
     [owner, repo] = url.pathname
       .replace(/^\//, '')
@@ -26,31 +49,54 @@ export async function cloneRepo(repoRef: string) {
       .split('/');
   } catch {
     // Fallback to short form
-    if (!repoRef.includes('/') || repoRef.split('/').length !== 2) {
+    if (!repoUrl.includes('/') || repoUrl.split('/').length !== 2) {
       throw new Error('Invalid repo format. Use either "owner/repo" or full GitHub URL.');
     }
-    [owner, repo] = repoRef.replace(/\\.git$/, '').split('/');
+    [owner, repo] = repoUrl.replace(/\\.git$/, '').split('/');
+  }
+  const url = `https://github.com/${owner}/${repo}.git`;
+
+  // Determine the version to clone
+  if (branch !== null) {
+    version = branch;
+  } else if (tag !== null) {
+    version = tag;
+  } else {
+    version = await getDefaultBranch(url);
+  }
+  if ((version === null) || (version === '')) {
+    version = 'main';  // Fallback
   }
 
-  const collectionsDir = getDefaultCollectionsDir();
-  const targetDir = path.join(collectionsDir, owner, repo);
-
+  // Determine and create the target directory
+  const targetDir = path.join(workflowDir, owner, repo + '@' + version);
   fs.mkdirSync(targetDir, { recursive: true });
 
+  // Clone
   await git.clone({
     fs,
     http,
     dir: targetDir,
-    url: `https://github.com/${owner}/${repo}.git`,
+    url: url,
+    ref: version,  // branch or tag
     singleBranch: true,
     depth: 1
   });
 
   return {
-    name: `${owner}/${repo}`,
+    owner: owner,
+    repo: repo,
+    version: version,
+    url: url,
     path: targetDir,
-    url: `${owner}/${repo}`
-  };
+  } as ICloneRepo;
+}
+
+async function getDefaultBranch(url: string) {
+  const info = await git.getRemoteInfo({ http, url });  // e.g. "refs/heads/main"
+  const head = info.HEAD;
+  if (!head) return 'main';  // Fallback if HEAD not found
+  return head.replace('refs/heads/', '');
 }
 
 export async function syncRepo(path: string) {
@@ -129,3 +175,16 @@ export async function getWorkflowSchema(repoPath: string) {
     return {};
   }
 }
+
+export function generateUniqueName(existingNames: string[]) {
+  const existingNamesSet = new Set(existingNames);
+  let newName = '';
+  do {
+    newName = uniqueNamesGenerator({
+      dictionaries: [adjectives, animals],
+      separator: '-',
+      length: 2
+    });
+  } while (existingNamesSet.has(newName));
+  return newName;
+};

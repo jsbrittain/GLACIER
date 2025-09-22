@@ -38,6 +38,8 @@ const defaultImageName = 'testworkflow';
 type navbar_page = 'hub' | 'library' | 'runs' | 'settings';
 type severityLevels = 'info' | 'success' | 'warning' | 'error';
 
+// Quick function to predict target directory based on repo URL and base collections path
+// Replace this with a call to the backend
 const computeTargetDir = (repoUrl, basePath) => {
   try {
     if (repoUrl.includes('://')) {
@@ -46,10 +48,10 @@ const computeTargetDir = (repoUrl, basePath) => {
         .replace(/^\//, '')
         .replace(/\.git$/, '')
         .split('/');
-      return `${basePath}/${owner}/${repo}`;
+      return `${basePath}/workflows/${owner}/${repo}`;
     } else if (repoUrl.includes('/')) {
       const [owner, repo] = repoUrl.replace(/\.git$/, '').split('/');
-      return `${basePath}/${owner}/${repo}`;
+      return `${basePath}/workflows/${owner}/${repo}`;
     }
   } catch {
     return '';
@@ -88,6 +90,13 @@ export default function App() {
     (async () => {
       const path = await API.getCollectionsPath();
       setCollectionsPath(path);
+      const instances = await API.listWorkflowInstances();
+      setLauncherQueue(
+        instances.map((instance) => ({
+          instance: instance,
+          name: instance.name
+        }))
+      );
     })();
   }, []);
 
@@ -126,23 +135,16 @@ export default function App() {
   };
 
   const addToLauncherQueue = async (repo) => {
-    try {
-      const params = await API.getWorkflowParams(repo.path);
-      setLauncherQueue((prev) => {
-        const newQueue = [...prev, { repo, params, name: generateUniqueName(repo.name, prev) }];
-        setSelectedLauncherTab(newQueue.length - 1);
-        setView('runs');
-        return newQueue;
-      });
-    } catch (err) {
-      console.error('Failed to load workflow params:', err);
-      setLauncherQueue((prev) => {
-        const newQueue = [...prev, { repo, params: {}, name: generateUniqueName(repo.name, prev) }];
-        setSelectedLauncherTab(newQueue.length - 1);
-        setView('runs');
-        return newQueue;
-      });
-    }
+    const workflow_id = repo.id;
+    const instance = await API.createWorkflowInstance(workflow_id);
+    const wf_ver = instance.workflow_version;
+
+    setLauncherQueue((prev) => {
+      const newQueue = [...prev, { instance: instance, name: instance.name }];
+      setSelectedLauncherTab(newQueue.length - 1);
+      setView('runs');
+      return newQueue;
+    });
   };
 
   const logMessage = (text, level: severityLevels = 'info') => {
@@ -248,7 +250,6 @@ export default function App() {
               setTargetDir={setTargetDir}
               setFolderPath={setFolderPath}
               drawerOpen={drawerOpen}
-              addToLauncherQueue={addToLauncherQueue}
               logMessage={logMessage}
             />
           ) : view === 'library' ? (

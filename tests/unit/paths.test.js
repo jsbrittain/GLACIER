@@ -10,7 +10,7 @@ describe('getDefaultCollectionsDir', () => {
 
   it('ends with /IceFlow/collections', () => {
     const path = getDefaultCollectionsDir();
-    expect(path).toMatch(/IceFlow[\\/]+collections$/);
+    expect(path).toMatch(/IceFlow$/);
   });
 
   it('can be created if missing', () => {
