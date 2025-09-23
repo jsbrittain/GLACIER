@@ -12,6 +12,7 @@ import {
   Alert
 } from '@mui/material';
 import { API } from '../services/api.js';
+import { useTranslation } from 'react-i18next';
 
 export default function HubPage({
   repoUrl,
@@ -22,6 +23,8 @@ export default function HubPage({
   setFolderPath,
   logMessage
 }) {
+  const { t } = useTranslation();
+
   const [installedRepos, setInstalledRepos] = useState([]);
   const [open, setOpen] = useState(false);
 
@@ -57,11 +60,11 @@ export default function HubPage({
         setFolderPath(result.path);
         logMessage(`Cloned ${result.name} to ${result.path}`, 'success');
       } else {
-        logMessage('Clone failed or returned nothing', 'error');
+        logMessage(t('hub.clone-return-none'), 'error');
       }
     } catch (err) {
       console.error(err);
-      logMessage('Clone operation failed', 'error');
+      logMessage(t('hub.clone-failed'), 'error');
     }
     updateInstalledRepos();
   };
@@ -77,10 +80,10 @@ export default function HubPage({
       <Stack spacing={3}>
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Typography variant="h6" gutterBottom>
-            Clone a GitHub Repository
+            {t('hub.clone-a-github-repository')}
           </Typography>
           <Stack direction="row" spacing={2} alignItems="center">
-            <Typography>Repo:</Typography>
+            <Typography>{t('hub.repo')}:</Typography>
             <TextField
               id="collections-repo-url"
               value={repoUrl}
@@ -94,7 +97,7 @@ export default function HubPage({
               onClick={() => cloneRepo(repoUrl)}
               size="small"
             >
-              Clone
+              {t('hub.clone')}
             </Button>
           </Stack>
           {targetDir && (
@@ -120,7 +123,7 @@ export default function HubPage({
                     onClick={() => cloneRepo(repo.url)}
                     disabled={isRepoInstalled(repo.url)}
                   >
-                    Install
+                    {t('hub.install')}
                   </Button>
                 </Stack>
               </Paper>

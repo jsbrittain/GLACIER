@@ -24,6 +24,7 @@ import NotStartedIcon from '@mui/icons-material/NotStarted';
 import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
 import { API } from '../services/api.js';
+import { useTranslation } from 'react-i18next';
 
 export default function RunsPage({
   launcherQueue,
@@ -34,6 +35,8 @@ export default function RunsPage({
   item,
   setItem
 }) {
+  const { t } = useTranslation();
+
   const [hasWorkflowRun, setHasWorkflowRun] = useState(false);
 
   const onLaunch = async (instance, params) => {
@@ -59,7 +62,7 @@ export default function RunsPage({
         /* List view for all instances */
         <Box sx={{ mt: 2 }}>
           <Typography variant="h5" gutterBottom>
-            Runs
+            {t('runs.title')}
           </Typography>
 
           <List>

@@ -73,10 +73,14 @@
     "dockerode": "^4.0.7",
     "dompurify": "^3.2.7",
     "electron-store": "8.2.0",
+    "i18next": "^25.5.2",
+    "i18next-browser-languagedetector": "^8.2.0",
+    "i18next-resources-to-backend": "^1.2.1",
     "isomorphic-git": "^1.32.1",
     "platformdirs": "^4.3.8-rc3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-i18next": "^15.7.3",
     "typescript": "^5.8.3",
     "unique-names-generator": "^4.7.1"
   }

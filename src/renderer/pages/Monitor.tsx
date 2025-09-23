@@ -5,6 +5,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AnsiLog from './AnsiLog.js';
 import { API } from '../services/api.js';
+import { useTranslation } from 'react-i18next';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -32,6 +33,8 @@ const STATUS_ICONS = {
 };
 
 export default function MonitorPage({ instance, logMessage }) {
+  const { t } = useTranslation();
+
   const [stdOut, setStdOut] = React.useState('');
   const [stdErr, setStdErr] = React.useState('');
   const [nextflowLog, setNextflowLog] = React.useState('');
@@ -78,10 +81,10 @@ export default function MonitorPage({ instance, logMessage }) {
   return (
     <Paper>
       <Tabs value={tabSelected} onChange={handleTabChange}>
-        <Tab label="Progress" />
-        <Tab label="Standard Out" />
-        <Tab label="Standard Error" />
-        <Tab label="Nextflow Log" />
+        <Tab label={t('monitor.progress')} />
+        <Tab label={t('monitor.stdout')} />
+        <Tab label={t('monitor.stderr')} />
+        <Tab label={t('monitor.nextflow-log')} />
       </Tabs>
       <TabPanel value={tabSelected} index={0}>
         {

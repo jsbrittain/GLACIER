@@ -11,6 +11,7 @@ import {
   Snackbar,
   Alert
 } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { API } from '../services/api.js';
 
 export default function LibraryPage({
@@ -23,6 +24,8 @@ export default function LibraryPage({
   addToLauncherQueue,
   logMessage
 }) {
+  const { t } = useTranslation();
+
   const [repos, setRepos] = useState([]);
   const [open, setOpen] = useState(false);
 
@@ -39,7 +42,7 @@ export default function LibraryPage({
       {' '}
       {/* extra space for fixed log */}
       <Stack spacing={3}>
-        <Typography variant="h6">Local Repositories</Typography>
+        <Typography variant="h6">{t('library.local-repositories')}</Typography>
         <Grid container spacing={2}>
           {repos.map((repo) => (
             /* @ts-ignore */
@@ -55,7 +58,7 @@ export default function LibraryPage({
                     variant="contained"
                     onClick={() => addToLauncherQueue(repo)}
                   >
-                    Run
+                    {t('library.run')}
                   </Button>
                   <Button
                     id={`collections-sync-${repo.name}`}
@@ -65,17 +68,17 @@ export default function LibraryPage({
                       try {
                         const result = await API.syncRepo(repo.path);
                         if (result?.status === 'ok') {
-                          logMessage('Repo synced', 'success');
+                          logMessage(t('library.repo-sync-success'), 'success');
                         } else {
-                          throw new Error(result?.message || 'Unknown sync failure');
+                          throw new Error(result?.message || t('library.repo-sync-failed'));
                         }
                       } catch (err) {
                         console.error(err);
-                        logMessage('Sync failed', 'error');
+                        logMessage(t('library.repo-sync-failed'), 'error');
                       }
                     }}
                   >
-                    Sync
+                    {t('library.sync')}
                   </Button>
                 </Stack>
               </Paper>

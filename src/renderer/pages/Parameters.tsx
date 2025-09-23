@@ -25,6 +25,7 @@ import Ajv, { ErrorObject } from 'ajv'; // ajv is also used by jsonforms
 import { buildUISchema } from './buildUISchema';
 import { renderers } from './renderers';
 import { API } from '../services/api.js';
+import { useTranslation } from 'react-i18next';
 
 const ajv = new Ajv({
   useDefaults: true, // populate all fields (if not provided)
@@ -50,6 +51,8 @@ function TabPanel({ children, value, index }) {
 }
 
 export default function ParametersPage({ instance, logMessage, setHasWorkflowRun }) {
+  const { t } = useTranslation();
+
   const [params, setParams] = useState<Record<string, unknown>>({});
   const [schema, setSchema] = useState<Record<string, unknown> | null>({});
 
@@ -119,7 +122,7 @@ export default function ParametersPage({ instance, logMessage, setHasWorkflowRun
           variant="contained"
           onClick={() => onLaunch(instance, params)}
         >
-          Launch Workflow
+          {t('parameters.launch-workflow')}
         </Button>
       </Stack>
     </Paper>

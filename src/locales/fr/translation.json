@@ -1,0 +1,43 @@
+{
+  "glacier": "GLACIER",
+  "container-started": "Conteneur construit et démarré avec l'ID",
+  "sidebar": {
+    "hub": "Hub",
+    "library": "Bibliothèque",
+    "runs": "Exécutions",
+    "settings": "Paramètres"
+  },
+  "hub": {
+    "clone-a-github-repository": "Cloner un dépôt GitHub",
+    "repo": "Dépôt",
+    "clone": "Cloner",
+    "clone-return-none": "Le clonage a échoué ou n'a rien retourné",
+    "clone-failed": "L'opération de clonage a échoué",
+    "install": "Installer"
+  },
+  "library": {
+    "local-repositories": "Dépôts locaux",
+    "run": "Exécuter",
+    "sync": "Synchroniser",
+    "repo-sync-success": "Dépôt synchronisé avec succès",
+    "repo-sync-failed": "La synchronisation du dépôt a échoué"
+  },
+  "runs": {
+    "title": "Exécutions"
+  },
+  "parameters": {
+    "launch-workflow": "Lancer le flux de travail"
+  },
+  "monitor": {
+    "progress": "Progrès",
+    "stdout": "Sortie standard",
+    "stderr": "Erreur standard",
+    "nextflow-log": "Journal Nextflow"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "dark-mode": "Mode sombre",
+    "collections-path": "Chemin de la bibliothèque",
+    "language-select": "Langue"
+  }
+}
