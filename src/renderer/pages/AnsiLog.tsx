@@ -3,7 +3,13 @@ import { Box } from '@mui/material';
 import AnsiToHtml from 'ansi-to-html';
 import DOMPurify from 'dompurify';
 
-const converter = new AnsiToHtml({ fg: '#ccc', bg: '#000', newline: true, escapeXML: true, stream: true });
+const converter = new AnsiToHtml({
+  fg: '#ccc',
+  bg: '#000',
+  newline: true,
+  escapeXML: true,
+  stream: true
+});
 
 export default function AnsiLog({ text }) {
   const html = useMemo(() => {
@@ -28,7 +34,7 @@ export default function AnsiLog({ text }) {
         overflow: 'auto',
         padding: '12px',
         borderRadius: 8,
-        height: '400px',
+        height: '400px'
       }}
       dangerouslySetInnerHTML={{ __html: html }}
     />

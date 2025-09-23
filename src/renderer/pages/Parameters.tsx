@@ -49,12 +49,8 @@ function TabPanel({ children, value, index }) {
   return value === index ? <Box sx={{ p: 2, flexGrow: 1 }}>{children}</Box> : null;
 }
 
-export default function ParametersPage({
-  instance,
-  logMessage,
-  setHasWorkflowRun,
-}) {
-  const [data, setData] = useState<Record<string, unknown>>({});
+export default function ParametersPage({ instance, logMessage, setHasWorkflowRun }) {
+  const [params, setParams] = useState<Record<string, unknown>>({});
   const [schema, setSchema] = useState<Record<string, unknown> | null>({});
 
   const onLaunch = async (instance, params) => {
@@ -68,7 +64,14 @@ export default function ParametersPage({
       const schema = await API.getWorkflowSchema(instance.workflow_version.path);
       setSchema(schema);
     };
+    const get_params = async () => {
+      const data = await API.getWorkflowInstanceParams(instance);
+      if (data) {
+        setParams(data);
+      }
+    };
     get_schema();
+    get_params();
   }, [instance]);
 
   // Read schema and compile with AJV
@@ -80,12 +83,12 @@ export default function ParametersPage({
 
   const schemaErrors: ErrorObject[] | null = useMemo(() => {
     try {
-      validate(data);
+      validate(params);
       return validate.errors ?? null;
     } catch {
       return [{ instancePath: '', keyword: 'schema', message: 'Invalid schema' } as any];
     }
-  }, [data, validate]);
+  }, [params, validate]);
 
   const isEmpty = (obj) => {
     return Object.keys(obj).length === 0;
@@ -102,9 +105,9 @@ export default function ParametersPage({
             <JsonForms
               schema={schema}
               uischema={uischema}
-              data={data}
+              data={params}
               renderers={renderers}
-              onChange={({ data, errors }) => setData(data)}
+              onChange={({ data, errors }) => setParams(data)}
               ajv={ajv}
             />
           ) : (
@@ -114,7 +117,7 @@ export default function ParametersPage({
         <Button
           disabled={schemaErrors !== null}
           variant="contained"
-          onClick={() => onLaunch(instance, data)}
+          onClick={() => onLaunch(instance, params)}
         >
           Launch Workflow
         </Button>

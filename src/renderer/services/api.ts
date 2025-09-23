@@ -8,6 +8,9 @@ const electronAPI = isElectron
       listWorkflowInstances: () => window.electronAPI.listWorkflowInstances(),
       getWorkflowInstanceLogs: (instance, logType) =>
         window.electronAPI.getWorkflowInstanceLogs(instance, logType),
+      getInstanceProgress: (instance) => window.electronAPI.getInstanceProgress(instance),
+      getWorkflowInstanceParams: (instance) =>
+        window.electronAPI.getWorkflowInstanceParams(instance),
 
       // Legacy calls
       cloneRepo: (repoRef) => window.electronAPI.cloneRepo(repoRef),

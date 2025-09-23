@@ -81,6 +81,13 @@ export default function App() {
       createTheme({
         palette: {
           mode: darkMode ? 'dark' : 'light'
+          /*primary: {
+            main: '#e3f2fd',
+            contrastText: '#0277bd',
+          },
+          text: {
+            primary: '#0277bd',
+          },*/
         }
       }),
     [darkMode]

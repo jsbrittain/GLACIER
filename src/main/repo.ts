@@ -16,25 +16,25 @@ interface Params {
 }
 
 export interface ICloneRepo {
-  owner: string,
-  repo: string,
-  version: string,
-  url: string,
-  path: string,
+  owner: string;
+  repo: string;
+  version: string;
+  url: string;
+  path: string;
 }
 
 export async function cloneRepo(
   repoUrl: string,
   workflowDir: string,
   branch: string | null = null,
-  tag: string | null = null,
+  tag: string | null = null
 ): Promise<ICloneRepo> {
   let owner: string = '';
   let repo: string = '';
   let version: string | null = null;
 
   // Either branch or tag can be specified (but not both), otherwise default branch
-  if ((branch !== null) && (tag !== null)) {
+  if (branch !== null && tag !== null) {
     throw new Error('Either branch or tag must be specified, not both.');
   }
 
@@ -64,8 +64,8 @@ export async function cloneRepo(
   } else {
     version = await getDefaultBranch(url);
   }
-  if ((version === null) || (version === '')) {
-    version = 'main';  // Fallback
+  if (version === null || version === '') {
+    version = 'main'; // Fallback
   }
 
   // Determine and create the target directory
@@ -78,7 +78,7 @@ export async function cloneRepo(
     http,
     dir: targetDir,
     url: url,
-    ref: version,  // branch or tag
+    ref: version, // branch or tag
     singleBranch: true,
     depth: 1
   });
@@ -88,14 +88,14 @@ export async function cloneRepo(
     repo: repo,
     version: version,
     url: url,
-    path: targetDir,
+    path: targetDir
   } as ICloneRepo;
 }
 
 async function getDefaultBranch(url: string) {
-  const info = await git.getRemoteInfo({ http, url });  // e.g. "refs/heads/main"
+  const info = await git.getRemoteInfo({ http, url }); // e.g. "refs/heads/main"
   const head = info.HEAD;
-  if (!head) return 'main';  // Fallback if HEAD not found
+  if (!head) return 'main'; // Fallback if HEAD not found
   return head.replace('refs/heads/', '');
 }
 
@@ -187,4 +187,4 @@ export function generateUniqueName(existingNames: string[]) {
     });
   } while (existingNamesSet.has(newName));
   return newName;
-};
+}

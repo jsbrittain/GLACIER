@@ -165,24 +165,23 @@ export async function runWorkflowNextflow(instance: IWorkflowInstance, params: p
   const cmd = [
     'run',
     path.resolve(projectPath, 'main.nf'),
-    '-work-dir', workPath,
-    '-params-file', paramsFile,
-    '-with-weblog', weblog_server,
+    '-work-dir',
+    workPath,
+    '-params-file',
+    paramsFile,
+    '-with-weblog',
+    weblog_server,
     '-with-trace'
-  ]
+  ];
 
   console.log(`Spawning nextflow with command: nextflow ${cmd.join(' ')} from ${instancePath}`);
-  const p = spawn(
-    'nextflow',
-    cmd,
-    {
-      cwd: instancePath,
-      stdio: ['ignore', stdout, stderr],  // stdin ignored
-      detached: true,
-    }
-  );
+  const p = spawn('nextflow', cmd, {
+    cwd: instancePath,
+    stdio: ['ignore', stdout, stderr], // stdin ignored
+    detached: true
+  });
 
-  p.unref();  // allow the parent to exit independently
+  p.unref(); // allow the parent to exit independently
 
   return p.pid;
 
@@ -225,11 +224,11 @@ export async function runRepo_Docker(repoPath: string, name: string, params: par
 }
 
 interface IRunWorkflowArgs {
-  instance: IWorkflowInstance,
-  params: IWorkflowParams,
+  instance: IWorkflowInstance;
+  params: IWorkflowParams;
 }
 
-export async function runWorkflow({instance, params}: IRunWorkflowArgs) {
+export async function runWorkflow({ instance, params }: IRunWorkflowArgs) {
   const projectPath = instance.workflow_version.path;
 
   if (!projectPath || !(await fs.stat(projectPath)).isDirectory()) {
@@ -237,7 +236,7 @@ export async function runWorkflow({instance, params}: IRunWorkflowArgs) {
   }
 
   // Identify repository type (nextflow, docker, etc.)
-  const nextflowPAth = `${projectPath}/nextflow.config`;
+  const nextflowPAth = `${projectPath}/nextflow_schema.json`;
   const dockerfilePath = `${projectPath}/Dockerfile`;
   const nextflowExists = await fs
     .stat(nextflowPAth)

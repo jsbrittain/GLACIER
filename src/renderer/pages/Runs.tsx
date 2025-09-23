@@ -86,20 +86,17 @@ export default function RunsPage({
         /* Parameters view for a selected workflow */
         launcherQueue
           .filter(({ name }) => name === item)
-          .map(({ instance, name }, idx) => (
-            (hasWorkflowRun) ? (
-              <MonitorPage
-                instance={instance}
-                logMessage={logMessage}
-              />
+          .map(({ instance, name }, idx) =>
+            hasWorkflowRun ? (
+              <MonitorPage instance={instance} logMessage={logMessage} />
             ) : (
               <ParametersPage
                 instance={instance}
                 logMessage={logMessage}
                 setHasWorkflowRun={setHasWorkflowRun}
               />
-          ))
-        )
+            )
+          )
       )}
     </Container>
   );

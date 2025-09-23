@@ -7,14 +7,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   listWorkflowInstances: () => ipcRenderer.invoke('list-workflow-instances'),
   getWorkflowInstanceLogs: (instance: any, logType: string) =>
     ipcRenderer.invoke('get-workflow-instance-logs', instance, logType),
+  getInstanceProgress: (instance: any) => ipcRenderer.invoke('get-instance-progress', instance),
+  getWorkflowInstanceParams: (instance: any) =>
+    ipcRenderer.invoke('get-workflow-instance-params', instance),
 
   // Legacy calls
   buildAndRunContainer: (folderPath: string, imageName: string) =>
     ipcRenderer.invoke('build-and-run-container', folderPath, imageName),
   listContainers: () => ipcRenderer.invoke('list-containers'),
   clearStoppedContainers: () => ipcRenderer.invoke('clear-stopped-containers'),
-  cloneRepo: (repoUrl: string) =>
-    ipcRenderer.invoke('clone-repo', repoUrl),
+  cloneRepo: (repoUrl: string) => ipcRenderer.invoke('clone-repo', repoUrl),
   getCollectionsPath: () => ipcRenderer.invoke('get-collections-path'),
   setCollectionsPath: (path: string) => ipcRenderer.invoke('set-collections-path', path),
   getCollections: () => ipcRenderer.invoke('get-collections'),

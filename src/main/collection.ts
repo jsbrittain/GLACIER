@@ -5,8 +5,14 @@ import fs from 'fs';
 import { IRepo } from './types.js';
 import { generateUniqueName } from './repo.js';
 import { cloneRepo, ICloneRepo } from './repo.js';
+import { parseNextflowLog } from './nf-parse.js';
 
-import { buildAndRunContainer, listContainers, clearStoppedContainers, runWorkflow } from './docker.js';
+import {
+  buildAndRunContainer,
+  listContainers,
+  clearStoppedContainers,
+  runWorkflow
+} from './docker.js';
 import { syncRepo, getWorkflowParams, getWorkflowSchema } from './repo.js';
 import { getCollectionsPath, getDefaultCollectionsDir } from './paths.js';
 import store from './store.js';
@@ -14,7 +20,7 @@ import store from './store.js';
 export enum IWorkflowType {
   NEXTFLOW = 'nextflow',
   SNAKEMAKE = 'snakemake',
-  DOCKER = 'docker',
+  DOCKER = 'docker'
 }
 
 // A specific version (github tag) of a workflow
@@ -22,9 +28,9 @@ export interface IWorkflowVersion {
   id: string;
   name: string;
   type: IWorkflowType;
-  version: string;  // github tag
+  version: string; // github tag
   path: string;
-  parent?: IWorkflow;  // reference to parent workflow
+  parent?: IWorkflow; // reference to parent workflow
 }
 
 class WorkflowVersion implements IWorkflowVersion {
@@ -33,9 +39,9 @@ class WorkflowVersion implements IWorkflowVersion {
   type: IWorkflowType;
   version: string;
   path: string;
-  parent?: IWorkflow;  // reference to parent workflow
+  parent?: IWorkflow; // reference to parent workflow
 
-  constructor({id, name, type, version, path, parent}: IWorkflowVersion) {
+  constructor({ id, name, type, version, path, parent }: IWorkflowVersion) {
     this.id = id;
     this.name = name;
     this.type = type;
@@ -63,7 +69,7 @@ class Workflow implements IWorkflow {
   url: string;
   versions: WorkflowVersion[];
 
-  project: IProject | null = null;  // reference to project if applicable
+  project: IProject | null = null; // reference to project if applicable
 
   constructor(wf: IWorkflow) {
     this.id = wf.id;
@@ -97,7 +103,7 @@ class WorkflowInstance implements IWorkflowInstance {
 
   pid: number[] = [];
 
-  constructor({id, name, workflow_version, path, params = {}}: IWorkflowInstance) {
+  constructor({ id, name, workflow_version, path, params = {} }: IWorkflowInstance) {
     this.id = id;
     this.name = name;
     this.workflow_version = workflow_version;
@@ -107,6 +113,16 @@ class WorkflowInstance implements IWorkflowInstance {
 
   attachPID(pid: number) {
     this.pid.push(pid);
+  }
+
+  async getProgress(): Promise<Record<string, any>> {
+    // Read .nextflow.log and parse
+    const logFile = path.join(this.path, '.nextflow.log');
+    if (fs.existsSync(logFile)) {
+      return await parseNextflowLog(logFile);
+    } else {
+      return { status: 'No log file found' };
+    }
   }
 }
 
@@ -122,7 +138,7 @@ class Project implements IProject {
   name: string;
   workflows: IWorkflow[];
 
-  constructor({id, name, workflows = []}: IProject) {
+  constructor({ id, name, workflows = [] }: IProject) {
     this.id = id;
     this.name = name;
     this.workflows = workflows;
@@ -131,18 +147,17 @@ class Project implements IProject {
 
 // Singleton class
 export class Collection {
-
   // --- Class management --------------------------------------------------------------
   // Ensure a singleton instance that can be referenced from anywhere
 
-  private static singleton: Collection;  // single instance of class
+  private static singleton: Collection; // single instance of class
 
   // private constructor to prevent direct instantiation
   private constructor() {
-    this.root_path = getCollectionsPath()
+    this.root_path = getCollectionsPath();
     this.parseCollection();
   }
-  
+
   // Method to get the singleton instance
   static getInstance(): Collection {
     if (!Collection.singleton) {
@@ -152,7 +167,7 @@ export class Collection {
   }
 
   // --- Data --------------------------------------------------------------------------
-  
+
   root_path: string = '';
 
   projects: Project[] = [];
@@ -186,11 +201,12 @@ export class Collection {
       if (!fs.statSync(ownerPath).isDirectory()) continue;
       const repoDirs = fs.readdirSync(ownerPath);
       for (const repo_and_version of repoDirs) {
+        const version_path = path.join(ownerPath, repo_and_version);
+        if (!fs.statSync(version_path).isDirectory()) continue;
         const repo = repo_and_version.split('@')[0];
         const version = repo_and_version.split('@')[1];
-
         // Check for existing workflow and create if not found
-        let wf = this.workflows.find(wf => wf.id === `${owner}/${repo}`);
+        let wf = this.workflows.find((wf) => wf.id === `${owner}/${repo}`);
         if (wf === undefined) {
           wf = new Workflow({
             id: `${owner}/${repo}`,
@@ -198,7 +214,7 @@ export class Collection {
             owner: owner,
             repo: repo,
             url: `${owner}/${repo}`,
-            versions: [],
+            versions: []
           } as IWorkflow);
           this.workflows.push(wf);
         }
@@ -212,7 +228,7 @@ export class Collection {
           type: type,
           version: version,
           path: versionPath,
-          parent: wf,
+          parent: wf
         } as WorkflowVersion);
       }
     }
@@ -228,23 +244,27 @@ export class Collection {
       if (!fs.statSync(ownerPath).isDirectory()) continue;
       const repoDirs = fs.readdirSync(ownerPath);
       for (const repo_and_version of repoDirs) {
+        const version_path = path.join(ownerPath, repo_and_version);
+        if (!fs.statSync(version_path).isDirectory()) continue;
+        if (!repo_and_version.includes('@')) continue;
         const repo = repo_and_version.split('@')[0];
         const version = repo_and_version.split('@')[1];
         // Find the corresponding workflow version
-        const wf = this.workflows.find(wf => wf.id === `${owner}/${repo}`);
+        const wf = this.workflows.find((wf) => wf.id === `${owner}/${repo}`);
         if (wf === undefined) continue;
-        const wf_version = wf.versions.find(v => v.version === version);
+        const wf_version = wf.versions.find((v) => v.version === version);
         if (wf_version === undefined) continue;
         // Parse instances
         const versionPath = path.join(ownerPath, repo_and_version);
         const instanceDirs = fs.readdirSync(versionPath);
         for (const instanceDir of instanceDirs) {
+          if (!fs.statSync(path.join(versionPath, instanceDir)).isDirectory()) continue;
           const instance = new WorkflowInstance({
             id: instanceDir,
             name: instanceDir,
             workflow_version: wf_version,
             path: path.join(versionPath, instanceDir),
-            params: {},
+            params: {}
           });
           this.workflow_instances.push(instance);
         }
@@ -275,17 +295,17 @@ export class Collection {
   }
 
   createWorkflowInstance(workflow_id: string): IWorkflowInstance {
-    const workflow = this.workflows.find(wf => wf.id === workflow_id);
+    const workflow = this.workflows.find((wf) => wf.id === workflow_id);
     if (!workflow) {
       throw new Error(`Workflow ${workflow_id} not found.`);
     }
     if (!workflow.versions || workflow.versions.length === 0) {
       throw new Error(`Workflow ${workflow_id} has no versions.`);
     }
-    const workflow_version = workflow.versions[0];  // First listed version as default
+    const workflow_version = workflow.versions[0]; // First listed version as default
     const owner = workflow.owner;
     const repo_and_version = `${workflow.repo}@${workflow_version.version}`;
-    const existing_ids = this.workflow_instances.map(inst => inst.id);
+    const existing_ids = this.workflow_instances.map((inst) => inst.id);
     const instance_name = generateUniqueName(existing_ids);
     const instance_id = instance_name;
     const instance_path = path.join(this.instances_path, owner, repo_and_version, instance_name);
@@ -294,7 +314,7 @@ export class Collection {
       id: instance_id,
       name: instance_name,
       workflow_version: workflow_version,
-      path: instance_path,
+      path: instance_path
     });
     this.workflow_instances.push(instance);
     return instance;
@@ -304,9 +324,29 @@ export class Collection {
     return this.workflow_instances;
   }
 
+  async getInstanceProgress(instance: IWorkflowInstance): Promise<Record<string, unknown>> {
+    // Find instance
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    return await local_instance.getProgress();
+  }
+
+  async getWorkflowInstanceParams(instance: IWorkflowInstance): Promise<IWorkflowParams> {
+    // Find instance
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    const filename = path.join(local_instance.path, 'params.json');
+    const params = JSON.parse(fs.readFileSync(filename, 'utf-8'));
+    return params;
+  }
+
   // --- Legacy calls ------------------------------------------------------------------
   // (maintains compatibility with existing codebase for now)
-  
+
   buildAndRunContainer(folderPath: string, imageName: string) {
     return buildAndRunContainer(folderPath, imageName);
   }
@@ -325,7 +365,7 @@ export class Collection {
     const repo: ICloneRepo = await cloneRepo(url, this.workflow_path, branch, tag);
     const wf_id = `${repo.owner}/${repo.repo}`;
     // Create workflow if it doesn't already exist
-    let wf = this.workflows.find(wf => wf.id === wf_id);
+    let wf = this.workflows.find((wf) => wf.id === wf_id);
     if (wf === undefined) {
       wf = new Workflow({
         id: wf_id,
@@ -333,11 +373,11 @@ export class Collection {
         owner: repo.owner,
         repo: repo.repo,
         url: repo.url,
-        versions: [],
+        versions: []
       } as IWorkflow);
     }
     // Check if version already exists
-    let version = wf.versions.find(v => v.version === repo.version);
+    let version = wf.versions.find((v) => v.version === repo.version);
     if (version !== undefined) {
       throw new Error(`Workflow ${wf_id}@{repo.version} already exists.`);
     }
@@ -347,7 +387,7 @@ export class Collection {
       type: this.determineWorkflowType(repo.path),
       version: repo.version,
       path: repo.path,
-      parent: wf,
+      parent: wf
     });
     wf.versions.push(version);
     this.workflows.push(wf);
@@ -360,22 +400,22 @@ export class Collection {
   }
 
   getWorkflowsList(): IRepo[] {
-    return this.workflows.map(wf => ({
+    return this.workflows.map((wf) => ({
       id: wf.id,
       name: wf.name,
-      path: wf.versions[0].path,  // assume first version for now
-      url: wf.url,
+      path: wf.versions[0].path, // assume first version for now
+      url: wf.url
     })) as IRepo[];
   }
 
   async runWorkflow(instance: IWorkflowInstance, params: IWorkflowParams = {}) {
-    const local_instance = this.workflow_instances.find(inst => inst.id === instance.id);
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
     if (!local_instance) {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
     const pid = await runWorkflow({
       instance: instance,
-      params: params,
+      params: params
     });
     if (!pid) {
       throw new Error('Failed to start workflow.');

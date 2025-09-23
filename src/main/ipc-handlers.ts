@@ -8,7 +8,6 @@ import { Collection } from './collection.js';
 const collection = Collection.getInstance();
 
 export function registerIpcHandlers() {
-
   ipcMain.handle('create-workflow-instance', async (event, workflow_id: string) => {
     return collection.createWorkflowInstance(workflow_id);
   });
@@ -19,6 +18,14 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('get-workflow-instance-logs', async (event, instance: any, logType: string) => {
     return collection.getWorkflowInstanceLogs(instance, logType);
+  });
+
+  ipcMain.handle('get-instance-progress', async (event, instance: any) => {
+    return collection.getInstanceProgress(instance);
+  });
+
+  ipcMain.handle('get-workflow-instance-params', async (event, instance: any) => {
+    return collection.getWorkflowInstanceParams(instance);
   });
 
   // Legacy calls
