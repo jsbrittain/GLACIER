@@ -1,5 +1,6 @@
 // Main Collection store for workflows and instances
 
+import { shell } from 'electron';
 import path from 'path';
 import fs from 'fs';
 import { IRepo } from './types.js';
@@ -28,7 +29,7 @@ export interface IWorkflowVersion {
   id: string;
   name: string;
   type: IWorkflowType;
-  version: string; // github tag
+  version: string | undefined; // github tag, undefined for local
   path: string;
   parent?: IWorkflow; // reference to parent workflow
 }
@@ -37,7 +38,7 @@ class WorkflowVersion implements IWorkflowVersion {
   id: string;
   name: string;
   type: IWorkflowType;
-  version: string;
+  version: string | undefined;
   path: string;
   parent?: IWorkflow; // reference to parent workflow
 
@@ -221,10 +222,11 @@ export class Collection {
 
         // Add version to workflow
         const versionPath = path.join(ownerPath, repo_and_version);
+        const versionPostfix = (version !== undefined) ? `@${version}` : '';
         const type = this.determineWorkflowType(versionPath);
         wf.versions.push({
-          id: `${owner}/${repo}@${version}`,
-          name: `${owner}/${repo}@${version}`,
+          id: `${owner}/${repo}${versionPostfix}`,
+          name: `${owner}/${repo}${versionPostfix}`,
           type: type,
           version: version,
           path: versionPath,
@@ -340,9 +342,116 @@ export class Collection {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
     const filename = path.join(local_instance.path, 'params.json');
+    if (!fs.existsSync(filename)) {
+      console.log(`Params file ${filename} does not exist.`);
+      return {};
+    }
     const params = JSON.parse(fs.readFileSync(filename, 'utf-8'));
     return params;
   }
+
+  async updateWorkflowInstanceStatus(instance: IWorkflowInstance): Promise<string> {
+    // Run nextflow log and get last status
+    // Find Instance
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    const progress = await local_instance.getProgress();
+    const workflow_progress = progress.workflow;
+    // get status of last item
+    if (!workflow_progress || workflow_progress.length === 0) {
+      return 'running';
+    } else {
+      const last = workflow_progress[workflow_progress.length - 1];
+      if (last.status) {
+        return last.status;
+      }
+    }
+    return 'unknown';
+  }
+
+  killPID = (pid: number, mode = 'graceful') => {
+    // mode: 'graceful' | 'term' | 'kill'
+    const isWin = process.platform === 'win32';
+
+    if (isWin) {
+      const { spawnSync } = require('child_process');
+      const args = ['/PID', String(pid), '/T'];
+      if (mode === 'kill') args.push('/F');
+      const res = spawnSync('taskkill', args, { stdio: 'inherit' });
+      return res.status === 0;
+    } else {
+      const sig = mode === 'kill' ? 'SIGKILL' : (mode === 'term' ? 'SIGTERM' : 'SIGINT');
+      try {
+        process.kill(-pid, sig); // signal the process group
+        return true;
+      } catch (e) {
+        // Fallback: try the single process
+        try { process.kill(pid, sig); return true; } catch (_) { return false; }
+      }
+    }
+  }
+
+  async cancelWorkflowInstance(instance: IWorkflowInstance): Promise<void> {
+    // Find instance
+    console.log(`Cancelling instance ${instance.id}`);
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    if (local_instance.pid.length === 0) {
+      throw new Error(`Instance ${instance.id} has no running process.`);
+    }
+    for (const pid of local_instance.pid) {
+      try {
+        const success = this.killPID(pid, 'graceful');
+        if (!success) {
+          console.error(`Failed to stop process ${pid} for instance ${instance.id}`);
+        }
+      } catch (err) {
+        console.error(`Failed to stop process ${pid} for instance ${instance.id}: ${err}`);
+      }
+    }
+    local_instance.pid = [];
+  }
+
+  async killWorkflowInstance(instance: IWorkflowInstance): Promise<void> {
+    // Find instance
+    console.log(`Cancelling instance ${instance.id}`);
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    if (local_instance.pid.length === 0) {
+      throw new Error(`Instance ${instance.id} has no running process.`);
+    }
+    for (const pid of local_instance.pid) {
+      try {
+        const success = this.killPID(pid, 'kill');
+        if (!success) {
+          console.error(`Failed to kill process ${pid} for instance ${instance.id}`);
+        }
+      } catch (err) {
+        console.error(`Failed to kill process ${pid} for instance ${instance.id}: ${err}`);
+      }
+    }
+    local_instance.pid = [];
+  }
+
+  openResultsFolder(instance: IWorkflowInstance) {
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    const folderPath = local_instance.path;
+    if (fs.existsSync(folderPath)) {
+      shell.openPath(folderPath);
+    } else {
+      throw new Error(`Results folder ${folderPath} does not exist.`);
+    }
+  }
+
 
   // --- Legacy calls ------------------------------------------------------------------
   // (maintains compatibility with existing codebase for now)
@@ -408,20 +517,62 @@ export class Collection {
     })) as IRepo[];
   }
 
-  async runWorkflow(instance: IWorkflowInstance, params: IWorkflowParams = {}) {
+  async runWorkflow(instance: IWorkflowInstance, params: IWorkflowParams = {}, opts = {}) {
     const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
     if (!local_instance) {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
     const pid = await runWorkflow({
       instance: instance,
-      params: params
+      params: params,
+      opts: opts
     });
     if (!pid) {
       throw new Error('Failed to start workflow.');
     }
     local_instance.attachPID(pid as number);
+    this.recordRunWorkflow(instance);
     return pid;
+  }
+
+  recordRunWorkflow(instance: IWorkflowInstance, status='running') {
+    // Save metadata to DB
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    // Read database from glacier root
+    const db_path = path.join(this.root_path, 'db.json');
+    let db: any = { runs: [] };
+    if (fs.existsSync(db_path)) {
+      db = JSON.parse(fs.readFileSync(db_path, 'utf-8'));
+    }
+    // Find existing run
+    const existing_run = db.runs.find((r: any) => r.id === local_instance.id);
+    if (existing_run) {
+      // Append new run
+      existing_run.runs.push({
+        datetime: new Date().toISOString(),
+        pids: local_instance.pid,
+        status: status,
+      });
+    } else {
+      // Create instance
+      db.runs.push({
+        id: local_instance.id,
+        name: local_instance.name,
+        workflow: local_instance.workflow_version.id,
+        runs: [
+          {
+            datetime: new Date().toISOString(),
+            pids: local_instance.pid,
+            status: status,
+          }
+        ],
+      });
+    }
+    // Write DB
+    fs.writeFileSync(db_path, JSON.stringify(db, null, 2));
   }
 
   syncRepo(path: string) {

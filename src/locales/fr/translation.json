@@ -29,10 +29,33 @@
     "launch-workflow": "Lancer le flux de travail"
   },
   "monitor": {
-    "progress": "Progrès",
     "stdout": "Sortie standard",
     "stderr": "Erreur standard",
-    "nextflow-log": "Journal Nextflow"
+    "nextflow-log": "Journal Nextflow",
+    "execution": {
+        "actions": "Actions",
+        "cancel": "Annuler",
+        "cancel-confirm": "Êtes-vous sûr de vouloir annuler cette exécution ?",
+        "cancelling": "Annulation en cours...",
+        "resume": "Reprendre",
+        "resume-confirm": "Êtes-vous sûr de vouloir reprendre cette exécution ? Cela relancera tous les processus échoués ou annulés.",
+        "resuming": "Reprise en cours...",
+        "restart": "Redémarrer",
+        "restart-confirm": "Êtes-vous sûr de vouloir redémarrer cette exécution ? Cela relancera tous les processus.",
+        "restarting": "Redémarrage en cours...",
+        "kill": "Tuer",
+        "kill-confirm": "Êtes-vous sûr de vouloir tuer cette exécution ? Cela arrêtera immédiatement tous les processus en cours.",
+        "killing": "Arrêt en cours..."
+    },
+    "progress": {
+        "title": "Progrès",
+        "status": "Statut",
+        "running": "En cours",
+        "completed": "Terminé",
+        "unknown": "Inconnu",
+        "aborted": "Annulé"
+    },
+    "open-results-folder": "Ouvrir le dossier des résultats"
   },
   "settings": {
     "title": "Paramètres",

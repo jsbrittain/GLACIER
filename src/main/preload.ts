@@ -3,13 +3,19 @@ const { contextBridge, ipcRenderer } = require('electron'); // must be CommonJS 
 contextBridge.exposeInMainWorld('electronAPI', {
   createWorkflowInstance: (workflow_id: string) =>
     ipcRenderer.invoke('create-workflow-instance', workflow_id),
-  runWorkflow: (instance: any, params: any) => ipcRenderer.invoke('run-workflow', instance, params),
+  runWorkflow: (instance: any, params: any, opts: any) => ipcRenderer.invoke('run-workflow', instance, params, opts),
   listWorkflowInstances: () => ipcRenderer.invoke('list-workflow-instances'),
   getWorkflowInstanceLogs: (instance: any, logType: string) =>
     ipcRenderer.invoke('get-workflow-instance-logs', instance, logType),
   getInstanceProgress: (instance: any) => ipcRenderer.invoke('get-instance-progress', instance),
   getWorkflowInstanceParams: (instance: any) =>
     ipcRenderer.invoke('get-workflow-instance-params', instance),
+  cancelWorkflowInstance: (instance: any) =>
+    ipcRenderer.invoke('cancel-workflow-instance', instance),
+  killWorkflowInstance: (instance: any) => ipcRenderer.invoke('kill-workflow-instance', instance),
+  openResultsFolder: (instance: any) => ipcRenderer.invoke('open-results-folder', instance),
+  updateWorkflowInstanceStatus: (instance: any) =>
+    ipcRenderer.invoke('update-workflow-instance-status', instance),
 
   // Legacy calls
   buildAndRunContainer: (folderPath: string, imageName: string) =>

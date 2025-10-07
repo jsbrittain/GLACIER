@@ -28,6 +28,22 @@ export function registerIpcHandlers() {
     return collection.getWorkflowInstanceParams(instance);
   });
 
+  ipcMain.handle('cancel-workflow-instance', async (event, instance: any) => {
+    return collection.cancelWorkflowInstance(instance);
+  });
+
+  ipcMain.handle('kill-workflow-instance', async (event, instance: any) => {
+    return collection.killWorkflowInstance(instance);
+  });
+
+  ipcMain.handle('open-results-folder', async (event, instance: any) => {
+    return collection.openResultsFolder(instance);
+  });
+
+  ipcMain.handle('update-workflow-instance-status', async (event, instance: any) => {
+    return collection.updateWorkflowInstanceStatus(instance);
+  });
+
   // Legacy calls
   ipcMain.handle('build-and-run-container', async (event, folderPath, imageName) => {
     return collection.buildAndRunContainer(folderPath, imageName);
@@ -57,8 +73,8 @@ export function registerIpcHandlers() {
     return collection.getWorkflowsList();
   });
 
-  ipcMain.handle('run-workflow', async (event, instance, params) => {
-    return collection.runWorkflow(instance, params);
+  ipcMain.handle('run-workflow', async (event, instance, params, opts) => {
+    return collection.runWorkflow(instance, params, opts);
   });
 
   ipcMain.handle('sync-repo', async (event, path: string) => {

@@ -55,6 +55,9 @@ export async function parseNextflowLog(path: string) {
       matched = true;
       anyOutput = true;
 
+      // Strip trailing brackets from process names (e.g. "foo (2)" -> "foo")
+      if (m[1]) m[1] = m[1].replace(/\s*\(.*\)$/, '');
+
       const safeCreate = (obj: any, key: string) => {
         if (!obj['process'][key]) obj['process'][key] = [];
       };
@@ -94,15 +97,6 @@ export async function parseNextflowLog(path: string) {
       // Helps debug when patterns miss a line you expected to match
       console.error('UNMATCHED:', line);
     }
-  }
-
-  if (!anyOutput) {
-    console.error('No events matched. Tips:');
-    console.error('  - Confirm you passed the correct log file path.');
-    console.error('  - Try: DEBUG=1 node nf-parse.js .nextflow.log  (to see unmatched lines).');
-    console.error(
-      '  - Your log may have different wording; paste an example line and I’ll tweak the regex.'
-    );
   }
 
   return progress;

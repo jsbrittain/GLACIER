@@ -1,11 +1,20 @@
 import React, { useEffect } from 'react';
 import { Box, Tabs, Tab, Paper, Typography } from '@mui/material';
+import Button from '@mui/material/Button';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import IconButton from '@mui/material/IconButton';
 import DoneIcon from '@mui/icons-material/Done';
 import CancelIcon from '@mui/icons-material/Cancel';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AnsiLog from './AnsiLog.js';
 import { API } from '../services/api.js';
 import { useTranslation } from 'react-i18next';
+import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
+import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
+
+import HeaderMenu from './Monitor/HeaderMenu';
+import ProgressTracker from './Monitor/ProgressTracker';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -39,10 +48,14 @@ export default function MonitorPage({ instance, logMessage }) {
   const [stdErr, setStdErr] = React.useState('');
   const [nextflowLog, setNextflowLog] = React.useState('');
   const [nextflowProgress, setNextflowProgress] = React.useState('');
-  const [tabSelected, setTabSelected] = React.useState(1);
+  const [tabSelected, setTabSelected] = React.useState(0);
+  const [workflowStatus, setWorkflowStatus] = React.useState('unknown');
 
   useEffect(() => {
     const fetchLogs = () => {
+      API.updateWorkflowInstanceStatus(instance).then((status) => {
+        setWorkflowStatus(status || 'unknown');
+      });
       API.getWorkflowInstanceLogs(instance, 'stdout').then((logs) => {
         setStdOut(logs);
       });
@@ -53,7 +66,6 @@ export default function MonitorPage({ instance, logMessage }) {
         setNextflowLog(logs);
       });
       API.getInstanceProgress(instance).then((progress) => {
-        console.log('progress:', progress);
         const report = {};
         const processes = progress['process'] || {};
         Object.keys(processes).forEach((name) => {
@@ -80,28 +92,21 @@ export default function MonitorPage({ instance, logMessage }) {
 
   return (
     <Paper>
+      <HeaderMenu
+        instance={instance}
+        logMessage={logMessage}
+      />
       <Tabs value={tabSelected} onChange={handleTabChange}>
-        <Tab label={t('monitor.progress')} />
+        <Tab label={t('monitor.progress.title')} />
         <Tab label={t('monitor.stdout')} />
         <Tab label={t('monitor.stderr')} />
         <Tab label={t('monitor.nextflow-log')} />
       </Tabs>
       <TabPanel value={tabSelected} index={0}>
-        {
-          // display each process and its status
-          Object.keys(nextflowProgress).map((procName) => (
-            <Box key={procName} display="flex" alignItems="center" mb={1}>
-              <Box mr={2}>
-                {STATUS_ICONS[nextflowProgress[procName]['status']] || (
-                  <RefreshIcon style={{ color: 'grey' }} />
-                )}
-              </Box>
-              <Typography variant="body1">
-                {procName}: {nextflowProgress[procName]['status']}
-              </Typography>
-            </Box>
-          ))
-        }
+        <ProgressTracker
+          nextflowProgress={nextflowProgress}
+          workflowStatus={workflowStatus}
+        />
       </TabPanel>
       <TabPanel value={tabSelected} index={1}>
         <AnsiLog text={stdOut} />

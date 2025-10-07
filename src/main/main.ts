@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, screen, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -10,9 +10,11 @@ const __dirname = path.dirname(__filename);
 let win: BrowserWindow;
 
 function createWindow() {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+
   win = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: Math.round(width * 0.8),
+    height: Math.round(height * 0.8),
     webPreferences: {
       preload: path.join(__dirname, './preload.js'),
       contextIsolation: true,

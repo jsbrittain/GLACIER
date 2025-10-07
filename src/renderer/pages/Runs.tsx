@@ -40,7 +40,7 @@ export default function RunsPage({
   const [hasWorkflowRun, setHasWorkflowRun] = useState(false);
 
   const onLaunch = async (instance, params) => {
-    const id = await API.runWorkflow(instance, params);
+    const id = await API.runWorkflow(instance, params, {});
     logMessage(`Launched workflow ${instance.name}`);
   };
 
@@ -91,7 +91,10 @@ export default function RunsPage({
           .filter(({ name }) => name === item)
           .map(({ instance, name }, idx) =>
             hasWorkflowRun ? (
-              <MonitorPage instance={instance} logMessage={logMessage} />
+              <MonitorPage
+                instance={instance}
+                logMessage={logMessage}
+              />
             ) : (
               <ParametersPage
                 instance={instance}

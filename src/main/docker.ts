@@ -134,7 +134,17 @@ export async function runRepo_NextflowDocker(repoPath: string, name: string, par
   return container.id;
 }
 
-export async function runWorkflowNextflow(instance: IWorkflowInstance, params: paramsT) {
+interface IRunWorkflowOpts {
+  resume?: boolean;
+}
+
+export async function runWorkflowNextflow(
+  instance: IWorkflowInstance,
+  params: paramsT,
+  {
+    resume = false,
+  }: IRunWorkflowOpts = {}
+) {
   // Launch nextflow natively on host system
   const name = instance.name;
   const instancePath = instance.path;
@@ -226,9 +236,10 @@ export async function runRepo_Docker(repoPath: string, name: string, params: par
 interface IRunWorkflowArgs {
   instance: IWorkflowInstance;
   params: IWorkflowParams;
+  opts?: IRunWorkflowOpts;
 }
 
-export async function runWorkflow({ instance, params }: IRunWorkflowArgs) {
+export async function runWorkflow({ instance, params, opts }: IRunWorkflowArgs) {
   const projectPath = instance.workflow_version.path;
 
   if (!projectPath || !(await fs.stat(projectPath)).isDirectory()) {
@@ -248,7 +259,7 @@ export async function runWorkflow({ instance, params }: IRunWorkflowArgs) {
     .catch(() => false);
 
   if (nextflowExists) {
-    return runWorkflowNextflow(instance, params);
+    return runWorkflowNextflow(instance, params, opts);
   } else if (dockerExists) {
     return runRepo_Docker(projectPath, instance.name, params || {});
   } else {

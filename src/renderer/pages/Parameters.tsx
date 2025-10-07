@@ -57,7 +57,7 @@ export default function ParametersPage({ instance, logMessage, setHasWorkflowRun
   const [schema, setSchema] = useState<Record<string, unknown> | null>({});
 
   const onLaunch = async (instance, params) => {
-    const id = await API.runWorkflow(instance, params);
+    const id = await API.runWorkflow(instance, params, {});
     logMessage(`Launched workflow ${instance.name}`);
     setHasWorkflowRun(true);
   };

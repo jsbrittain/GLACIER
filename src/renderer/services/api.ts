@@ -4,13 +4,18 @@ const electronAPI = isElectron
   ? {
       createWorkflowInstance: (workflow_id) =>
         window.electronAPI.createWorkflowInstance(workflow_id),
-      runWorkflow: (instance, params) => window.electronAPI.runWorkflow(instance, params),
+      runWorkflow: (instance, params, opts) => window.electronAPI.runWorkflow(instance, params, opts),
       listWorkflowInstances: () => window.electronAPI.listWorkflowInstances(),
       getWorkflowInstanceLogs: (instance, logType) =>
         window.electronAPI.getWorkflowInstanceLogs(instance, logType),
       getInstanceProgress: (instance) => window.electronAPI.getInstanceProgress(instance),
       getWorkflowInstanceParams: (instance) =>
         window.electronAPI.getWorkflowInstanceParams(instance),
+      cancelWorkflowInstance: (instance) => window.electronAPI.cancelWorkflowInstance(instance),
+      killWorkflowInstance: (instance) => window.electronAPI.killWorkflowInstance(instance),
+      openResultsFolder: (instance) => window.electronAPI.openResultsFolder(instance),
+      updateWorkflowInstanceStatus: (instance) =>
+        window.electronAPI.updateWorkflowInstanceStatus(instance),
 
       // Legacy calls
       cloneRepo: (repoRef) => window.electronAPI.cloneRepo(repoRef),
