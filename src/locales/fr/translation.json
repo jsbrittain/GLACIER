@@ -23,7 +23,12 @@
     "repo-sync-failed": "La synchronisation du dépôt a échoué"
   },
   "runs": {
-    "title": "Exécutions"
+    "title": "Exécutions",
+    "table": {
+      "status": "Statut",
+      "name": "Nom",
+      "workflow": "Flux de travail"
+    }
   },
   "parameters": {
     "launch-workflow": "Lancer le flux de travail"

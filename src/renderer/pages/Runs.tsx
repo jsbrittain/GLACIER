@@ -11,6 +11,12 @@ import {
   Button,
   Alert
 } from '@mui/material';
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
 import MonitorPage from './Monitor';
 import ParametersPage from './Parameters';
 import { JsonForms } from '@jsonforms/react';
@@ -56,6 +62,20 @@ export default function RunsPage({
 
   const activeWorkflow = launcherQueue[selectedTab];
 
+  function createData(
+    name: string,
+    workflow: string,
+  ) {
+    return { name, workflow };
+  }
+
+  const rows = launcherQueue.map((item) =>
+    createData(
+      item.name,
+      item.instance.workflow_version.name,
+    )
+  );
+
   return (
     <Container>
       {item === '' ? (
@@ -65,25 +85,41 @@ export default function RunsPage({
             {t('runs.title')}
           </Typography>
 
-          <List>
-            {launcherQueue.map(({ instance, name }, idx) => (
-              <Paper key={idx} elevation={2} sx={{ mb: 2, p: 1 }}>
-                <ListItemButton
-                  onClick={() => {
-                    setItem(name);
-                    setSelectedTab(idx);
-                  }}
-                >
-                  <ListItemAvatar>
-                    <Avatar>
-                      <NotStartedIcon />
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText primary={name} secondary={instance.workflow_version.name} />
-                </ListItemButton>
-              </Paper>
-            ))}
-          </List>
+          <TableContainer component={Paper}>
+            <Table sx={{ minWidth: 650 }} aria-label="simple table" size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>{t('runs.table.status')}</TableCell>
+                  <TableCell>{t('runs.table.name')}</TableCell>
+                  <TableCell>{t('runs.table.workflow')}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {rows.map((row) => (
+                  <TableRow
+                    key={row.name}
+                    sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                  >
+                    <TableCell>
+                      <IconButton
+                        onClick={() => {
+                          setItem(row.name);
+                          setSelectedTab(launcherQueue.findIndex(i => i.name === row.name));
+                        }}
+                      >
+                        <NotStartedIcon />
+                      </IconButton>
+                    </TableCell>
+                    <TableCell component="th" scope="row">
+                      {row.name}
+                    </TableCell>
+                    <TableCell>{row.workflow}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
         </Box>
       ) : (
         /* Parameters view for a selected workflow */

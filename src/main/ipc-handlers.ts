@@ -44,6 +44,14 @@ export function registerIpcHandlers() {
     return collection.updateWorkflowInstanceStatus(instance);
   });
 
+  ipcMain.handle('open-work-folder', async (event, instance: any, work_id: string) => {
+    return collection.openWorkFolder(instance, work_id);
+  });
+
+  ipcMain.handle('get-work-log', async (event, instance: any, workID: string, logType: string) => {
+    return collection.getWorkLog(instance, workID, logType);
+  });
+
   // Legacy calls
   ipcMain.handle('build-and-run-container', async (event, folderPath, imageName) => {
     return collection.buildAndRunContainer(folderPath, imageName);

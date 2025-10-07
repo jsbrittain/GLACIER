@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openResultsFolder: (instance: any) => ipcRenderer.invoke('open-results-folder', instance),
   updateWorkflowInstanceStatus: (instance: any) =>
     ipcRenderer.invoke('update-workflow-instance-status', instance),
+  openWorkFolder: (instance: any, work_id: string) => ipcRenderer.invoke('open-work-folder', instance, work_id),
+  getWorkLog: (instance: any, workID: string, logType: string) => ipcRenderer.invoke('get-work-log', instance, workID, logType),
 
   // Legacy calls
   buildAndRunContainer: (folderPath: string, imageName: string) =>

@@ -13,6 +13,8 @@ import { useTranslation } from 'react-i18next';
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 
+const SECOND = 1000;
+
 const STATUS_ICONS = {
   created: <RefreshIcon style={{ color: 'gray' }} />,
   starting: <RefreshIcon style={{ color: 'gray' }} />,
@@ -22,54 +24,84 @@ const STATUS_ICONS = {
 };
 
 export default function ProgressTracker({
+  instance,
   nextflowProgress,
   workflowStatus,
 }) {
   const { t } = useTranslation();
 
-  const handleOpenProcessFolder = (procName) => {
-    console.log(procName);
-    alert('Open folder for process: ' + procName);
+  const [showWork, setShowWork] = React.useState(false);
+  const [workID, setWorkID] = React.useState<string>('');
+  const [workStdout, setWorkStdout] = React.useState<string>('');
+
+  const handleOpenProcessFolder = (name) => {
+    API.openWorkFolder(instance, nextflowProgress[name]['work']);
   }
 
-  const handleOpenProcessLog = (procName) => {
-    alert('Open stdout for process: ' + procName);
+  const handleOpenProcessLog = (name) => {
+    setWorkID(nextflowProgress[name]['work']);
+    setShowWork(true);
   }
+
+  useEffect(() => {
+    const fetchWorkLog = () => {
+      if (workID === '') {
+        return;
+      }
+      API.getWorkLog(instance, workID, 'stdout').then((logs) => {
+        setWorkStdout(logs);
+      });
+    }
+
+    const interval = setInterval(fetchWorkLog, 1 * SECOND);
+    return () => clearInterval(interval);
+  }, [showWork]);
 
   return (
-    <>
-      <Box>
-        <Typography variant="h6" gutterBottom>
-          {t('monitor.progress.status')}: {t('monitor.progress.' + workflowStatus)}
-        </Typography>
-      </Box>
-      <Box>
-      {
-        // display each process and its status
-        Object.keys(nextflowProgress).map((procName) => (
-          <Box key={procName} display="flex" alignItems="center" mb={1}>
-            <Box mr={2}>
-              {STATUS_ICONS[nextflowProgress[procName]['status']] || (
-                <RefreshIcon style={{ color: 'grey' }} />
+    <Box sx={{ display: 'flex', gap: 2}}>
+      <Box sx={{ flex: 1 }}>
+        <Box>
+          <Typography variant="h6" gutterBottom>
+            {t('monitor.progress.status')}: {t('monitor.progress.' + workflowStatus)}
+          </Typography>
+        </Box>
+        <Box>
+        {
+          // display each process and its status
+          Object.keys(nextflowProgress).map((name) => (
+            <Box key={name} display="flex" alignItems="center" mb={1}>
+              <Box mr={2}>
+                {STATUS_ICONS[nextflowProgress[name]['status']] || (
+                  <RefreshIcon style={{ color: 'grey' }} />
+                )}
+              </Box>
+              <Typography variant="body1">
+                {name}: {nextflowProgress[name]['status']}
+              </Typography>
+              {(nextflowProgress[name]['work'] !== undefined) && (
+                <>
+                  <IconButton
+                    onClick={() => handleOpenProcessFolder(name)}
+                  >
+                    <FolderOutlinedIcon />
+                  </IconButton>
+                  <IconButton
+                    onClick={() => handleOpenProcessLog(name)}
+                  >
+                    <DescriptionOutlinedIcon />
+                  </IconButton>
+                </>
               )}
             </Box>
-            <Typography variant="body1">
-              {procName}: {nextflowProgress[procName]['status']}
-            </Typography>
-            <IconButton
-              onClick={() => handleOpenProcessFolder(procName)}
-            >
-              <FolderOutlinedIcon />
-            </IconButton>
-            <IconButton
-              onClick={() => handleOpenProcessLog(procName)}
-            >
-              <DescriptionOutlinedIcon />
-            </IconButton>
-          </Box>
-        ))
-      }
+          ))
+        }
+        </Box>
       </Box>
-    </>
+      {(showWork) && (
+        <Box sx={{ flex: 1 }}>
+          <AnsiLog text={workStdout} />
+        </Box>
+      )}
+    </Box>
   );
 }

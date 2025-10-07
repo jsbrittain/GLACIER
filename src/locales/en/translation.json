@@ -23,7 +23,12 @@
     "repo-sync-failed": "Repository sync failed"
   },
   "runs": {
-    "title": "Runs"
+    "title": "Runs",
+    "table": {
+      "status": "Status",
+      "name": "Name",
+      "workflow": "Workflow"
+    }
   },
   "parameters": {
     "launch-workflow": "Launch Workflow"

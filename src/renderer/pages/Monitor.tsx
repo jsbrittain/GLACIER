@@ -74,6 +74,9 @@ export default function MonitorPage({ instance, logMessage }) {
           report[name] = {
             status: proc['status']
           };
+          if (proc['work'] !== undefined) {
+            report[name]['work'] = proc['work'];
+          }
         });
         setNextflowProgress(report);
       });
@@ -104,6 +107,7 @@ export default function MonitorPage({ instance, logMessage }) {
       </Tabs>
       <TabPanel value={tabSelected} index={0}>
         <ProgressTracker
+          instance={instance}
           nextflowProgress={nextflowProgress}
           workflowStatus={workflowStatus}
         />

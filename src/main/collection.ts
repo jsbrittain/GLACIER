@@ -452,6 +452,77 @@ export class Collection {
     }
   }
 
+  openWorkFolder(instance: IWorkflowInstance, word_id: string) {
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    // nextflow work id: <2digits>/<first 6digits of hash>
+    const match = word_id.match(/^([a-f0-9]{2})\/([a-f0-9]{6})$/);
+    if (!match) {
+      throw new Error(`Invalid work ID format: ${word_id}`);
+    }
+    const prefix = match[1];
+    const short_hash = match[2];
+    const workFolder = path.join(local_instance.path, 'work', prefix);
+    if (!fs.existsSync(workFolder)) {
+      throw new Error(`Work folder ${workFolder} does not exist.`);
+    }
+    // Find matching folders
+    const candidates = fs.readdirSync(workFolder).filter((f) => f.startsWith(short_hash));
+    if (candidates.length === 0) {
+      throw new Error(`No work folders found matching ID: ${word_id}`);
+    } else if (candidates.length > 1) {
+      console.warn(`Multiple work folders found matching ID: ${word_id}, opening first match.`);
+    }
+    const folderPath = path.join(workFolder, candidates[0]);
+    shell.openPath(folderPath);
+  }
+
+  getWorkLog(instance: IWorkflowInstance, workID: string, log_type: string): string {
+
+    const log_filenames = {
+      'stdout': '.command.out',
+    };
+    let log_filename;
+    if (log_type in log_filenames) {
+      log_filename = log_filenames[log_type as keyof typeof log_filenames];
+    } else {
+      throw new Error(`Unknown log type: ${log_type}`);
+    }
+
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    // nextflow work id: <2digits>/<first 6digits of hash>
+    const match = workID.match(/^([a-f0-9]{2})\/([a-f0-9]{6})$/);
+    if (!match) {
+      throw new Error(`Invalid work ID format: ${workID}`);
+    }
+    const prefix = match[1];
+    const short_hash = match[2];
+    const workFolder = path.join(local_instance.path, 'work', prefix);
+    if (!fs.existsSync(workFolder)) {
+      throw new Error(`Work folder ${workFolder} does not exist.`);
+    }
+    // Find matching folders
+    const candidates = fs.readdirSync(workFolder).filter((f) => f.startsWith(short_hash));
+    if (candidates.length === 0) {
+      throw new Error(`No work folders found matching ID: ${workID}`);
+    } else if (candidates.length > 1) {
+      console.warn(`Multiple work folders found matching ID: ${workID}, using first match.`);
+    }
+    const folderPath = path.join(workFolder, candidates[0]);
+    const logFile = path.join(folderPath, `${log_filename}`);
+    if (fs.existsSync(logFile)) {
+      return fs.readFileSync(logFile, 'utf-8');
+    } else {
+      console.log(`Log file ${logFile} does not exist.`);
+      return '';
+    }
+  }
+
 
   // --- Legacy calls ------------------------------------------------------------------
   // (maintains compatibility with existing codebase for now)

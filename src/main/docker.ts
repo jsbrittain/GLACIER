@@ -136,6 +136,7 @@ export async function runRepo_NextflowDocker(repoPath: string, name: string, par
 
 interface IRunWorkflowOpts {
   resume?: boolean;
+  restart?: boolean;
 }
 
 export async function runWorkflowNextflow(
@@ -143,6 +144,7 @@ export async function runWorkflowNextflow(
   params: paramsT,
   {
     resume = false,
+    restart = false,
   }: IRunWorkflowOpts = {}
 ) {
   // Launch nextflow natively on host system
@@ -154,7 +156,9 @@ export async function runWorkflowNextflow(
 
   // Save parameters to a file in the instance folder
   const paramsFile = path.resolve(instancePath, 'params.json');
-  fs.writeFile(paramsFile, JSON.stringify(params, null, 2), 'utf8');
+  if (!resume && !restart) {
+    fs.writeFile(paramsFile, JSON.stringify(params, null, 2), 'utf8');
+  }
 
   // Clear logs and set to append
   if (!fs_sync.existsSync(instancePath)) {
@@ -171,7 +175,6 @@ export async function runWorkflowNextflow(
   fs_sync.truncateSync(path.resolve(instancePath, 'stderr.log'), 0);
   const stderr = fs_sync.openSync(path.resolve(instancePath, 'stderr.log'), 'a');
 
-  const weblog_server = 'http://localhost:3000';
   const cmd = [
     'run',
     path.resolve(projectPath, 'main.nf'),
@@ -179,10 +182,10 @@ export async function runWorkflowNextflow(
     workPath,
     '-params-file',
     paramsFile,
-    '-with-weblog',
-    weblog_server,
-    '-with-trace'
   ];
+  if (resume) {
+    cmd.push('-resume');
+  }
 
   console.log(`Spawning nextflow with command: nextflow ${cmd.join(' ')} from ${instancePath}`);
   const p = spawn('nextflow', cmd, {
@@ -194,21 +197,6 @@ export async function runWorkflowNextflow(
   p.unref(); // allow the parent to exit independently
 
   return p.pid;
-
-  // let output = '';
-  // p.stdout.on('data', (data: any) => {
-  //   output += data.toString();
-  //   process.stdout.write(data);
-  // });
-
-  // p.stderr.on('data', (data: any) => {
-  //   output += data.toString();
-  //   process.stderr.write(data);
-  // });
-
-  // p.on('close', (code) => {
-  //   console.log(`Nextflow process exited with code ${code}`);
-  // });
 }
 
 export async function runRepo_Docker(repoPath: string, name: string, params: paramsT) {

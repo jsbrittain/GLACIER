@@ -16,6 +16,8 @@ const electronAPI = isElectron
       openResultsFolder: (instance) => window.electronAPI.openResultsFolder(instance),
       updateWorkflowInstanceStatus: (instance) =>
         window.electronAPI.updateWorkflowInstanceStatus(instance),
+      openWorkFolder: (instance, workID) => window.electronAPI.openWorkFolder(instance, workID),
+      getWorkLog: (instance, workID, logType) => window.electronAPI.getWorkLog(instance, workID, logType),
 
       // Legacy calls
       cloneRepo: (repoRef) => window.electronAPI.cloneRepo(repoRef),
