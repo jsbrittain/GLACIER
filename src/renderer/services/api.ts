@@ -22,14 +22,9 @@ const electronAPI = isElectron
         window.electronAPI.getWorkLog(instance, workID, logType),
       getAvailableProfiles: (instance) => window.electronAPI.getAvailableProfiles(instance),
 
-      // Legacy calls
       cloneRepo: (repoRef) => window.electronAPI.cloneRepo(repoRef),
       syncRepo: (repo) => window.electronAPI.syncRepo(repo),
       getCollections: () => window.electronAPI.getCollections(),
-      buildAndRunContainer: (folder, image) =>
-        window.electronAPI.buildAndRunContainer(folder, image),
-      listContainers: () => window.electronAPI.listContainers(),
-      clearStoppedContainers: () => window.electronAPI.clearStoppedContainers(),
       getCollectionsPath: () => window.electronAPI.getCollectionsPath(),
       setCollectionsPath: (path) => window.electronAPI.setCollectionsPath(path),
       getContainerLogs: (containerId) => window.electronAPI.getContainerLogs(containerId),
@@ -87,30 +82,6 @@ const httpAPI = {
     return res.json();
   },
 
-  buildAndRunContainer: async (folder, image) => {
-    const res = await fetch('/api/build-run', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ folder, image })
-    });
-    if (!res.ok) throw new Error(`Build and run failed: ${res.statusText}`);
-    return res.json();
-  },
-
-  listContainers: async () => {
-    const res = await fetch('/api/containers');
-    if (!res.ok) throw new Error(`Failed to list containers: ${res.statusText}`);
-    return res.json();
-  },
-
-  clearStoppedContainers: async () => {
-    const res = await fetch('/api/containers/clear-stopped', {
-      method: 'POST'
-    });
-    if (!res.ok) throw new Error(`Failed to clear containers: ${res.statusText}`);
-    return res.json();
-  },
-
   getCollectionsPath: async () => {
     const res = await fetch('/api/collections-path');
     if (!res.ok) throw new Error('Failed to get collections path');
@@ -125,14 +96,6 @@ const httpAPI = {
     const res = await fetch(`/api/containers/${containerId}/logs`);
     if (!res.ok) throw new Error(`Failed to get logs: ${res.statusText}`);
     return res.text(); // assuming logs come as text stream
-  },
-
-  stopContainer: async (containerId) => {
-    const res = await fetch(`/api/containers/${containerId}/stop`, {
-      method: 'POST'
-    });
-    if (!res.ok) throw new Error(`Failed to stop container: ${res.statusText}`);
-    return res.json();
   },
 
   deleteRepo: async (repoPath) => {

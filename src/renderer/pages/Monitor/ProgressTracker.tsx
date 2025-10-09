@@ -7,7 +7,7 @@ import IconButton from '@mui/material/IconButton';
 import DoneIcon from '@mui/icons-material/Done';
 import CancelIcon from '@mui/icons-material/Cancel';
 import RefreshIcon from '@mui/icons-material/Refresh';
-import AnsiLog from '../AnsiLog.js';
+import AnsiLog from './AnsiLog.js';
 import { API } from '../../services/api.js';
 import { useTranslation } from 'react-i18next';
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';

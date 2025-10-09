@@ -13,9 +13,8 @@ import { getCollectionsPath, getDefaultCollectionsDir } from './paths.js';
 import store from './store.js';
 
 // Should remove imports from specific runners
-import { buildAndRunContainer, listContainers, clearStoppedContainers } from '../runners/docker.js';
-import { getAvailableProfiles as getAvailableProfiles_Nextflow } from '../runners/nextflow.js';
-import { parseNextflowLog } from '../runners/nf-parse.js';
+import { getAvailableProfiles as getAvailableProfiles_Nextflow } from '../runners/nextflow/nextflow.js';
+import { parseNextflowLog } from '../runners/nextflow/nf-parse.js';
 //
 
 export enum IWorkflowType {
@@ -533,21 +532,6 @@ export class Collection {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
     return await getAvailableProfiles_Nextflow(local_instance);
-  }
-
-  // --- Legacy calls ------------------------------------------------------------------
-  // (maintains compatibility with existing codebase for now)
-
-  buildAndRunContainer(folderPath: string, imageName: string) {
-    return buildAndRunContainer(folderPath, imageName);
-  }
-
-  listContainers() {
-    return listContainers();
-  }
-
-  clearStoppedContainers() {
-    return clearStoppedContainers();
   }
 
   async cloneRepo(url: string): Promise<IWorkflowVersion> {

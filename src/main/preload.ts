@@ -23,11 +23,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-work-log', instance, workID, logType),
   getAvailableProfiles: (instance: any) => ipcRenderer.invoke('get-available-profiles', instance),
 
-  // Legacy calls
-  buildAndRunContainer: (folderPath: string, imageName: string) =>
-    ipcRenderer.invoke('build-and-run-container', folderPath, imageName),
-  listContainers: () => ipcRenderer.invoke('list-containers'),
-  clearStoppedContainers: () => ipcRenderer.invoke('clear-stopped-containers'),
   cloneRepo: (repoUrl: string) => ipcRenderer.invoke('clone-repo', repoUrl),
   getCollectionsPath: () => ipcRenderer.invoke('get-collections-path'),
   setCollectionsPath: (path: string) => ipcRenderer.invoke('set-collections-path', path),

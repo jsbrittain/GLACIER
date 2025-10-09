@@ -6,8 +6,11 @@ import { spawn } from 'child_process';
 import { Readable, Duplex } from 'stream';
 import { promises as fs } from 'fs';
 import { IWorkflowInstance, IWorkflowParams } from './collection.js';
-import { IRunWorkflowOpts, runWorkflow as runWorkflowNextflow } from '../runners/nextflow.js';
-import { runRepo_Docker } from '../runners/docker.js';
+import {
+  IRunWorkflowOpts,
+  runWorkflow as runWorkflowNextflow
+} from '../runners/nextflow/nextflow.js';
+import { runRepo_Docker } from '../runners/docker/docker.js';
 
 interface IRunWorkflowArgs {
   instance: IWorkflowInstance;

@@ -24,7 +24,7 @@ import IconButton from '@mui/material/IconButton';
 import Ajv, { ErrorObject } from 'ajv'; // ajv is also used by jsonforms
 import { buildUISchema } from './buildUISchema';
 import { renderers } from './renderers';
-import { API } from '../services/api.js';
+import { API } from '../../services/api.js';
 import { useTranslation } from 'react-i18next';
 
 const ajv = new Ajv({

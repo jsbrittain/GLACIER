@@ -2,7 +2,7 @@ import * as path from 'path';
 import * as fs_sync from 'fs';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
-import { IWorkflowInstance } from '../main/collection.js';
+import { IWorkflowInstance } from '../../main/collection.js'; // should not be linking directly to main from here
 
 type paramsT = { [key: string]: any };
 

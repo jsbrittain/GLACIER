@@ -56,19 +56,6 @@ export function registerIpcHandlers() {
     return collection.getAvailableProfiles(instance);
   });
 
-  // Legacy calls
-  ipcMain.handle('build-and-run-container', async (event, folderPath, imageName) => {
-    return collection.buildAndRunContainer(folderPath, imageName);
-  });
-
-  ipcMain.handle('list-containers', async () => {
-    return collection.listContainers();
-  });
-
-  ipcMain.handle('clear-stopped-containers', async () => {
-    return collection.clearStoppedContainers();
-  });
-
   ipcMain.handle('clone-repo', async (event, repoUrl) => {
     return await collection.cloneRepo(repoUrl);
   });

@@ -57,7 +57,7 @@ const computeTargetDir = (repoUrl, basePath) => {
   }
 };
 
-export default function MainPage(darkMode, setDarkMode) {
+export default function MainPage({ darkMode, setDarkMode }) {
   const { t } = useTranslation();
 
   const [repoUrl, setRepoUrl] = useState(defaultRepoUrl);
@@ -104,11 +104,6 @@ export default function MainPage(darkMode, setDarkMode) {
   const handleList = async () => {
     const containers = await API.listContainers();
     setOutput(JSON.stringify(containers, null, 2));
-  };
-
-  const handleBuildRun = async () => {
-    const id = await API.buildAndRunContainer(folderPath, imageName);
-    alert(`${t('container-started')}: ${id}`);
   };
 
   const generateUniqueName = (baseName, queue) => {

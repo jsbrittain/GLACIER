@@ -6,7 +6,7 @@ import MainPage from './pages/Main';
 import './i18n.js';
 
 export default function App() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState<boolean>(false);
 
   const theme = useMemo(
     () =>

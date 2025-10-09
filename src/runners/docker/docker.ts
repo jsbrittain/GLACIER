@@ -2,11 +2,11 @@ import * as os from 'os';
 import * as path from 'path';
 import * as fs_sync from 'fs';
 import Docker from 'dockerode';
-import { IRepo } from '../main/types'; // should not need to import from main
+import { IRepo } from '../../main/types'; // should not need to import from main
 import { spawn } from 'child_process';
 import { Readable, Duplex } from 'stream';
 import { promises as fs } from 'fs';
-import { IWorkflowInstance, IWorkflowParams } from '../main/collection.js'; // should not need to import from main
+import { IWorkflowInstance, IWorkflowParams } from '../../main/collection.js'; // should not need to import from main
 
 type paramsT = { [key: string]: any };
 

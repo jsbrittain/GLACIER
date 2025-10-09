@@ -8,13 +8,13 @@ import DoneIcon from '@mui/icons-material/Done';
 import CancelIcon from '@mui/icons-material/Cancel';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AnsiLog from './AnsiLog.js';
-import { API } from '../services/api.js';
+import { API } from '../../services/api.js';
 import { useTranslation } from 'react-i18next';
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 
-import HeaderMenu from './Monitor/HeaderMenu';
-import ProgressTracker from './Monitor/ProgressTracker';
+import HeaderMenu from './HeaderMenu';
+import ProgressTracker from './ProgressTracker';
 
 interface TabPanelProps {
   children?: React.ReactNode;

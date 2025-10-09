@@ -40,7 +40,7 @@ export default function SettingsPage({
       </Typography>
 
       <FormControlLabel
-        control={<Switch checked={darkMode} onChange={() => setDarkMode((prev) => !prev)} />}
+        control={<Switch checked={darkMode} onChange={() => setDarkMode(!darkMode)} />}
         label={t('settings.dark-mode')}
       />
 
