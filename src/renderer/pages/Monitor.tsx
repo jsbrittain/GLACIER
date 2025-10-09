@@ -95,10 +95,7 @@ export default function MonitorPage({ instance, logMessage }) {
 
   return (
     <Paper>
-      <HeaderMenu
-        instance={instance}
-        logMessage={logMessage}
-      />
+      <HeaderMenu instance={instance} logMessage={logMessage} />
       <Tabs value={tabSelected} onChange={handleTabChange}>
         <Tab label={t('monitor.progress.title')} />
         <Tab label={t('monitor.stdout')} />

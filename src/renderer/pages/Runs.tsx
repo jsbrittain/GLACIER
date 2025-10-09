@@ -62,18 +62,12 @@ export default function RunsPage({
 
   const activeWorkflow = launcherQueue[selectedTab];
 
-  function createData(
-    name: string,
-    workflow: string,
-  ) {
+  function createData(name: string, workflow: string) {
     return { name, workflow };
   }
 
   const rows = launcherQueue.map((item) =>
-    createData(
-      item.name,
-      item.instance.workflow_version.name,
-    )
+    createData(item.name, item.instance.workflow_version.name)
   );
 
   return (
@@ -104,7 +98,7 @@ export default function RunsPage({
                       <IconButton
                         onClick={() => {
                           setItem(row.name);
-                          setSelectedTab(launcherQueue.findIndex(i => i.name === row.name));
+                          setSelectedTab(launcherQueue.findIndex((i) => i.name === row.name));
                         }}
                       >
                         <NotStartedIcon />
@@ -119,7 +113,6 @@ export default function RunsPage({
               </TableBody>
             </Table>
           </TableContainer>
-
         </Box>
       ) : (
         /* Parameters view for a selected workflow */
@@ -127,10 +120,7 @@ export default function RunsPage({
           .filter(({ name }) => name === item)
           .map(({ instance, name }, idx) =>
             hasWorkflowRun ? (
-              <MonitorPage
-                instance={instance}
-                logMessage={logMessage}
-              />
+              <MonitorPage instance={instance} logMessage={logMessage} />
             ) : (
               <ParametersPage
                 instance={instance}

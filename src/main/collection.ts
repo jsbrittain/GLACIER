@@ -1,22 +1,22 @@
 // Main Collection store for workflows and instances
 
-import { shell } from 'electron';
+import pkg from 'electron';
+const { shell } = pkg;
 import path from 'path';
 import fs from 'fs';
 import { IRepo } from './types.js';
 import { generateUniqueName } from './repo.js';
 import { cloneRepo, ICloneRepo } from './repo.js';
-import { parseNextflowLog } from './nf-parse.js';
-
-import {
-  buildAndRunContainer,
-  listContainers,
-  clearStoppedContainers,
-  runWorkflow
-} from './docker.js';
+import { runWorkflow } from './runner.js';
 import { syncRepo, getWorkflowParams, getWorkflowSchema } from './repo.js';
 import { getCollectionsPath, getDefaultCollectionsDir } from './paths.js';
 import store from './store.js';
+
+// Should remove imports from specific runners
+import { buildAndRunContainer, listContainers, clearStoppedContainers } from '../runners/docker.js';
+import { getAvailableProfiles as getAvailableProfiles_Nextflow } from '../runners/nextflow.js';
+import { parseNextflowLog } from '../runners/nf-parse.js';
+//
 
 export enum IWorkflowType {
   NEXTFLOW = 'nextflow',
@@ -222,7 +222,7 @@ export class Collection {
 
         // Add version to workflow
         const versionPath = path.join(ownerPath, repo_and_version);
-        const versionPostfix = (version !== undefined) ? `@${version}` : '';
+        const versionPostfix = version !== undefined ? `@${version}` : '';
         const type = this.determineWorkflowType(versionPath);
         wf.versions.push({
           id: `${owner}/${repo}${versionPostfix}`,
@@ -382,16 +382,21 @@ export class Collection {
       const res = spawnSync('taskkill', args, { stdio: 'inherit' });
       return res.status === 0;
     } else {
-      const sig = mode === 'kill' ? 'SIGKILL' : (mode === 'term' ? 'SIGTERM' : 'SIGINT');
+      const sig = mode === 'kill' ? 'SIGKILL' : mode === 'term' ? 'SIGTERM' : 'SIGINT';
       try {
         process.kill(-pid, sig); // signal the process group
         return true;
       } catch (e) {
         // Fallback: try the single process
-        try { process.kill(pid, sig); return true; } catch (_) { return false; }
+        try {
+          process.kill(pid, sig);
+          return true;
+        } catch (_) {
+          return false;
+        }
       }
     }
-  }
+  };
 
   async cancelWorkflowInstance(instance: IWorkflowInstance): Promise<void> {
     // Find instance
@@ -480,9 +485,8 @@ export class Collection {
   }
 
   getWorkLog(instance: IWorkflowInstance, workID: string, log_type: string): string {
-
     const log_filenames = {
-      'stdout': '.command.out',
+      stdout: '.command.out'
     };
     let log_filename;
     if (log_type in log_filenames) {
@@ -523,6 +527,13 @@ export class Collection {
     }
   }
 
+  async getAvailableProfiles(instance: IWorkflowInstance): Promise<string[]> {
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    return await getAvailableProfiles_Nextflow(local_instance);
+  }
 
   // --- Legacy calls ------------------------------------------------------------------
   // (maintains compatibility with existing codebase for now)
@@ -606,7 +617,7 @@ export class Collection {
     return pid;
   }
 
-  recordRunWorkflow(instance: IWorkflowInstance, status='running') {
+  recordRunWorkflow(instance: IWorkflowInstance, status = 'running') {
     // Save metadata to DB
     const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
     if (!local_instance) {
@@ -625,7 +636,7 @@ export class Collection {
       existing_run.runs.push({
         datetime: new Date().toISOString(),
         pids: local_instance.pid,
-        status: status,
+        status: status
       });
     } else {
       // Create instance
@@ -637,9 +648,9 @@ export class Collection {
           {
             datetime: new Date().toISOString(),
             pids: local_instance.pid,
-            status: status,
+            status: status
           }
-        ],
+        ]
       });
     }
     // Write DB

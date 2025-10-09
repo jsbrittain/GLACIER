@@ -2,11 +2,11 @@ import * as os from 'os';
 import * as path from 'path';
 import * as fs_sync from 'fs';
 import Docker from 'dockerode';
-import { IRepo } from './types';
+import { IRepo } from '../main/types'; // should not need to import from main
 import { spawn } from 'child_process';
 import { Readable, Duplex } from 'stream';
 import { promises as fs } from 'fs';
-import { IWorkflowInstance, IWorkflowParams } from './collection.js';
+import { IWorkflowInstance, IWorkflowParams } from '../main/collection.js'; // should not need to import from main
 
 type paramsT = { [key: string]: any };
 
@@ -134,71 +134,6 @@ export async function runRepo_NextflowDocker(repoPath: string, name: string, par
   return container.id;
 }
 
-interface IRunWorkflowOpts {
-  resume?: boolean;
-  restart?: boolean;
-}
-
-export async function runWorkflowNextflow(
-  instance: IWorkflowInstance,
-  params: paramsT,
-  {
-    resume = false,
-    restart = false,
-  }: IRunWorkflowOpts = {}
-) {
-  // Launch nextflow natively on host system
-  const name = instance.name;
-  const instancePath = instance.path;
-  const workPath = path.resolve(instancePath, 'work');
-  await fs.mkdir(workPath, { recursive: true });
-  const projectPath = instance.workflow_version?.path || instancePath;
-
-  // Save parameters to a file in the instance folder
-  const paramsFile = path.resolve(instancePath, 'params.json');
-  if (!resume && !restart) {
-    fs.writeFile(paramsFile, JSON.stringify(params, null, 2), 'utf8');
-  }
-
-  // Clear logs and set to append
-  if (!fs_sync.existsSync(instancePath)) {
-    fs_sync.mkdirSync(instancePath, { recursive: true });
-  }
-  if (!fs_sync.existsSync(path.resolve(instancePath, 'stdout.log'))) {
-    fs_sync.writeFileSync(path.resolve(instancePath, 'stdout.log'), '');
-  }
-  fs_sync.truncateSync(path.resolve(instancePath, 'stdout.log'), 0);
-  const stdout = fs_sync.openSync(path.resolve(instancePath, 'stdout.log'), 'a');
-  if (!fs_sync.existsSync(path.resolve(instancePath, 'stderr.log'))) {
-    fs_sync.writeFileSync(path.resolve(instancePath, 'stderr.log'), '');
-  }
-  fs_sync.truncateSync(path.resolve(instancePath, 'stderr.log'), 0);
-  const stderr = fs_sync.openSync(path.resolve(instancePath, 'stderr.log'), 'a');
-
-  const cmd = [
-    'run',
-    path.resolve(projectPath, 'main.nf'),
-    '-work-dir',
-    workPath,
-    '-params-file',
-    paramsFile,
-  ];
-  if (resume) {
-    cmd.push('-resume');
-  }
-
-  console.log(`Spawning nextflow with command: nextflow ${cmd.join(' ')} from ${instancePath}`);
-  const p = spawn('nextflow', cmd, {
-    cwd: instancePath,
-    stdio: ['ignore', stdout, stderr], // stdin ignored
-    detached: true
-  });
-
-  p.unref(); // allow the parent to exit independently
-
-  return p.pid;
-}
-
 export async function runRepo_Docker(repoPath: string, name: string, params: paramsT) {
   const imageName = name.replace('/', '-');
 
@@ -219,40 +154,6 @@ export async function runRepo_Docker(repoPath: string, name: string, params: par
 
   await container.start();
   return container.id;
-}
-
-interface IRunWorkflowArgs {
-  instance: IWorkflowInstance;
-  params: IWorkflowParams;
-  opts?: IRunWorkflowOpts;
-}
-
-export async function runWorkflow({ instance, params, opts }: IRunWorkflowArgs) {
-  const projectPath = instance.workflow_version.path;
-
-  if (!projectPath || !(await fs.stat(projectPath)).isDirectory()) {
-    throw new Error(`Invalid repository path: ${projectPath}`);
-  }
-
-  // Identify repository type (nextflow, docker, etc.)
-  const nextflowPAth = `${projectPath}/nextflow_schema.json`;
-  const dockerfilePath = `${projectPath}/Dockerfile`;
-  const nextflowExists = await fs
-    .stat(nextflowPAth)
-    .then(() => true)
-    .catch(() => false);
-  const dockerExists = await fs
-    .stat(dockerfilePath)
-    .then(() => true)
-    .catch(() => false);
-
-  if (nextflowExists) {
-    return runWorkflowNextflow(instance, params, opts);
-  } else if (dockerExists) {
-    return runRepo_Docker(projectPath, instance.name, params || {});
-  } else {
-    throw new Error(`Unsupported repository type in ${projectPath}`);
-  }
 }
 
 export async function getContainerLogs(containerId: string) {

@@ -52,19 +52,38 @@ function TabPanel({ children, value, index }) {
 
 export default function ParametersPage({ instance, logMessage, setHasWorkflowRun }) {
   const { t } = useTranslation();
+  const default_profile = 'standard';
 
   const [params, setParams] = useState<Record<string, unknown>>({});
   const [schema, setSchema] = useState<Record<string, unknown> | null>({});
 
   const onLaunch = async (instance, params) => {
-    const id = await API.runWorkflow(instance, params, {});
+    // Strip out profile from params before sending to backend
+    const call_params = { ...params };
+    const profile = params['profile'] || default_profile;
+    delete call_params['profile'];
+    const id = await API.runWorkflow(instance, call_params, { profile: profile });
     logMessage(`Launched workflow ${instance.name}`);
     setHasWorkflowRun(true);
   };
 
   useEffect(() => {
-    const get_schema = async () => {
-      const schema = await API.getWorkflowSchema(instance.workflow_version.path);
+    const get_available_profiles = async () => {
+      const profiles = await API.getAvailableProfiles(instance);
+      return profiles || [default_profile];
+    };
+    const get_schema = async (profiles: string[]) => {
+      let schema = await API.getWorkflowSchema(instance.workflow_version.path);
+      // Add profile selection to the a separate schema category
+      if (profiles.length > 0) {
+        schema['properties']['profile'] = {
+          type: 'string',
+          title: 'Execution Profile',
+          description: 'Select the execution profile to use',
+          enum: profiles,
+          default: profiles.includes(default_profile) ? default_profile : profiles[0]
+        };
+      }
       setSchema(schema);
     };
     const get_params = async () => {
@@ -73,8 +92,11 @@ export default function ParametersPage({ instance, logMessage, setHasWorkflowRun
         setParams(data);
       }
     };
-    get_schema();
-    get_params();
+
+    get_available_profiles().then((profiles) => {
+      get_schema(profiles);
+      get_params();
+    });
   }, [instance]);
 
   // Read schema and compile with AJV

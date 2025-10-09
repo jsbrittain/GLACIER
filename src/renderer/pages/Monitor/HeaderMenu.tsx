@@ -38,18 +38,15 @@ const STATUS_ICONS = {
   error: <CancelIcon style={{ color: 'red' }} />
 };
 
-export default function HeaderMenu({
-  instance,
-  logMessage
-}) {
+export default function HeaderMenu({ instance, logMessage }) {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
-  const [processRunning, setProcessRunning] = React.useState(true);  // ####### check if the process is running
+  const [processRunning, setProcessRunning] = React.useState(true); // ####### check if the process is running
   const [processHasRunHistory, setProcessHasRunHistory] = React.useState(true); // ####### check if the process has run history
 
   const handleExecutionActionsMenuClose = () => {
     setAnchorEl(null);
-  }
+  };
 
   const handleExecutionCancel = () => {
     handleExecutionActionsMenuClose();
@@ -60,16 +57,16 @@ export default function HeaderMenu({
     API.cancelWorkflowInstance(instance).then(() => {
       // instance cancelled - refresh running status
     });
-  }
+  };
 
   const handleExecutionResume = async () => {
     handleExecutionActionsMenuClose();
     if (!window.confirm(t('monitor.execution.resume-confirm'))) {
       return;
     }
-    const id = await API.runWorkflow(instance, {}, {resume: true});
+    const id = await API.runWorkflow(instance, {}, { resume: true });
     logMessage(`${t('monitor.execution.resuming')}: ${instance.id}.`);
-  }
+  };
 
   const handleExecutionRestart = () => {
     handleExecutionActionsMenuClose();
@@ -79,14 +76,14 @@ export default function HeaderMenu({
     logMessage(`${t('monitor.execution.restarting')}: ${instance.id}.`);
     API.cancelWorkflowInstance(instance)
       .then(() => {
-        return API.runWorkflow(instance, {}, {restart: true});
+        return API.runWorkflow(instance, {}, { restart: true });
       })
       .catch((error) => {
         // Workflow may not be running, so just log the error and continue
         console.log('Error cancelling workflow (may not be running): ', error);
-        return API.runWorkflow(instance, {}, {restart: true});
+        return API.runWorkflow(instance, {}, { restart: true });
       });
-  }
+  };
 
   const handleExecutionKill = () => {
     handleExecutionActionsMenuClose();
@@ -97,11 +94,11 @@ export default function HeaderMenu({
     API.killWorkflowInstance(instance).then(() => {
       // instance killed - refresh running status
     });
-  }
+  };
 
   const handleOpenResultsFolder = () => {
     API.openResultsFolder(instance);
-  }
+  };
 
   return (
     <Box display="flex" justifyContent="space-between" alignItems="center" p={2}>
@@ -124,11 +121,7 @@ export default function HeaderMenu({
         anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
         transformOrigin={{ vertical: 'top', horizontal: 'left' }}
       >
-        <MenuItem
-          value={0}
-          onClick={() => handleExecutionCancel()}
-          disabled={!processRunning}
-        >
+        <MenuItem value={0} onClick={() => handleExecutionCancel()} disabled={!processRunning}>
           {t('monitor.execution.cancel')}
         </MenuItem>
         <MenuItem
@@ -145,11 +138,7 @@ export default function HeaderMenu({
         >
           {t('monitor.execution.restart')}
         </MenuItem>
-        <MenuItem
-          value={3}
-          onClick={() => handleExecutionKill()}
-          disabled={!processRunning}
-        >
+        <MenuItem value={3} onClick={() => handleExecutionKill()} disabled={!processRunning}>
           {t('monitor.execution.kill')}
         </MenuItem>
       </Menu>

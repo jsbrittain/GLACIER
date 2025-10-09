@@ -23,11 +23,7 @@ const STATUS_ICONS = {
   error: <CancelIcon style={{ color: 'red' }} />
 };
 
-export default function ProgressTracker({
-  instance,
-  nextflowProgress,
-  workflowStatus,
-}) {
+export default function ProgressTracker({ instance, nextflowProgress, workflowStatus }) {
   const { t } = useTranslation();
 
   const [showWork, setShowWork] = React.useState(false);
@@ -36,12 +32,12 @@ export default function ProgressTracker({
 
   const handleOpenProcessFolder = (name) => {
     API.openWorkFolder(instance, nextflowProgress[name]['work']);
-  }
+  };
 
   const handleOpenProcessLog = (name) => {
     setWorkID(nextflowProgress[name]['work']);
     setShowWork(true);
-  }
+  };
 
   useEffect(() => {
     const fetchWorkLog = () => {
@@ -51,14 +47,14 @@ export default function ProgressTracker({
       API.getWorkLog(instance, workID, 'stdout').then((logs) => {
         setWorkStdout(logs);
       });
-    }
+    };
 
     const interval = setInterval(fetchWorkLog, 1 * SECOND);
     return () => clearInterval(interval);
   }, [showWork]);
 
   return (
-    <Box sx={{ display: 'flex', gap: 2}}>
+    <Box sx={{ display: 'flex', gap: 2 }}>
       <Box sx={{ flex: 1 }}>
         <Box>
           <Typography variant="h6" gutterBottom>
@@ -66,38 +62,34 @@ export default function ProgressTracker({
           </Typography>
         </Box>
         <Box>
-        {
-          // display each process and its status
-          Object.keys(nextflowProgress).map((name) => (
-            <Box key={name} display="flex" alignItems="center" mb={1}>
-              <Box mr={2}>
-                {STATUS_ICONS[nextflowProgress[name]['status']] || (
-                  <RefreshIcon style={{ color: 'grey' }} />
+          {
+            // display each process and its status
+            Object.keys(nextflowProgress).map((name) => (
+              <Box key={name} display="flex" alignItems="center" mb={1}>
+                <Box mr={2}>
+                  {STATUS_ICONS[nextflowProgress[name]['status']] || (
+                    <RefreshIcon style={{ color: 'grey' }} />
+                  )}
+                </Box>
+                <Typography variant="body1">
+                  {name}: {nextflowProgress[name]['status']}
+                </Typography>
+                {nextflowProgress[name]['work'] !== undefined && (
+                  <>
+                    <IconButton onClick={() => handleOpenProcessFolder(name)}>
+                      <FolderOutlinedIcon />
+                    </IconButton>
+                    <IconButton onClick={() => handleOpenProcessLog(name)}>
+                      <DescriptionOutlinedIcon />
+                    </IconButton>
+                  </>
                 )}
               </Box>
-              <Typography variant="body1">
-                {name}: {nextflowProgress[name]['status']}
-              </Typography>
-              {(nextflowProgress[name]['work'] !== undefined) && (
-                <>
-                  <IconButton
-                    onClick={() => handleOpenProcessFolder(name)}
-                  >
-                    <FolderOutlinedIcon />
-                  </IconButton>
-                  <IconButton
-                    onClick={() => handleOpenProcessLog(name)}
-                  >
-                    <DescriptionOutlinedIcon />
-                  </IconButton>
-                </>
-              )}
-            </Box>
-          ))
-        }
+            ))
+          }
         </Box>
       </Box>
-      {(showWork) && (
+      {showWork && (
         <Box sx={{ flex: 1 }}>
           <AnsiLog text={workStdout} />
         </Box>

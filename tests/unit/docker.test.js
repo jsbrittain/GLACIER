@@ -1,6 +1,6 @@
 import os from 'os';
 import { describe, it, expect } from 'vitest';
-import * as docker from '../../src/main/docker.js';
+import * as docker from '../../src/runners/docker.js';
 
 describe('docker module', () => {
   it('builds and starts a container from a minimal Dockerfile', async () => {

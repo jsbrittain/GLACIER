@@ -7,6 +7,7 @@ End-to-end tests are managed by playright, run `npx playwright test` to execute 
 # Adding backend functionality
 
 Since GLACIER supports both an electron build (where the backend runs in the same process as the frontend) and a client-server build (where the backend runs in a separate server), backend functionality is abstracted through an API layer. Calls from the frontend to the backend are made through either 1) electron's Inter-Process Communication (IPC) mechanism, or 2) an HTTP server request. To add new functionality that can be called from the frontend, you need to do the following:
+
 - Expose an API endpoint in `src/renderer/services/api.ts`. This file redirects requests to either an electron backend (if defined during the build), or produces HTTP requests to a backend server.
 - For electron, define the context bridge in `src/electron/preload.ts`. This invokes an IPC call to the main process.
 - Define the IPC handler in `src/electron/ipc-handler.ts`. This is where the backend logic can be implemented, but is generally instead used to call the relevant service.
