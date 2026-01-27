@@ -28,7 +28,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAvailableProfiles: (instance: any) => ipcRenderer.invoke('get-available-profiles', instance),
 
   cloneRepo: (repoUrl: string, ver: string) => ipcRenderer.invoke('clone-repo', repoUrl, ver),
-  isRepoInstalled: (repoUrl: string, ver: string) => ipcRenderer.invoke('is-repo-installed', repoUrl, ver),
+  isRepoInstalled: (repoUrl: string, ver: string) =>
+    ipcRenderer.invoke('is-repo-installed', repoUrl, ver),
   getCollectionsPath: () => ipcRenderer.invoke('get-collections-path'),
   setCollectionsPath: (path: string) => ipcRenderer.invoke('set-collections-path', path),
   getCollectionRepos: () => ipcRenderer.invoke('get-collection-repos'),

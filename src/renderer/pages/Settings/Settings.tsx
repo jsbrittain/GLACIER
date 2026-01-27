@@ -25,8 +25,10 @@ export default function SettingsPage({
   setDarkMode,
   collectionsPath,
   setCollectionsPath,
-  allowArbitraryRepoCloning,
-  setAllowArbitraryRepoCloning,
+  permitAddCatalogues,
+  setPermitAddCatalogues,
+  permitAddRepos,
+  setPermitAddRepos,
   logMessage
 }) {
   const { t, i18n } = useTranslation();
@@ -135,11 +137,17 @@ export default function SettingsPage({
         <FormControlLabel
           control={
             <Switch
-              checked={allowArbitraryRepoCloning}
-              onChange={() => setAllowArbitraryRepoCloning(!allowArbitraryRepoCloning)}
+              checked={permitAddCatalogues}
+              onChange={() => setPermitAddCatalogues(!permitAddCatalogues)}
             />
           }
-          label={t('settings.allow-arbitrary-repo-cloning')}
+          label={t('settings.permit-add-catalogues')}
+        />
+        <FormControlLabel
+          control={
+            <Switch checked={permitAddRepos} onChange={() => setPermitAddRepos(!permitAddRepos)} />
+          }
+          label={t('settings.permit-add-repos')}
         />
       </TabPanel>
 

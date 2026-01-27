@@ -929,7 +929,35 @@ export class Collection {
   async parseCatalogues() {
     // Clean existing catalogues
     this.catalogues = [];
-    this.addCatalogues();  // TEMPORARY --- catalogue should be downloaded once and reused locally
+    this.addCatalogues(); // TEMPORARY --- catalogue should be downloaded once and reused locally
+    this.catalogues.push({
+      name: 'User collection',
+      source: 'local',
+      //description: 'Local user-defined collection',
+      sections: [
+        {
+          name: 'My Workflows',
+          //description: 'Workflows installed in my collection',
+          workflows: [
+            {
+              name: 'Workflow 1',
+              repo: 'owner/repo1',
+              version: 'latest'
+            },
+            {
+              name: 'Workflow 2',
+              repo: 'owner/repo1',
+              version: 'latest'
+            },
+            {
+              name: 'Workflow 3',
+              repo: 'owner/repo1',
+              version: 'latest'
+            }
+          ]
+        }
+      ]
+    });
   }
 
   async addCatalogues() {

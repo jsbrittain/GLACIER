@@ -108,9 +108,7 @@ app.post('/api/sync-repo', async (req, res) =>
   post_response(res, collection.syncRepo(req.body.repo))
 );
 
-app.post('/api/get-catalogues', async (req, res) =>
-  post_response(res, collection.getCatalogues())
-);
+app.post('/api/get-catalogues', async (req, res) => post_response(res, collection.getCatalogues()));
 
 app.post('/api/get-collection-repos', async (req, res) =>
   post_response(res, collection.getCollectionRepos())

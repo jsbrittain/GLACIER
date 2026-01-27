@@ -5,29 +5,19 @@
     "cancel": "Cancel"
   },
   "sidebar": {
-    "hub": "Hub",
     "library": "Library",
     "instances": "Instances",
     "settings": "Settings"
   },
-  "hub": {
-    "add-workflow-from-repository": "Add Workflow from Repository",
-    "repo": "Repo",
-    "add": "Add",
-    "clone": "Clone",
-    "clone-return-none": "Clone failed or returned nothing",
-    "clone-failed": "Clone operation failed",
-    "install": "Install",
-    "repo-added": "Repository added successfully",
-    "repo-add-failed": "Failed to add repository"
-  },
   "library": {
     "local-repositories": "Local Repositories",
+    "install": "Install",
     "run": "Run",
     "sync": "Sync",
     "repo-sync-success": "Repository synced successfully",
     "repo-sync-failed": "Repository sync failed",
-    "no-repos-installed": "No repositories installed. Add a repository from the Hub to get started."
+    "no-repos-installed": "No repositories installed. Add a repository from the Hub to get started.",
+    "clone-error": "Error cloning repository"
   },
   "instances": {
     "title": "Instances",
@@ -101,7 +91,8 @@
     "general": "General",
     "dark-mode": "Dark Mode",
     "collections-path": "Library path",
-    "allow-arbitrary-repo-cloning": "Allow arbitrary repository cloning",
+    "permit-add-catalogues": "Allow adding catalogues",
+    "permit-add-repos": "Allow adding repositories",
     "language-select": "Language",
     "visual-options": "Visual",
     "advanced-options": "Advanced",

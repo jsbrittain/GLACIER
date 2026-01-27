@@ -56,7 +56,7 @@ export async function cloneRepo(
   // Determine the version to clone
   let version = ver || (await getDefaultBranch(url));
   if (version === null || version === '' || version === 'latest') {
-    const tags = await getRepoTags(url) || [];
+    const tags = (await getRepoTags(url)) || [];
     if (tags.length === 0) {
       version = 'main';
     } else {

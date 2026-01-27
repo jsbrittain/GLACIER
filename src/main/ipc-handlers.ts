@@ -22,12 +22,11 @@ async function call(fcn: any, ...args: any[]): Promise<Result<any>> {
 }
 
 export function registerIpcHandlers() {
-
   const redirect = {
     'run-workflow': collection.runWorkflow.bind(collection),
     'get-catalogues': collection.getCatalogues.bind(collection),
     'clone-repo': collection.cloneRepo.bind(collection),
-    'is-repo-installed': collection.isRepoInstalled.bind(collection),
+    'is-repo-installed': collection.isRepoInstalled.bind(collection)
   };
 
   for (const [channel, fcn] of Object.entries(redirect)) {

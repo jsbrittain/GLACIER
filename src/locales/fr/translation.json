@@ -5,29 +5,19 @@
     "cancel": "Annuler"
   },
   "sidebar": {
-    "hub": "Hub",
     "library": "Bibliothèque",
     "instances": "Instances",
     "settings": "Paramètres"
   },
-  "hub": {
-    "add-workflow-from-repository": "Ajouter un flux de travail depuis un dépôt",
-    "repo": "Dépôt",
-    "add": "Ajouter",
-    "clone": "Cloner",
-    "clone-return-none": "Le clonage a échoué ou n'a rien retourné",
-    "clone-failed": "L'opération de clonage a échoué",
-    "install": "Installer",
-    "repo-added": "Dépôt ajouté avec succès",
-    "repo-add-failed": "L'ajout du dépôt a échoué"
-  },
   "library": {
     "local-repositories": "Dépôts locaux",
+    "install": "Installer",
     "run": "Exécuter",
     "sync": "Synchroniser",
     "repo-sync-success": "Dépôt synchronisé avec succès",
     "repo-sync-failed": "La synchronisation du dépôt a échoué",
-    "no-repos-installed": "Aucun dépôt installé. Veuillez ajouter un dépôt depuis le Hub."
+    "no-repos-installed": "Aucun dépôt installé. Veuillez ajouter un dépôt depuis le Hub.",
+    "clone-error": "Erreur lors du clonage du dépôt"
   },
   "instances": {
     "title": "Instances",
@@ -101,7 +91,8 @@
     "general": "Général",
     "dark-mode": "Mode sombre",
     "collections-path": "Chemin de la bibliothèque",
-    "allow-arbitrary-repo-cloning": "Autoriser le clonage de dépôts arbitraires",
+    "permit-add-catalogues": "Autoriser l'ajout de catalogues",
+    "permit-add-repos": "Autoriser l'ajout de dépôts",
     "language-select": "Langue",
     "visual-options": "Visuelles",
     "advanced-options": "Avancées",

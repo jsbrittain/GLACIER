@@ -33,7 +33,6 @@ import RunningIcon from '@mui/icons-material/Update';
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import CompletedIcon from '@mui/icons-material/CheckCircle';
 import FailedIcon from '@mui/icons-material/Error';
-import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
 import { API } from '../services/api.js';
 import { useTranslation } from 'react-i18next';
@@ -119,9 +118,9 @@ const InstanceList = ({ rows, setItem, instancesList, refreshInstancesList }) =>
                 </TableCell>
                 <TableCell>{row.workflow}</TableCell>
                 <TableCell align="right">
-                  <IconButton onClick={() => handleDeleteInstance(row.name)}>
-                    <DeleteIcon />
-                  </IconButton>
+                  <Button onClick={() => handleDeleteInstance(row.name)} variant="contained">
+                    Delete
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

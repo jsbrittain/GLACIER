@@ -95,7 +95,8 @@ const httpAPI = {
   getAvailableProfiles: async (instance) =>
     httpDispatch('/api/get-available-profiles', 'POST', { instance }),
   cloneRepo: async (repoUrl, ver) => httpDispatch('/api/clone-repo', 'POST', { repoUrl, ver }),
-  isRepoInstalled: async (repoUrl, ver) => httpDispatch('/api/is-repo-installed', 'POST', { repoUrl, ver }),
+  isRepoInstalled: async (repoUrl, ver) =>
+    httpDispatch('/api/is-repo-installed', 'POST', { repoUrl, ver }),
   syncRepo: async (repo) => httpDispatch('/api/sync-repo', 'POST', { repo }),
   getCollectionRepos: async () => httpDispatch('/api/get-collection-repos', 'POST', {}),
   getCollectionsPath: async () => httpDispatch('/api/get-collections-path', 'POST', {}),

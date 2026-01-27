@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTheme, alpha } from '@mui/material/styles';
 import {
   Button,
   Container,
@@ -19,14 +20,11 @@ import { API } from '../services/api.js';
 
 const resolveHttpUrl = (path, source) => {
   if (!path) return null;
-  if (
-    path.startsWith("http://") ||
-    path.startsWith("https://")
-  ) {
+  if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
   if (source) {
-    return `${source.replace(/\/$/, "")}/${path.replace(/^\//, "")}`
+    return `${source.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
   }
   // Fallback
   return path;
@@ -51,7 +49,7 @@ function WorkflowCard({ workflow, scheme, addToInstancesList, logMessage }) {
     if (result.ok) {
       logMessage(`Cloned ${result.data.name} to ${result.data.path}`, 'success');
     } else {
-      logMessage(t('hub.clone-return-none'), 'error');
+      logMessage(t('library.clone-error'), 'error');
     }
   };
 
@@ -60,26 +58,24 @@ function WorkflowCard({ workflow, scheme, addToInstancesList, logMessage }) {
       variant="outlined"
       sx={{
         p: 1,
-        color: scheme['foreground'] ?? 'inherit',
-        background: scheme['background'] ?? 'inherit',
-        fontFamily: scheme['font-family'] ?? 'inherit',
+        color: scheme['foreground'] ?? 'text.primary',
+        background: scheme['background'] ?? 'background.paper',
+        fontFamily: scheme['font-family'] ?? 'inherit'
       }}
     >
-      <Typography variant="h5">{workflow.name}</Typography>
-      <Typography variant="subtitle1">
-        {workflow.version}
-      </Typography>
+      <Typography variant="h6">{workflow.name}</Typography>
+      <Typography variant="subtitle1">{workflow.version}</Typography>
       <Box sx={{ height: 8 }} />
       <Stack direction="row" spacing={1}>
-        {(isRepoInstalled) ? (
+        {isRepoInstalled ? (
           <Button
             id={`collections-run-${workflow.name}`}
             size="small"
             variant="contained"
             sx={{
-              color: scheme['title-foreground'] ?? 'inherit',
-              background: scheme['title-background'] ?? 'inherit',
-              fontFamily: scheme['font-family'] ?? 'inherit',
+              color: scheme['title-foreground'] ?? undefined,
+              background: scheme['title-background'] ?? undefined,
+              fontFamily: scheme['font-family'] ?? 'inherit'
             }}
             onClick={() => addToInstancesList(workflow)}
           >
@@ -91,13 +87,13 @@ function WorkflowCard({ workflow, scheme, addToInstancesList, logMessage }) {
             size="small"
             variant="contained"
             sx={{
-              color: scheme['title-foreground'] ?? 'inherit',
-              background: scheme['title-background'] ?? 'inherit',
-              fontFamily: scheme['font-family'] ?? 'inherit',
+              color: scheme['title-foreground'] ?? undefined,
+              background: scheme['title-background'] ?? undefined,
+              fontFamily: scheme['font-family'] ?? 'inherit'
             }}
             onClick={() => cloneRepo(workflow.repo, workflow.version)}
           >
-            {t('hub.install')}
+            {t('library.install')}
           </Button>
         )}
       </Stack>
@@ -106,41 +102,54 @@ function WorkflowCard({ workflow, scheme, addToInstancesList, logMessage }) {
 }
 
 function SectionCard({ section, scheme, source, addToInstancesList, logMessage }) {
+  const theme = useTheme();
   return (
     <Paper
       elevation={2}
       sx={{
-        color: section?.scheme?.['project-foreground'] ?? scheme['project-foreground'] ?? 'inherit',
-        background: section?.scheme?.['project-background'] ?? scheme['project-background'] ?? 'inherit',
-        fontFamily: section?.scheme?.['project-font-family'] ?? scheme['project-font-family'] ?? 'inherit',
+        color:
+          section?.scheme?.['project-foreground'] ?? scheme['project-foreground'] ?? 'text.primary',
+        background:
+          section?.scheme?.['project-background'] ??
+          scheme['project-background'] ??
+          'background.paper',
+        fontFamily:
+          section?.scheme?.['project-font-family'] ?? scheme['project-font-family'] ?? 'inherit'
       }}
     >
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
+          my: 1
         }}
       >
-        {(section?.icon) && (
+        {section?.icon && (
           <Box
             component="img"
             src={resolveHttpUrl(section?.icon, source)}
             sx={{
               ml: 1,
-              my: 1,
               borderRadius: 2,
               maxHeight: 60
             }}
             onError={(e) => {
-              e.currentTarget.style.display = "none";
+              e.currentTarget.style.display = 'none';
             }}
           />
         )}
-        <Typography variant="h5" sx={{px: 1, py: 0.2}}>
-          {section.name}
-        </Typography>
+        <Box>
+          <Typography variant="h6" sx={{ px: 1, py: 0.2 }}>
+            {section.name}
+          </Typography>
+          {section.description && (
+            <Typography variant="subtitle1" sx={{ px: 1, py: 0.2 }}>
+              {section.description}
+            </Typography>
+          )}
+        </Box>
       </Box>
-      <Grid container spacing={2} sx={{px: 1, pb: 1}}>
+      <Grid container spacing={2} sx={{ px: 1, pb: 1 }}>
         {(section?.workflows || []).map((workflow) => (
           <Grid size={3}>
             <WorkflowCard
@@ -157,13 +166,14 @@ function SectionCard({ section, scheme, source, addToInstancesList, logMessage }
 }
 
 function CatalogueCard({ catalogue, addToInstancesList, logMessage }) {
+  const theme = useTheme();
   return (
     <Paper
       sx={{
         p: 1,
-        background: catalogue?.scheme?.['background'] ?? 'inherit',
-        color: catalogue?.scheme?.['foreground'] ?? 'inherit',
-        fontFamily: catalogue?.scheme?.['font-family'] ?? 'inherit',
+        background: catalogue?.scheme?.['background'] ?? 'background.paper',
+        color: catalogue?.scheme?.['foreground'] ?? 'text.primary',
+        fontFamily: catalogue?.scheme?.['font-family'] ?? 'inherit'
       }}
     >
       <Box
@@ -174,12 +184,12 @@ function CatalogueCard({ catalogue, addToInstancesList, logMessage }) {
           p: 1,
           mb: 1,
           borderRadius: 2,
-          background: catalogue?.scheme?.['title-background'] ?? 'inherit',
-          color: catalogue?.scheme?.['title-foreground'] ?? 'inherit',
-          fontFamily: catalogue?.scheme?.['title-font-family'] ?? 'inherit',
+          background: catalogue?.scheme?.['title-background'] ?? theme.palette.primary.main,
+          color: catalogue?.scheme?.['title-foreground'] ?? theme.palette.primary.contrastText,
+          fontFamily: catalogue?.scheme?.['title-font-family'] ?? 'inherit'
         }}
       >
-        {(catalogue?.icon) && (
+        {catalogue?.icon && (
           <Box
             component="img"
             src={`${catalogue?.source}/${catalogue.icon}`}
@@ -188,15 +198,16 @@ function CatalogueCard({ catalogue, addToInstancesList, logMessage }) {
               maxHeight: 80
             }}
             onError={(e) => {
-              e.currentTarget.style.display = "none";
+              e.currentTarget.style.display = 'none';
             }}
           />
         )}
-        <Typography
-          variant="h4"
-        >
-          {catalogue.name}
-        </Typography>
+        <Box>
+          <Typography variant="h5">{catalogue.name}</Typography>
+          {catalogue.description && (
+            <Typography variant="subtitle1">{catalogue.description}</Typography>
+          )}
+        </Box>
       </Box>
       <Stack spacing={1}>
         {(catalogue?.sections || []).map((section) => (
@@ -239,9 +250,7 @@ export default function LibraryPage({
   }, []);
 
   return (
-    <Container sx={{ pb: 12 }}>
-      {' '}
-      {/* extra space for fixed log */}
+    <Container>
       <Stack spacing={2}>
         {(catalogues || []).map((catalogue) => (
           <CatalogueCard
@@ -253,7 +262,7 @@ export default function LibraryPage({
       </Stack>
       {catalogues.length === 0 && (
         <Container>
-          <Typography variant="h6" sx={{ mt: 2 }}>
+          <Typography variant="h5" sx={{ mt: 2 }}>
             {t('library.no-repos-installed')}
           </Typography>
         </Container>

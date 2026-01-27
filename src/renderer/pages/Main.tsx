@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator';
 import {
-  AppBar,
   Box,
   Button,
   Drawer,
@@ -17,12 +16,12 @@ import {
   Alert
 } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import Toolbar from '@mui/material/Toolbar';
 import MenuIcon from '@mui/icons-material/Menu';
 import LibraryIcon from '@mui/icons-material/Apps';
 import InstancesIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemButton from '@mui/material/ListItemButton';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +29,6 @@ import { useTranslation } from 'react-i18next';
 import LibraryPage from './Library';
 import InstancesPage from './Instances';
 import SettingsPage from './Settings/Settings';
-import TitleBar from './TitleBar';
 import { API } from '../services/api.js';
 
 const defaultRepoUrl = 'jsbrittain/workflow-runner-testworkflow';
@@ -64,7 +62,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
 
   const [repoUrl, setRepoUrl] = useState(defaultRepoUrl);
   const [collectionsPath, setCollectionsPath] = useState('');
-  const [allowArbitraryRepoCloning, setAllowArbitraryRepoCloning] = useState(true);
+  const [permitAddCatalogues, setPermitAddCatalogues] = useState(false);
+  const [permitAddRepos, setPermitAddRepos] = useState(false);
   const [targetDir, setTargetDir] = useState('');
   const [folderPath, setFolderPath] = useState('');
   const [imageName, setImageName] = useState(defaultImageName);
@@ -147,12 +146,6 @@ export default function MainPage({ darkMode, setDarkMode }) {
 
   return (
     <Box sx={{ display: 'flex' }}>
-      <TitleBar
-        drawerOpen={drawerOpen}
-        setDrawerOpen={setDrawerOpen}
-        view={view}
-      />
-
       <Drawer
         variant="permanent"
         open={drawerOpen}
@@ -170,31 +163,57 @@ export default function MainPage({ darkMode, setDarkMode }) {
           }
         }}
       >
-        <List>
-          <ListItem button id="sidebar-library-button" onClick={() => setView('library')}>
-            <ListItemIcon>
-              <LibraryIcon />
-            </ListItemIcon>
-            {drawerOpen && <ListItemText primary={t('sidebar.library')} />}
+        <List
+          sx={(theme) => ({
+            '& .MuiListItemButton-root.Mui-selected': {
+              boxShadow: `inset 4px 0 0 ${theme.palette.primary.main}`,
+              '& .MuiListItemIcon-root': {
+                color: theme.palette.primary.main
+              },
+              '&:hover': {
+                backgroundColor: theme.palette.action.selected
+              }
+            }
+          })}
+        >
+          <ListItem disablePadding>
+            <ListItemButton
+              id="sidebar-library-button"
+              selected={view === 'library'}
+              onClick={() => setView('library')}
+            >
+              <ListItemIcon>
+                <LibraryIcon />
+              </ListItemIcon>
+              {drawerOpen && <ListItemText primary={t('sidebar.library')} />}
+            </ListItemButton>
           </ListItem>
-          <ListItem
-            button
-            id="sidebar-instances-button"
-            onClick={() => {
-              setItem('');
-              setView('instances');
-            }}
-          >
-            <ListItemIcon>
-              <InstancesIcon />
-            </ListItemIcon>
-            {drawerOpen && <ListItemText primary={t('sidebar.instances')} />}
+          <ListItem disablePadding>
+            <ListItemButton
+              id="sidebar-instances-button"
+              selected={view === 'instances'}
+              onClick={() => {
+                setItem('');
+                setView('instances');
+              }}
+            >
+              <ListItemIcon>
+                <InstancesIcon />
+              </ListItemIcon>
+              {drawerOpen && <ListItemText primary={t('sidebar.instances')} />}
+            </ListItemButton>
           </ListItem>
-          <ListItem button id="sidebar-settings-button" onClick={() => setView('settings')}>
-            <ListItemIcon>
-              <SettingsIcon />
-            </ListItemIcon>
-            {drawerOpen && <ListItemText primary={t('sidebar.settings')} />}
+          <ListItem disablePadding>
+            <ListItemButton
+              id="sidebar-settings-button"
+              selected={view === 'settings'}
+              onClick={() => setView('settings')}
+            >
+              <ListItemIcon>
+                <SettingsIcon />
+              </ListItemIcon>
+              {drawerOpen && <ListItemText primary={t('sidebar.settings')} />}
+            </ListItemButton>
           </ListItem>
         </List>
       </Drawer>
@@ -206,7 +225,6 @@ export default function MainPage({ darkMode, setDarkMode }) {
             sx={{ width: '100%', height: '100%', overflowY: 'auto', minHeight: 0, p: 3 }}
             square
           >
-            <Toolbar />
             {view === 'library' ? (
               <LibraryPage
                 repoUrl={repoUrl}
@@ -232,8 +250,10 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 setDarkMode={setDarkMode}
                 collectionsPath={collectionsPath}
                 setCollectionsPath={setCollectionsPath}
-                allowArbitraryRepoCloning={allowArbitraryRepoCloning}
-                setAllowArbitraryRepoCloning={setAllowArbitraryRepoCloning}
+                permitAddCatalogues={permitAddCatalogues}
+                setPermitAddCatalogues={setPermitAddCatalogues}
+                permitAddRepos={permitAddRepos}
+                setPermitAddRepos={setPermitAddRepos}
                 logMessage={logMessage}
               />
             ) : null}
