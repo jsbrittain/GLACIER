@@ -28,9 +28,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAvailableProfiles: (instance: any) => ipcRenderer.invoke('get-available-profiles', instance),
 
   cloneRepo: (repoUrl: string, ver: string) => ipcRenderer.invoke('clone-repo', repoUrl, ver),
+  isRepoInstalled: (repoUrl: string, ver: string) => ipcRenderer.invoke('is-repo-installed', repoUrl, ver),
   getCollectionsPath: () => ipcRenderer.invoke('get-collections-path'),
   setCollectionsPath: (path: string) => ipcRenderer.invoke('set-collections-path', path),
-  getCollections: () => ipcRenderer.invoke('get-collections'),
+  getCollectionRepos: () => ipcRenderer.invoke('get-collection-repos'),
+  getCatalogues: () => ipcRenderer.invoke('get-catalogues'),
   syncRepo: (repo: string) => ipcRenderer.invoke('sync-repo', repo),
   getWorkflowParams: (repoPath: string) => ipcRenderer.invoke('get-workflow-params', repoPath),
   pickFile: (filters?: Electron.FileFilter[]) => ipcRenderer.invoke('pick-file', { filters }),
@@ -38,9 +40,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pickFileOrDirectory: (options: Electron.OpenDialogOptions) =>
     ipcRenderer.invoke('pick-file-or-directory', options),
   getWorkflowSchema: (repoPath: string) => ipcRenderer.invoke('get-workflow-schema', repoPath),
-  getProjectsList: () => ipcRenderer.invoke('get-projects-list'),
-  addProject: (repoPath: string) => ipcRenderer.invoke('add-project', repoPath),
-  removeProject: (project: any) => ipcRenderer.invoke('remove-project', project),
   getInstallableReposList: () => ipcRenderer.invoke('get-installable-repos-list'),
   addInstallableRepo: (repoUrl: string) => ipcRenderer.invoke('add-installable-repo', repoUrl),
   getWorkflowInformation: (instance: any) =>

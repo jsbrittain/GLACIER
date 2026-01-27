@@ -27,8 +27,10 @@ const electronAPI = isElectron
       getAvailableProfiles: (instance) => window.electronAPI.getAvailableProfiles(instance),
 
       cloneRepo: (repoUrl, ver) => window.electronAPI.cloneRepo(repoUrl, ver),
+      isRepoInstalled: (repoUrl, ver) => window.electronAPI.isRepoInstalled(repoUrl, ver),
       syncRepo: (repo) => window.electronAPI.syncRepo(repo),
-      getCollections: () => window.electronAPI.getCollections(),
+      getCatalogues: () => window.electronAPI.getCatalogues(),
+      getCollectionRepos: () => window.electronAPI.getCollectionRepos(),
       getCollectionsPath: () => window.electronAPI.getCollectionsPath(),
       setCollectionsPath: (path) => window.electronAPI.setCollectionsPath(path),
       getContainerLogs: (containerId) => window.electronAPI.getContainerLogs(containerId),
@@ -36,9 +38,6 @@ const electronAPI = isElectron
       deleteRepo: (repoPath) => window.electronAPI.deleteRepo(repoPath),
       getWorkflowParams: (repoPath) => window.electronAPI.getWorkflowParams(repoPath),
       getWorkflowSchema: (repoPath) => window.electronAPI.getWorkflowSchema(repoPath),
-      getProjectsList: () => window.electronAPI.getProjectsList(),
-      addProject: (repoPath) => window.electronAPI.addProject(repoPath),
-      removeProject: (project) => window.electronAPI.removeProject(project),
       getInstallableReposList: () => window.electronAPI.getInstallableReposList(),
       addInstallableRepo: (repoUrl) => window.electronAPI.addInstallableRepo(repoUrl),
       getWorkflowInformation: (instance) => window.electronAPI.getWorkflowInformation(instance),
@@ -96,8 +95,9 @@ const httpAPI = {
   getAvailableProfiles: async (instance) =>
     httpDispatch('/api/get-available-profiles', 'POST', { instance }),
   cloneRepo: async (repoUrl, ver) => httpDispatch('/api/clone-repo', 'POST', { repoUrl, ver }),
+  isRepoInstalled: async (repoUrl, ver) => httpDispatch('/api/is-repo-installed', 'POST', { repoUrl, ver }),
   syncRepo: async (repo) => httpDispatch('/api/sync-repo', 'POST', { repo }),
-  getCollections: async () => httpDispatch('/api/get-collections', 'POST', {}),
+  getCollectionRepos: async () => httpDispatch('/api/get-collection-repos', 'POST', {}),
   getCollectionsPath: async () => httpDispatch('/api/get-collections-path', 'POST', {}),
   setCollectionsPath: async (path) => httpDispatch('/api/set-collections-path', 'POST', { path }),
   getContainerLogs: async (containerId) =>
@@ -109,9 +109,6 @@ const httpAPI = {
     httpDispatch('/api/get-workflow-params', 'POST', { repoPath }),
   getWorkflowSchema: async (repoPath) =>
     httpDispatch('/api/get-workflow-schema', 'POST', { repoPath }),
-  getProjectsList: async () => httpDispatch('/api/get-projects-list', 'POST', {}),
-  addProject: async (repoPath) => httpDispatch('/api/add-project', 'POST', { repoPath }),
-  removeProject: async (project) => httpDispatch('/api/remove-project', 'POST', { project }),
   getInstallableReposList: async () => httpDispatch('/api/get-installable-repos-list', 'POST', {}),
   addInstallableRepo: async (repoUrl) =>
     httpDispatch('/api/add-installable-repo', 'POST', { repoUrl }),

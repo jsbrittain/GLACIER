@@ -19,7 +19,6 @@ import {
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import Toolbar from '@mui/material/Toolbar';
 import MenuIcon from '@mui/icons-material/Menu';
-import HubIcon from '@mui/icons-material/Hub';
 import LibraryIcon from '@mui/icons-material/Apps';
 import InstancesIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -28,7 +27,6 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import { useTranslation } from 'react-i18next';
 
-import HubPage from './Hub';
 import LibraryPage from './Library';
 import InstancesPage from './Instances';
 import SettingsPage from './Settings/Settings';
@@ -38,7 +36,7 @@ import { API } from '../services/api.js';
 const defaultRepoUrl = 'jsbrittain/workflow-runner-testworkflow';
 const defaultImageName = 'testworkflow';
 
-type navbar_page = 'hub' | 'library' | 'instances' | 'settings';
+type navbar_page = 'library' | 'instances' | 'settings';
 type severityLevels = 'info' | 'success' | 'warning' | 'error';
 
 // Quick function to predict target directory based on repo URL and base collections path
@@ -71,11 +69,10 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [folderPath, setFolderPath] = useState('');
   const [imageName, setImageName] = useState(defaultImageName);
   const [output, setOutput] = useState('');
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [view, setView] = useState<navbar_page>('hub');
+  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [view, setView] = useState<navbar_page>('library');
   const [instancesList, setInstancesList] = useState([]);
   const [log, setLog] = useState([]);
-  const [projectsList, setProjectsList] = useState([]);
   const [severity, setSeverity] = useState<severityLevels>('info');
   const [message, setMessage] = useState('');
   const [open, setOpen] = useState(false);
@@ -92,24 +89,11 @@ export default function MainPage({ darkMode, setDarkMode }) {
     });
   };
 
-  const getProjectsList = async () => {
-    const all_project = {
-      id: 'all',
-      name: 'All',
-      url: undefined,
-      workflows: []
-    };
-    API.getProjectsList().then((projects) => {
-      setProjectsList([all_project, ...projects]);
-    });
-  };
-
   useEffect(() => {
     (async () => {
       const path = await API.getCollectionsPath();
       setCollectionsPath(path);
       refreshInstancesList();
-      getProjectsList();
     })();
   }, []);
 
@@ -167,17 +151,16 @@ export default function MainPage({ darkMode, setDarkMode }) {
         drawerOpen={drawerOpen}
         setDrawerOpen={setDrawerOpen}
         view={view}
-        projectsList={projectsList}
       />
 
       <Drawer
         variant="permanent"
         open={drawerOpen}
         sx={{
-          width: drawerOpen ? 240 : 56,
+          width: drawerOpen ? 200 : 56,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
-            width: drawerOpen ? 240 : 56,
+            width: drawerOpen ? 200 : 56,
             overflowX: 'hidden',
             transition: (theme) =>
               theme.transitions.create('width', {
@@ -188,12 +171,6 @@ export default function MainPage({ darkMode, setDarkMode }) {
         }}
       >
         <List>
-          <ListItem button id="sidebar-hub-button" onClick={() => setView('hub')}>
-            <ListItemIcon>
-              <HubIcon />
-            </ListItemIcon>
-            {drawerOpen && <ListItemText primary={t('sidebar.hub')} />}
-          </ListItem>
           <ListItem button id="sidebar-library-button" onClick={() => setView('library')}>
             <ListItemIcon>
               <LibraryIcon />
@@ -230,26 +207,13 @@ export default function MainPage({ darkMode, setDarkMode }) {
             square
           >
             <Toolbar />
-            {view === 'hub' ? (
-              <HubPage
-                repoUrl={repoUrl}
-                setRepoUrl={setRepoUrl}
-                targetDir={targetDir}
-                drawerOpen={drawerOpen}
-                setTargetDir={setTargetDir}
-                setFolderPath={setFolderPath}
-                allowArbitraryRepoCloning={allowArbitraryRepoCloning}
-                logMessage={logMessage}
-                setView={setView}
-              />
-            ) : view === 'library' ? (
+            {view === 'library' ? (
               <LibraryPage
                 repoUrl={repoUrl}
                 setRepoUrl={setRepoUrl}
                 targetDir={targetDir}
                 setTargetDir={setTargetDir}
                 setFolderPath={setFolderPath}
-                drawerOpen={drawerOpen}
                 addToInstancesList={addToInstancesList}
                 logMessage={logMessage}
                 setView={setView}
@@ -270,8 +234,6 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 setCollectionsPath={setCollectionsPath}
                 allowArbitraryRepoCloning={allowArbitraryRepoCloning}
                 setAllowArbitraryRepoCloning={setAllowArbitraryRepoCloning}
-                projectsList={projectsList}
-                getProjectsList={getProjectsList}
                 logMessage={logMessage}
               />
             ) : null}

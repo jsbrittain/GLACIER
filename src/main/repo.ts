@@ -55,8 +55,13 @@ export async function cloneRepo(
 
   // Determine the version to clone
   let version = ver || (await getDefaultBranch(url));
-  if (version === null || version === '') {
-    version = 'main'; // Fallback
+  if (version === null || version === '' || version === 'latest') {
+    const tags = await getRepoTags(url) || [];
+    if (tags.length === 0) {
+      version = 'main';
+    } else {
+      version = tags[0];
+    }
   }
 
   // Determine and create the target directory
@@ -64,15 +69,20 @@ export async function cloneRepo(
   fs.mkdirSync(targetDir, { recursive: true });
 
   // Clone
-  await git.clone({
-    fs,
-    http,
-    dir: targetDir,
-    url: url,
-    ref: version, // branch or tag
-    singleBranch: true,
-    depth: 1
-  });
+  try {
+    await git.clone({
+      fs,
+      http,
+      dir: targetDir,
+      url: url,
+      ref: version, // branch or tag
+      singleBranch: true,
+      depth: 1
+    });
+  } catch (err: unknown) {
+    fs.rmSync(targetDir, { recursive: true, force: true }); // Clean up on failure
+    throw err;
+  }
 
   return {
     owner: owner,

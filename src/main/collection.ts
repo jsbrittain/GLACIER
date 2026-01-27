@@ -22,6 +22,7 @@ import { parseNextflowLog } from '../runners/nextflow/nf-parse.js';
 
 const instance_database_file = 'instances.json';
 
+const default_collections = ['artic-network/glacier-catalogue'];
 const default_repos = ['artic-network/artic-mpxv-nf', 'artic-network/amplicon-nf'];
 
 export enum IWorkflowType {
@@ -75,8 +76,6 @@ class Workflow implements IWorkflow {
   repo: string;
   url: string;
   versions: WorkflowVersion[];
-
-  project: IProject | null = null; // reference to project if applicable
 
   constructor(wf: IWorkflow) {
     this.id = wf.id;
@@ -156,28 +155,6 @@ class WorkflowInstance implements IWorkflowInstance {
   }
 }
 
-// A project is a collection of workflows, mainly used for branding
-export interface IProject {
-  id: string;
-  name: string;
-  url: string;
-  workflows: IWorkflow[];
-}
-
-class Project implements IProject {
-  id: string;
-  name: string;
-  url: string;
-  workflows: IWorkflow[];
-
-  constructor({ id, name, url, workflows = [] }: IProject) {
-    this.id = id;
-    this.name = name;
-    this.url = url;
-    this.workflows = workflows;
-  }
-}
-
 // Singleton class
 export class Collection {
   // --- Class management --------------------------------------------------------------
@@ -203,7 +180,7 @@ export class Collection {
 
   root_path: string = '';
 
-  projects: Project[] = [];
+  catalogues: Record<string, unknown>[] = [];
   workflows: Workflow[] = [];
   workflow_instances: WorkflowInstance[] = [];
 
@@ -224,6 +201,7 @@ export class Collection {
   async parseCollection() {
     this.parseWorkflows();
     this.parseInstallableRepos();
+    await this.parseCatalogues();
     await this.parseInstances();
   }
 
@@ -760,7 +738,7 @@ export class Collection {
     await this.parseCollection();
   }
 
-  getCollections(): IRepo[] {
+  getCollectionRepos(): IRepo[] {
     const repos: IRepo[] = [];
     this.workflows.forEach((wf) => {
       wf.versions.forEach((ver) => {
@@ -861,34 +839,6 @@ export class Collection {
     return locateReports(instance.path);
   }
 
-  getProjectsList(): IProject[] {
-    if (this.projects.length > 0) {
-      return this.projects;
-    }
-    return this.projects;
-  }
-
-  addProject(repoPath: string): string {
-    // /// Replace with repo parsing logic ///
-    const i = this.projects.length + 1;
-    this.projects.push(
-      new Project({
-        id: i.toString(),
-        name: `New Project ${i}`,
-        url: repoPath,
-        workflows: []
-      })
-    );
-    return '';
-  }
-
-  removeProject(project: IProject) {
-    const index = this.projects.findIndex((p) => p.id === project.id);
-    if (index === -1) return 'Project not found in collection.';
-    this.projects.splice(index, 1);
-    return '';
-  }
-
   getInstallableReposList(): IRepoVersions[] {
     return this.installable_repos;
   }
@@ -974,5 +924,46 @@ export class Collection {
 
   async performEnvironmentAction(key: string, action: string) {
     return performEnvironmentAction(key, action);
+  }
+
+  async parseCatalogues() {
+    // Clean existing catalogues
+    this.catalogues = [];
+    this.addCatalogues();  // TEMPORARY --- catalogue should be downloaded once and reused locally
+  }
+
+  async addCatalogues() {
+    for (const repo of default_collections) {
+      const url_base = `https://raw.githubusercontent.com/${repo}/refs/heads/main`;
+      const url = `${url_base}/catalogue.json`;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.error(`Failed to fetch collection from ${url}: ${response.statusText}`);
+          continue;
+        }
+        const cat = await response.json();
+        cat['source'] = url_base;
+        this.catalogues.push(cat);
+        console.log(`Fetched collection from ${url}`);
+      } catch (error) {
+        console.error(`Error fetching collection from ${url}: ${error}`);
+      }
+    }
+  }
+
+  async getCatalogues() {
+    return this.catalogues;
+  }
+
+  async isRepoInstalled(url: string, version: string): Promise<boolean> {
+    const owner = url.split('/')[0];
+    const repo = url.split('/')[1];
+    const wf = this.workflows.find((wf) => wf.id === `${owner}/${repo}`);
+    if (!wf) {
+      return false;
+    }
+    const ver = wf.versions.find((v) => v.version === version);
+    return ver !== undefined;
   }
 }

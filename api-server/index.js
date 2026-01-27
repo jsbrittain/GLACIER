@@ -100,12 +100,20 @@ app.post('/api/clone-repo', async (req, res) =>
   post_response(res, collection.cloneRepo(req.body.repoUrl, req.body.ver))
 );
 
+app.post('/api/is-repo-installed', async (req, res) =>
+  post_response(res, collection.isRepoInstalled(req.body.repoUrl, req.body.ver))
+);
+
 app.post('/api/sync-repo', async (req, res) =>
   post_response(res, collection.syncRepo(req.body.repo))
 );
 
-app.post('/api/get-collections', async (req, res) =>
-  post_response(res, collection.getCollections())
+app.post('/api/get-catalogues', async (req, res) =>
+  post_response(res, collection.getCatalogues())
+);
+
+app.post('/api/get-collection-repos', async (req, res) =>
+  post_response(res, collection.getCollectionRepos())
 );
 
 app.post('/api/get-collections-path', async (req, res) =>
@@ -134,18 +142,6 @@ app.post('/api/get-workflow-params', async (req, res) =>
 
 app.post('/api/get-workflow-schema', async (req, res) =>
   post_response(res, collection.getWorkflowSchema(req.body.repoPath))
-);
-
-app.post('/api/get-projects-list', async (req, res) =>
-  post_response(res, collection.getProjectsList())
-);
-
-app.post('/api/add-project', async (req, res) =>
-  post_response(res, collection.addProject(req.body.repoPath))
-);
-
-app.post('/api/remove-project', async (req, res) =>
-  post_response(res, collection.removeProject(req.body.project))
 );
 
 app.post('/api/get-installable-repos-list', async (req, res) =>

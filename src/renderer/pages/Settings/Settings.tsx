@@ -13,7 +13,6 @@ import {
   Tab,
   Tabs
 } from '@mui/material';
-import ProjectsList from './ProjectsList.js';
 import EnvironmentPage from './Environment.js';
 import LicensesPage from './Licenses.js';
 import { API } from '../../services/api.js';
@@ -28,8 +27,6 @@ export default function SettingsPage({
   setCollectionsPath,
   allowArbitraryRepoCloning,
   setAllowArbitraryRepoCloning,
-  projectsList,
-  getProjectsList,
   logMessage
 }) {
   const { t, i18n } = useTranslation();
@@ -37,7 +34,6 @@ export default function SettingsPage({
   const pathRef = React.useRef(null);
   const [language, setLanguage] = React.useState(i18n.language || 'en');
   const [tabValue, setTabValue] = React.useState(0);
-  const [disableProjects, setDisableProjects] = React.useState(false);
   const [disableSchemaValidation, setDisableSchemaValidation] = React.useState(false);
   const [nextflowStatus, setNextflowStatus] = React.useState([]);
 
@@ -64,11 +60,6 @@ export default function SettingsPage({
     i18n.changeLanguage(newLang);
   };
 
-  const handleDisableProjects = (value) => {
-    setDisableProjects(value);
-    API.settingsSet(SettingsKey.DisableProjects, value);
-  };
-
   const handleDisableSchemaValidation = (value) => {
     setDisableSchemaValidation(value);
     API.settingsSet(SettingsKey.DisableSchemaValidation, value);
@@ -77,9 +68,6 @@ export default function SettingsPage({
   useEffect(() => {
     API.settingsGet(SettingsKey.DisableSchemaValidation).then((value) => {
       setDisableSchemaValidation(value);
-    });
-    API.settingsGet(SettingsKey.DisableProjects).then((value) => {
-      setDisableProjects(value);
     });
     API.getEnvironmentStatus(EnvironmentKey.Nextflow).then((status) => {
       setNextflowStatus(status);
@@ -125,11 +113,6 @@ export default function SettingsPage({
         sx={{ borderRight: 1, borderColor: 'divider' }}
       >
         <Tab id="settings-general-panel" label={t('settings.general')} />
-        <Tab
-          id="settings-project-panel"
-          label={t('settings.project-options')}
-          disabled={disableProjects}
-        />
         <Tab id="settings-visual-panel" label={t('settings.visual-options')} />
         <Tab id="settings-language-panel" label={t('settings.language-select')} />
         <Tab id="settings-environment-panel" label={t('settings.environment-options')} />
@@ -161,21 +144,13 @@ export default function SettingsPage({
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
-        <ProjectsList
-          projectsList={projectsList}
-          getProjectsList={getProjectsList}
-          logMessage={logMessage}
-        />
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={2}>
         <FormControlLabel
           control={<Switch checked={darkMode} onChange={() => setDarkMode(!darkMode)} />}
           label={t('settings.dark-mode')}
         />
       </TabPanel>
 
-      <TabPanel value={tabValue} index={3}>
+      <TabPanel value={tabValue} index={2}>
         <Select
           labelId="settings-language-select-label"
           id="settings-language-select"
@@ -188,21 +163,12 @@ export default function SettingsPage({
         </Select>
       </TabPanel>
 
-      <TabPanel value={tabValue} index={4}>
+      <TabPanel value={tabValue} index={3}>
         <EnvironmentPage />
       </TabPanel>
 
-      <TabPanel value={tabValue} index={5}>
+      <TabPanel value={tabValue} index={4}>
         <Stack spacing={2}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={disableProjects}
-                onChange={() => handleDisableProjects(!disableProjects)}
-              />
-            }
-            label={t('settings.disable-projects')}
-          />
           <FormControlLabel
             control={
               <Switch
@@ -215,7 +181,7 @@ export default function SettingsPage({
         </Stack>
       </TabPanel>
 
-      <TabPanel value={tabValue} index={6}>
+      <TabPanel value={tabValue} index={5}>
         <LicensesPage />
       </TabPanel>
     </Paper>
