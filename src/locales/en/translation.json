@@ -2,6 +2,7 @@
   "glacier": "GLACIER",
   "container-started": "Container built and started with ID",
   "common": {
+    "okay": "Okay",
     "cancel": "Cancel"
   },
   "sidebar": {
@@ -17,7 +18,23 @@
     "repo-sync-success": "Repository synced successfully",
     "repo-sync-failed": "Repository sync failed",
     "no-repos-installed": "No repositories installed. Add a repository from the Hub to get started.",
-    "clone-error": "Error cloning repository"
+    "clone-error": "Error cloning repository",
+    "actions": "Actions",
+    "add-catalogue": "Add Catalogue",
+    "add-catalogue-dialog": {
+      "title": "Add Catalogue",
+      "description": "Enter the Github organisation, or repository to add:",
+      "repository-url": "Repository URL"
+    },
+    "add-repository": "Add Workflow",
+    "add-workflow-dialog": {
+      "title": "Add Workflow",
+      "description": "Enter the Github repository to add:",
+      "repository-url": "Repository URL",
+      "version": "Version (branch, tag, or commit)",
+      "section": "Section",
+      "name": "Workflow name (optional)"
+    }
   },
   "instances": {
     "title": "Instances",

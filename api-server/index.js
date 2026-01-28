@@ -108,7 +108,18 @@ app.post('/api/sync-repo', async (req, res) =>
   post_response(res, collection.syncRepo(req.body.repo))
 );
 
+app.post('/api/add-catalogue', async (req, res) =>
+  post_response(res, collection.addCatalogue(req.body.repoUrl, req.body.ver))
+);
+
 app.post('/api/get-catalogues', async (req, res) => post_response(res, collection.getCatalogues()));
+
+app.post('/api/add-user-workflow', async (req, res) =>
+  post_response(
+    res,
+    collection.addUserWorkflow(req.body.name, req.body.repoUrl, req.body.ver, req.body.section)
+  )
+);
 
 app.post('/api/get-collection-repos', async (req, res) =>
   post_response(res, collection.getCollectionRepos())

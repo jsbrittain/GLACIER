@@ -22,8 +22,28 @@ import { parseNextflowLog } from '../runners/nextflow/nf-parse.js';
 
 const instance_database_file = 'instances.json';
 
-const default_collections = ['artic-network/glacier-catalogue'];
-const default_repos = ['artic-network/artic-mpxv-nf', 'artic-network/amplicon-nf'];
+export interface Catalogue {
+  name: string;
+  source: string;
+  description?: string;
+  icon?: string;
+  scheme?: Record<string, string>;
+  sections: CatalogueSection[];
+}
+
+export interface CatalogueSection {
+  name: string;
+  description?: string;
+  icon?: string;
+  scheme?: Record<string, string>;
+  workflows: CatalogueWorkflow[];
+}
+
+export interface CatalogueWorkflow {
+  name: string;
+  repo: string;
+  version?: string;
+}
 
 export enum IWorkflowType {
   NEXTFLOW = 'nextflow',
@@ -180,7 +200,7 @@ export class Collection {
 
   root_path: string = '';
 
-  catalogues: Record<string, unknown>[] = [];
+  catalogues: Catalogue[] = [];
   workflows: Workflow[] = [];
   workflow_instances: WorkflowInstance[] = [];
 
@@ -194,6 +214,10 @@ export class Collection {
 
   get instances_path(): string {
     return path.join(this.root_path, 'instances');
+  }
+
+  get catalogues_path(): string {
+    return path.join(this.root_path, 'catalogues');
   }
 
   // --- Logic -------------------------------------------------------------------------
@@ -251,11 +275,7 @@ export class Collection {
     }
   }
 
-  private parseInstallableRepos() {
-    default_repos.forEach((repo) => {
-      this.addInstallableRepo(repo);
-    });
-  }
+  private parseInstallableRepos() {}
 
   private async parseInstances() {
     // Clean existing instances
@@ -927,57 +947,97 @@ export class Collection {
   }
 
   async parseCatalogues() {
-    // Clean existing catalogues
+    // Clear existing catalogues
     this.catalogues = [];
-    this.addCatalogues(); // TEMPORARY --- catalogue should be downloaded once and reused locally
-    this.catalogues.push({
-      name: 'User collection',
-      source: 'local',
-      //description: 'Local user-defined collection',
-      sections: [
-        {
-          name: 'My Workflows',
-          //description: 'Workflows installed in my collection',
-          workflows: [
-            {
-              name: 'Workflow 1',
-              repo: 'owner/repo1',
-              version: 'latest'
-            },
-            {
-              name: 'Workflow 2',
-              repo: 'owner/repo1',
-              version: 'latest'
-            },
-            {
-              name: 'Workflow 3',
-              repo: 'owner/repo1',
-              version: 'latest'
-            }
-          ]
-        }
-      ]
-    });
-  }
 
-  async addCatalogues() {
-    for (const repo of default_collections) {
-      const url_base = `https://raw.githubusercontent.com/${repo}/refs/heads/main`;
-      const url = `${url_base}/catalogue.json`;
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          console.error(`Failed to fetch collection from ${url}: ${response.statusText}`);
-          continue;
-        }
-        const cat = await response.json();
-        cat['source'] = url_base;
-        this.catalogues.push(cat);
-        console.log(`Fetched collection from ${url}`);
-      } catch (error) {
-        console.error(`Error fetching collection from ${url}: ${error}`);
+    // Read catalogues from catalogues path
+    if (!fs.existsSync(this.catalogues_path)) {
+      console.log(`Catalogues path ${this.catalogues_path} does not exist.`);
+      return;
+    }
+    const owners = fs.readdirSync(this.catalogues_path);
+    for (const owner of owners) {
+      const ownerPath = path.join(this.catalogues_path, owner);
+      const repoDirs = fs.readdirSync(ownerPath);
+      for (const repo of repoDirs) {
+        const repoPath = path.join(ownerPath, repo);
+        // Read catalogue.json
+        const cat_file = path.join(repoPath, 'catalogue.json');
+        const cat_contents = fs.readFileSync(cat_file, 'utf-8');
+        const js = JSON.parse(cat_contents);
+        js['source'] = `${owner}/${repo}`;
+        js['base_dir'] = repoPath;
+        // Add to catalogues
+        this.catalogues.push(js);
       }
     }
+  }
+
+  async addCatalogue(url: string, version: string) {
+    // Clone catalogue repository and refresh catalogues list
+    console.log(`Cloning catalogue repository ${url} version ${version}`);
+    const hasSlash = url.includes('/');
+    if (!hasSlash) {
+      url = `${url}/glacier-catalogue`;
+    }
+    const repo: ICloneRepo = await cloneRepo(url, this.catalogues_path, version);
+    const cat_file = path.join(repo.path, 'catalogue.json');
+    const contents = fs.readFileSync(cat_file, 'utf-8');
+    const js = JSON.parse(contents);
+    js['source'] = url;
+    js['base_dir'] = repo.path;
+    this.parseCatalogues(); // update catalogue
+  }
+
+  async addUserWorkflow(name: string, url: string, version: string, section: string) {
+    if (!name) {
+      name = url.split('/')[1];
+    }
+    if (!section) {
+      section = 'My Workflows';
+    }
+    if (!version) {
+      version = 'latest';
+    }
+    // Add workflow to catalogue
+    const user_cat_path = path.join(
+      this.catalogues_path,
+      'user_collection',
+      'store',
+      'catalogue.json'
+    );
+    let user_catalogue: Catalogue;
+    if (fs.existsSync(user_cat_path)) {
+      // Read existing catalogue
+      const contents = fs.readFileSync(user_cat_path, 'utf-8');
+      user_catalogue = JSON.parse(contents);
+    } else {
+      // Create new catalogue
+      user_catalogue = {
+        name: 'User collection',
+        source: 'local',
+        sections: []
+      };
+    }
+    // Find (or create) section
+    let user_section = user_catalogue.sections.find((sec) => sec.name === section);
+    if (!user_section) {
+      user_section = {
+        name: section,
+        workflows: []
+      };
+      user_catalogue.sections.push(user_section);
+    }
+    user_section.workflows.push({
+      name: name,
+      repo: url,
+      version: version
+    });
+    // Save to catalogues path
+    this.ensurePathExists(path.dirname(user_cat_path));
+    fs.writeFileSync(user_cat_path, JSON.stringify(user_catalogue, null, 2));
+    // Refresh catalogues
+    this.parseCatalogues();
   }
 
   async getCatalogues() {

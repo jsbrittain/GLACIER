@@ -11,12 +11,15 @@ import {
   Grid,
   Select,
   Snackbar,
+  Menu,
   MenuItem,
   Alert,
   Link
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { API } from '../services/api.js';
+import QueryAddCatalogueDialog from './QueryAddCatalogueDialog';
+import QueryAddWorkflowDialog from './QueryAddWorkflowDialog';
+import { API } from '../../services/api.js';
 
 const resolveHttpUrl = (path, source) => {
   if (!path) return null;
@@ -30,7 +33,102 @@ const resolveHttpUrl = (path, source) => {
   return path;
 };
 
-function WorkflowCard({ workflow, scheme, addToInstancesList, logMessage }) {
+function ActionMenu({ setCatalogues, permitAddCatalogues, permitAddRepos }) {
+  const { t } = useTranslation();
+  const [showQueryCatalogueDialog, setShowQueryCatalogueDialog] = useState(false);
+  const [showQueryRepositoryDialog, setShowQueryRepositoryDialog] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const menuIsOpen = Boolean(anchorEl);
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleDialogClose = () => {
+    setShowQueryCatalogueDialog(false);
+    setShowQueryRepositoryDialog(false);
+    handleMenuClose();
+  };
+
+  const addCatalogue = (repo, version) => {
+    API.addCatalogue(repo, version).then((result) => {
+      if (result.ok) {
+        API.getCatalogues().then((result) => {
+          if (result.ok) {
+            setCatalogues(result.data);
+          }
+        });
+      }
+    });
+    handleDialogClose();
+  };
+
+  const addUserWorkflow = (name, url, version, section) => {
+    API.addUserWorkflow(name, url, version, section).then((result) => {
+      if (result.ok) {
+        API.getCatalogues().then((result) => {
+          if (result.ok) {
+            setCatalogues(result.data);
+          }
+        });
+      }
+    });
+    handleDialogClose();
+  };
+
+  const display = permitAddCatalogues || permitAddRepos;
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        mb: 2
+      }}
+    >
+      {display && (
+        <>
+          <Button variant="contained" onClick={handleMenuOpen}>
+            {t('library.actions')}
+          </Button>
+          <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
+            {permitAddCatalogues && (
+              <MenuItem
+                onClick={() => setShowQueryCatalogueDialog(true)}
+                disabled={!permitAddCatalogues}
+              >
+                {t('library.add-catalogue')}
+              </MenuItem>
+            )}
+            {permitAddRepos && (
+              <MenuItem
+                onClick={() => setShowQueryRepositoryDialog(true)}
+                disabled={!permitAddRepos}
+              >
+                {t('library.add-repository')}
+              </MenuItem>
+            )}
+          </Menu>
+          <QueryAddCatalogueDialog
+            open={showQueryCatalogueDialog}
+            action={addCatalogue}
+            onClose={handleDialogClose}
+          />
+          <QueryAddWorkflowDialog
+            open={showQueryRepositoryDialog}
+            action={addUserWorkflow}
+            onClose={handleDialogClose}
+          />
+        </>
+      )}
+    </Box>
+  );
+}
+
+function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) {
   const { t } = useTranslation();
   const [isRepoInstalled, setIsRepoInstalled] = useState(false);
   workflow['id'] = workflow['repo'];
@@ -77,7 +175,7 @@ function WorkflowCard({ workflow, scheme, addToInstancesList, logMessage }) {
               background: scheme['title-background'] ?? undefined,
               fontFamily: scheme['font-family'] ?? 'inherit'
             }}
-            onClick={() => addToInstancesList(workflow)}
+            onClick={() => createWorkflowInstance(workflow)}
           >
             {t('library.run')}
           </Button>
@@ -101,7 +199,7 @@ function WorkflowCard({ workflow, scheme, addToInstancesList, logMessage }) {
   );
 }
 
-function SectionCard({ section, scheme, source, addToInstancesList, logMessage }) {
+function SectionCard({ section, scheme, source, createWorkflowInstance, logMessage }) {
   const theme = useTheme();
   return (
     <Paper
@@ -155,7 +253,7 @@ function SectionCard({ section, scheme, source, addToInstancesList, logMessage }
             <WorkflowCard
               workflow={workflow}
               scheme={scheme}
-              addToInstancesList={addToInstancesList}
+              createWorkflowInstance={createWorkflowInstance}
               logMessage={logMessage}
             />
           </Grid>
@@ -165,7 +263,7 @@ function SectionCard({ section, scheme, source, addToInstancesList, logMessage }
   );
 }
 
-function CatalogueCard({ catalogue, addToInstancesList, logMessage }) {
+function CatalogueCard({ catalogue, createWorkflowInstance, logMessage }) {
   const theme = useTheme();
   return (
     <Paper
@@ -192,7 +290,7 @@ function CatalogueCard({ catalogue, addToInstancesList, logMessage }) {
         {catalogue?.icon && (
           <Box
             component="img"
-            src={`${catalogue?.source}/${catalogue.icon}`}
+            src={`${catalogue?.['base_dir']}/${catalogue.icon}`}
             sx={{
               m: 0.5,
               maxHeight: 80
@@ -214,8 +312,8 @@ function CatalogueCard({ catalogue, addToInstancesList, logMessage }) {
           <SectionCard
             section={section}
             scheme={catalogue?.scheme || {}}
-            source={catalogue?.source}
-            addToInstancesList={addToInstancesList}
+            source={catalogue?.['base_dir']}
+            createWorkflowInstance={createWorkflowInstance}
             logMessage={logMessage}
           />
         ))}
@@ -225,14 +323,10 @@ function CatalogueCard({ catalogue, addToInstancesList, logMessage }) {
 }
 
 export default function LibraryPage({
-  repoUrl,
-  setRepoUrl,
-  targetDir,
-  setTargetDir,
-  setFolderPath,
-  addToInstancesList,
-  logMessage,
-  setView
+  createWorkflowInstance,
+  permitAddCatalogues,
+  permitAddRepos,
+  logMessage
 }) {
   const { t } = useTranslation();
   const [catalogues, setCatalogues] = useState([]);
@@ -251,11 +345,16 @@ export default function LibraryPage({
 
   return (
     <Container>
+      <ActionMenu
+        setCatalogues={setCatalogues}
+        permitAddCatalogues={permitAddCatalogues}
+        permitAddRepos={permitAddRepos}
+      />
       <Stack spacing={2}>
         {(catalogues || []).map((catalogue) => (
           <CatalogueCard
             catalogue={catalogue}
-            addToInstancesList={addToInstancesList}
+            createWorkflowInstance={createWorkflowInstance}
             logMessage={logMessage}
           />
         ))}

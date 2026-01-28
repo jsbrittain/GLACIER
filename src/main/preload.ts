@@ -33,7 +33,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getCollectionsPath: () => ipcRenderer.invoke('get-collections-path'),
   setCollectionsPath: (path: string) => ipcRenderer.invoke('set-collections-path', path),
   getCollectionRepos: () => ipcRenderer.invoke('get-collection-repos'),
+  addCatalogue: (repoUrl: string, version: string) =>
+    ipcRenderer.invoke('add-catalogue', repoUrl, version),
   getCatalogues: () => ipcRenderer.invoke('get-catalogues'),
+  addUserWorkflow: (name: string, repoUrl: string, version: string, section: string) =>
+    ipcRenderer.invoke('add-user-workflow', name, repoUrl, version, section),
   syncRepo: (repo: string) => ipcRenderer.invoke('sync-repo', repo),
   getWorkflowParams: (repoPath: string) => ipcRenderer.invoke('get-workflow-params', repoPath),
   pickFile: (filters?: Electron.FileFilter[]) => ipcRenderer.invoke('pick-file', { filters }),

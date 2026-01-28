@@ -25,6 +25,8 @@ export function registerIpcHandlers() {
   const redirect = {
     'run-workflow': collection.runWorkflow.bind(collection),
     'get-catalogues': collection.getCatalogues.bind(collection),
+    'add-catalogue': collection.addCatalogue.bind(collection),
+    'add-user-workflow': collection.addUserWorkflow.bind(collection),
     'clone-repo': collection.cloneRepo.bind(collection),
     'is-repo-installed': collection.isRepoInstalled.bind(collection)
   };

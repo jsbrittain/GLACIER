@@ -2,6 +2,7 @@
   "glacier": "GLACIER",
   "container-started": "Conteneur construit et démarré avec l'ID",
   "common": {
+    "okay": "OK",
     "cancel": "Annuler"
   },
   "sidebar": {
@@ -17,7 +18,23 @@
     "repo-sync-success": "Dépôt synchronisé avec succès",
     "repo-sync-failed": "La synchronisation du dépôt a échoué",
     "no-repos-installed": "Aucun dépôt installé. Veuillez ajouter un dépôt depuis le Hub.",
-    "clone-error": "Erreur lors du clonage du dépôt"
+    "clone-error": "Erreur lors du clonage du dépôt",
+    "actions": "Actions",
+    "add-catalogue": "Ajouter un catalogue",
+    "add-catalogue-dialog": {
+      "title": "Ajouter un catalogue",
+      "description": "Entrez l'URL du catalogue à ajouter:",
+      "repository-url": "URL du dépôt"
+    },
+    "add-repository": "Ajouter un dépôt",
+    "add-workflow-dialog": {
+      "title": "Ajouter un flux de travail",
+      "description": "Ajouter un flux de travail depuis un dépôt Github.",
+      "repository-url": "URL du dépôt",
+      "version": "Version (branche, tag ou commit)",
+      "section": "Section",
+      "name": "Nom du flux de travail (optionnel)"
+    }
   },
   "instances": {
     "title": "Instances",

@@ -62,12 +62,36 @@ export default function SettingsPage({
     i18n.changeLanguage(newLang);
   };
 
+  const handlePermitAddCatalogues = (value) => {
+    setPermitAddCatalogues(value);
+    API.settingsSet(SettingsKey.PermitAddCatalogues, value);
+  };
+
+  const handlePermitAddRepos = (value) => {
+    setPermitAddRepos(value);
+    API.settingsSet(SettingsKey.PermitAddRepos, value);
+  };
+
+  const handleDarkMode = (value) => {
+    setDarkMode(value);
+    API.settingsSet(SettingsKey.DarkMode, value);
+  };
+
   const handleDisableSchemaValidation = (value) => {
     setDisableSchemaValidation(value);
     API.settingsSet(SettingsKey.DisableSchemaValidation, value);
   };
 
   useEffect(() => {
+    API.settingsGet(SettingsKey.DarkMode).then((value) => {
+      setDarkMode(value);
+    });
+    API.settingsGet(SettingsKey.PermitAddCatalogues).then((value) => {
+      setPermitAddCatalogues(value);
+    });
+    API.settingsGet(SettingsKey.PermitAddRepos).then((value) => {
+      setPermitAddRepos(value);
+    });
     API.settingsGet(SettingsKey.DisableSchemaValidation).then((value) => {
       setDisableSchemaValidation(value);
     });
@@ -133,19 +157,21 @@ export default function SettingsPage({
           onBlur={handlePathBlur}
           sx={{ mt: 2 }}
         />
-
         <FormControlLabel
           control={
             <Switch
               checked={permitAddCatalogues}
-              onChange={() => setPermitAddCatalogues(!permitAddCatalogues)}
+              onChange={() => handlePermitAddCatalogues(!permitAddCatalogues)}
             />
           }
           label={t('settings.permit-add-catalogues')}
         />
         <FormControlLabel
           control={
-            <Switch checked={permitAddRepos} onChange={() => setPermitAddRepos(!permitAddRepos)} />
+            <Switch
+              checked={permitAddRepos}
+              onChange={() => handlePermitAddRepos(!permitAddRepos)}
+            />
           }
           label={t('settings.permit-add-repos')}
         />
@@ -153,7 +179,7 @@ export default function SettingsPage({
 
       <TabPanel value={tabValue} index={1}>
         <FormControlLabel
-          control={<Switch checked={darkMode} onChange={() => setDarkMode(!darkMode)} />}
+          control={<Switch checked={darkMode} onChange={() => handleDarkMode(!darkMode)} />}
           label={t('settings.dark-mode')}
         />
       </TabPanel>

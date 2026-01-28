@@ -26,9 +26,10 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import { useTranslation } from 'react-i18next';
 
-import LibraryPage from './Library';
+import LibraryPage from './Library/Library';
 import InstancesPage from './Instances';
 import SettingsPage from './Settings/Settings';
+import { SettingsKey } from '../../types/settings.js';
 import { API } from '../services/api.js';
 
 const defaultRepoUrl = 'jsbrittain/workflow-runner-testworkflow';
@@ -90,6 +91,12 @@ export default function MainPage({ darkMode, setDarkMode }) {
 
   useEffect(() => {
     (async () => {
+      API.settingsGet(SettingsKey.PermitAddCatalogues).then((result) => {
+        setPermitAddCatalogues(result);
+      });
+      API.settingsGet(SettingsKey.PermitAddRepos).then((result) => {
+        setPermitAddRepos(result);
+      });
       const path = await API.getCollectionsPath();
       setCollectionsPath(path);
       refreshInstancesList();
@@ -125,7 +132,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
     return newName;
   };
 
-  const addToInstancesList = async (repo) => {
+  const createWorkflowInstance = async (repo) => {
     const workflow_id = repo.id;
     API.createWorkflowInstance(workflow_id, repo.version).then((instance) => {
       setInstancesList((prev) => {
@@ -227,14 +234,10 @@ export default function MainPage({ darkMode, setDarkMode }) {
           >
             {view === 'library' ? (
               <LibraryPage
-                repoUrl={repoUrl}
-                setRepoUrl={setRepoUrl}
-                targetDir={targetDir}
-                setTargetDir={setTargetDir}
-                setFolderPath={setFolderPath}
-                addToInstancesList={addToInstancesList}
+                createWorkflowInstance={createWorkflowInstance}
+                permitAddCatalogues={permitAddCatalogues}
+                permitAddRepos={permitAddRepos}
                 logMessage={logMessage}
-                setView={setView}
               />
             ) : view === 'instances' ? (
               <InstancesPage

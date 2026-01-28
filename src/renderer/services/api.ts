@@ -29,7 +29,10 @@ const electronAPI = isElectron
       cloneRepo: (repoUrl, ver) => window.electronAPI.cloneRepo(repoUrl, ver),
       isRepoInstalled: (repoUrl, ver) => window.electronAPI.isRepoInstalled(repoUrl, ver),
       syncRepo: (repo) => window.electronAPI.syncRepo(repo),
+      addCatalogue: (repoUrl, ver) => window.electronAPI.addCatalogue(repoUrl, ver),
       getCatalogues: () => window.electronAPI.getCatalogues(),
+      addUserWorkflow: (name, repoUrl, ver, section) =>
+        window.electronAPI.addUserWorkflow(name, repoUrl, ver, section),
       getCollectionRepos: () => window.electronAPI.getCollectionRepos(),
       getCollectionsPath: () => window.electronAPI.getCollectionsPath(),
       setCollectionsPath: (path) => window.electronAPI.setCollectionsPath(path),
@@ -98,6 +101,11 @@ const httpAPI = {
   isRepoInstalled: async (repoUrl, ver) =>
     httpDispatch('/api/is-repo-installed', 'POST', { repoUrl, ver }),
   syncRepo: async (repo) => httpDispatch('/api/sync-repo', 'POST', { repo }),
+  addCatalogue: async (repoUrl, ver) =>
+    httpDispatch('/api/add-catalogue', 'POST', { repoUrl, ver }),
+  getCatalogues: async () => httpDispatch('/api/get-catalogues', 'POST', {}),
+  addUserWorkflow: async (name, repoUrl, ver, section) =>
+    httpDispatch('/api/add-user-workflow', 'POST', { name, repoUrl, ver, section }),
   getCollectionRepos: async () => httpDispatch('/api/get-collection-repos', 'POST', {}),
   getCollectionsPath: async () => httpDispatch('/api/get-collections-path', 'POST', {}),
   setCollectionsPath: async (path) => httpDispatch('/api/set-collections-path', 'POST', { path }),
