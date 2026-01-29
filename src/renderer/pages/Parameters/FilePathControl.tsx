@@ -47,7 +47,6 @@ function InnerFilePathControl(props: ControlProps) {
     (uischema as any)?.options?.description ?? schema?.description ?? (schema as any)?.help_text;
 
   const showDesc = !isDescriptionHidden(visible, description, config);
-  const accept = (uischema as any)?.options?.accept as string | undefined;
 
   type PickerMode = 'file' | 'directory' | 'both';
 

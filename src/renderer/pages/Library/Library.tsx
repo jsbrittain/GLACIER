@@ -1,25 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { useTheme, alpha } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 import {
   Button,
   Container,
   IconButton,
   Paper,
   Stack,
-  TextField,
   Typography,
   Box,
   Grid,
-  Select,
-  Snackbar,
   Menu,
-  MenuItem,
-  Alert,
-  Link
+  MenuItem
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import QueryAddCatalogueDialog from './QueryAddCatalogueDialog';
-import QueryAddWorkflowDialog from './QueryAddWorkflowDialog';
 import ActionMenu from './ActionMenu';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { API } from '../../services/api.js';
@@ -76,7 +69,7 @@ function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) 
     setAnchorEl(null);
   };
 
-  const removeWorkflow = (workflow) => async () => {
+  const removeWorkflow = () => async () => {
     alert('Remove workflow not implemented yet.');
     handleMenuClose();
   };
@@ -105,7 +98,7 @@ function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) 
           </IconButton>
         </Box>
         <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
-          <MenuItem onClick={removeWorkflow(workflow)}>{t('library.remove-repository')}</MenuItem>
+          <MenuItem onClick={removeWorkflow()}>{t('library.remove-repository')}</MenuItem>
         </Menu>
       </Box>
       <Typography variant="subtitle1">
@@ -148,10 +141,15 @@ function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) 
   );
 }
 
-function SectionCard({ section, scheme, source, createWorkflowInstance, logMessage }) {
+function SectionCard({
+  section,
+  scheme,
+  source,
+  createWorkflowInstance,
+  permitCatalogueModifications,
+  logMessage
+}) {
   const { t } = useTranslation();
-  const theme = useTheme();
-  const [open, setOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const menuIsOpen = Boolean(anchorEl);
 
@@ -168,7 +166,7 @@ function SectionCard({ section, scheme, source, createWorkflowInstance, logMessa
     handleMenuClose();
   };
 
-  const removeCatalogueSection = (section) => async () => {
+  const removeCatalogueSection = () => async () => {
     alert('Remove section not implemented yet.');
     handleMenuClose();
   };
@@ -218,17 +216,21 @@ function SectionCard({ section, scheme, source, createWorkflowInstance, logMessa
             </Typography>
           )}
         </Box>
-        <Box sx={{ ml: 'auto' }}>
-          <IconButton color="inherit" onClick={handleMenuOpen}>
-            <MoreVertIcon />
-          </IconButton>
-        </Box>
-        <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
-          <MenuItem onClick={installAllWorkflows}>{t('library.install-all-workflows')}</MenuItem>
-          <MenuItem onClick={removeCatalogueSection(section)}>
-            {t('library.remove-section')}
-          </MenuItem>
-        </Menu>
+        {permitCatalogueModifications && (
+          <>
+            <Box sx={{ ml: 'auto' }}>
+              <IconButton color="inherit" onClick={handleMenuOpen}>
+                <MoreVertIcon />
+              </IconButton>
+            </Box>
+            <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
+              <MenuItem onClick={installAllWorkflows}>
+                {t('library.install-all-workflows')}
+              </MenuItem>
+              <MenuItem onClick={removeCatalogueSection()}>{t('library.remove-section')}</MenuItem>
+            </Menu>
+          </>
+        )}
       </Box>
       <Grid container spacing={2} sx={{ px: 1, pb: 1 }}>
         {(section?.workflows || []).map((workflow) => (
@@ -246,10 +248,14 @@ function SectionCard({ section, scheme, source, createWorkflowInstance, logMessa
   );
 }
 
-function CatalogueCard({ catalogue, createWorkflowInstance, logMessage }) {
+function CatalogueCard({
+  catalogue,
+  createWorkflowInstance,
+  permitCatalogueModifications,
+  logMessage
+}) {
   const { t } = useTranslation();
   const theme = useTheme();
-  const [open, setOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const menuIsOpen = Boolean(anchorEl);
 
@@ -266,7 +272,7 @@ function CatalogueCard({ catalogue, createWorkflowInstance, logMessage }) {
     handleMenuClose();
   };
 
-  const removeCatalogue = (catalogue) => async () => {
+  const removeCatalogue = () => async () => {
     alert('Remove catalogue not implemented yet.');
     handleMenuClose();
   };
@@ -312,15 +318,21 @@ function CatalogueCard({ catalogue, createWorkflowInstance, logMessage }) {
             <Typography variant="subtitle1">{catalogue.description}</Typography>
           )}
         </Box>
-        <Box sx={{ ml: 'auto' }}>
-          <IconButton color="inherit" onClick={handleMenuOpen}>
-            <MoreVertIcon />
-          </IconButton>
-        </Box>
-        <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
-          <MenuItem onClick={installAllWorkflows}>{t('library.install-all-workflows')}</MenuItem>
-          <MenuItem onClick={removeCatalogue(catalogue)}>{t('library.remove-catalogue')}</MenuItem>
-        </Menu>
+        {permitCatalogueModifications && (
+          <>
+            <Box sx={{ ml: 'auto' }}>
+              <IconButton color="inherit" onClick={handleMenuOpen}>
+                <MoreVertIcon />
+              </IconButton>
+            </Box>
+            <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
+              <MenuItem onClick={installAllWorkflows}>
+                {t('library.install-all-workflows')}
+              </MenuItem>
+              <MenuItem onClick={removeCatalogue()}>{t('library.remove-catalogue')}</MenuItem>
+            </Menu>
+          </>
+        )}
       </Box>
       <Stack spacing={1}>
         {(catalogue?.sections || []).map((section) => (
@@ -329,6 +341,7 @@ function CatalogueCard({ catalogue, createWorkflowInstance, logMessage }) {
             scheme={catalogue?.scheme || {}}
             source={catalogue?.['base_dir']}
             createWorkflowInstance={createWorkflowInstance}
+            permitCatalogueModifications={permitCatalogueModifications}
             logMessage={logMessage}
           />
         ))}
@@ -371,6 +384,7 @@ export default function LibraryPage({
           <CatalogueCard
             catalogue={catalogue}
             createWorkflowInstance={createWorkflowInstance}
+            permitCatalogueModifications={permitCatalogueModifications}
             logMessage={logMessage}
           />
         ))}

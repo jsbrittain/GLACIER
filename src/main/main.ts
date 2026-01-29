@@ -1,5 +1,4 @@
 import { app, screen, BrowserWindow, ipcMain, dialog } from 'electron';
-import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { registerIpcHandlers } from './ipc-handlers.js';

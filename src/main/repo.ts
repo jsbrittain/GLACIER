@@ -1,10 +1,8 @@
-import { getDefaultCollectionsDir } from './paths.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import yaml from 'js-yaml';
 import git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node';
-import { IRepo } from './types.js';
 import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator';
 
 interface WorkflowData {
@@ -134,22 +132,22 @@ export async function deleteRepo(repoPath: string) {
 }
 
 export async function getRepoTags(url: string) {
-  const { owner, repo, url: full_url } = parseRepoUrl(url);
+  const { url: full_url } = parseRepoUrl(url);
   try {
     const info = await git.getRemoteInfo({ http, url: full_url });
     return Object.keys(info.refs.tags).reverse();
-  } catch (err) {
+  } catch {
     console.info(`Failed to fetch tags from ${url}`);
     return [];
   }
 }
 
 export async function getRepoBranches(url: string) {
-  const { owner, repo, url: full_url } = parseRepoUrl(url);
+  const { url: full_url } = parseRepoUrl(url);
   try {
     const info = await git.getRemoteInfo({ http, url: full_url });
     return Object.keys(info.refs.heads);
-  } catch (err) {
+  } catch {
     console.info(`Failed to fetch branches from ${url}`);
     return [];
   }

@@ -10,9 +10,8 @@ import { cloneRepo, ICloneRepo, getRepoTags, getRepoBranches } from './repo.js';
 import { runWorkflow } from './runner.js';
 import { getEnvironmentStatus, performEnvironmentAction } from '../runners/environment.js';
 import { WorkflowStatus } from '../types/types.js';
-import { EnvironmentKey } from '../types/environment.js';
 import { syncRepo, getWorkflowParams, getWorkflowSchema } from './repo.js';
-import { getCollectionsPath, getDefaultCollectionsDir, locateReports } from './paths.js';
+import { getCollectionsPath, locateReports } from './paths.js';
 import { settings, StoreSchema } from './settings.js';
 
 // Should remove imports from specific runners
@@ -354,7 +353,7 @@ export class Collection {
             try {
               process.kill(pid, 0); // Check if process is running
               console.log(`Instance ${instance.id} has running PID: ${pid}`);
-            } catch (e) {
+            } catch {
               console.log(`Instance ${instance.id} PID ${pid} is not running, updating status.`);
               // Remove PID from instance
               instance.pid = instance.pid.filter((p) => p !== pid);
@@ -404,6 +403,7 @@ export class Collection {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   determineWorkflowType(folder: string): IWorkflowType {
     // Placeholder logic, can be improved
     return IWorkflowType.NEXTFLOW;
@@ -540,12 +540,12 @@ export class Collection {
       try {
         process.kill(-pid, sig); // signal the process group
         return true;
-      } catch (e) {
+      } catch {
         // Fallback: try the single process
         try {
           process.kill(pid, sig);
           return true;
-        } catch (_) {
+        } catch {
           return false;
         }
       }

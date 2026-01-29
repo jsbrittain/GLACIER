@@ -5,7 +5,7 @@ import { EnvironmentKey } from '../../../types/environment.js';
 import { useTranslation } from 'react-i18next';
 
 export default function EnvironmentPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [nextflowStatus, setNextflowStatus] = React.useState([]);
   const [performingAction, setPerformingAction] = React.useState(null);
 
@@ -21,7 +21,7 @@ export default function EnvironmentPage() {
 
   const handlePerformAction = async (id: string) => {
     setPerformingAction(id);
-    API.performEnvironmentAction(EnvironmentKey.Nextflow, id).then((msg) => {
+    API.performEnvironmentAction(EnvironmentKey.Nextflow, id).then(() => {
       getEnvironmentStatus(); // refresh status after action
       setPerformingAction(null);
     });
@@ -39,7 +39,7 @@ export default function EnvironmentPage() {
               <Typography key={index} variant="body1" sx={{ px: 1, pt: 1 }}>
                 {item.description}
               </Typography>
-              {(item?.actions || []).map((action, actionIndex) => (
+              {(item?.actions || []).map((action) => (
                 <Box
                   sx={{
                     display: 'inline-flex',

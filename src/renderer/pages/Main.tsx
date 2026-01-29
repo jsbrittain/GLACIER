@@ -1,29 +1,21 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
-  Button,
   Drawer,
-  IconButton,
   List,
   ListItem,
   ListItemText,
-  Stack,
-  TextField,
   Typography,
   Snackbar,
   Paper,
   Alert
 } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import MenuIcon from '@mui/icons-material/Menu';
 import LibraryIcon from '@mui/icons-material/Apps';
 import InstancesIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemButton from '@mui/material/ListItemButton';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
 import { useTranslation } from 'react-i18next';
 
 import LibraryPage from './Library/Library';
@@ -42,7 +34,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [permitAddCatalogues, setPermitAddCatalogues] = useState(true);
   const [permitCatalogueModifications, setPermitCatalogueModifications] = useState(true);
   const [permitAddRepos, setPermitAddRepos] = useState(true);
-  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [drawerOpen] = useState(true);
   const [view, setView] = useState<navbar_page>('library');
   const [instancesList, setInstancesList] = useState([]);
   const [log, setLog] = useState([]);
@@ -207,7 +199,6 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 setPermitCatalogueModifications={setPermitCatalogueModifications}
                 permitAddRepos={permitAddRepos}
                 setPermitAddRepos={setPermitAddRepos}
-                logMessage={logMessage}
               />
             ) : null}
           </Paper>

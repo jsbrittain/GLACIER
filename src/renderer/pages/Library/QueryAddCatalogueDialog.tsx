@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   Button,
   Dialog,
@@ -6,12 +6,6 @@ import {
   DialogContent,
   DialogActions,
   FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  OutlinedInput,
-  Chip,
-  Box,
   Typography,
   TextField
 } from '@mui/material';
@@ -21,9 +15,9 @@ export default function QueryAddCatalogueDialog({ open, action, onClose }) {
   const { t } = useTranslation();
 
   const [repo, setRepo] = React.useState('');
-  const [version, setVersion] = React.useState('');
 
   const handleLaunch = () => {
+    const version = '';
     action(repo, version);
   };
 

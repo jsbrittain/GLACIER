@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Switch,
   FormControlLabel,
@@ -17,7 +16,6 @@ import EnvironmentPage from './Environment.js';
 import LicensesPage from './Licenses.js';
 import { API } from '../../services/api.js';
 import { SettingsKey } from '../../../types/settings.js';
-import { EnvironmentKey } from '../../../types/environment.js';
 import { useTranslation } from 'react-i18next';
 
 export default function SettingsPage({
@@ -30,8 +28,7 @@ export default function SettingsPage({
   permitCatalogueModifications,
   setPermitCatalogueModifications,
   permitAddRepos,
-  setPermitAddRepos,
-  logMessage
+  setPermitAddRepos
 }) {
   const { t, i18n } = useTranslation();
 
@@ -39,7 +36,6 @@ export default function SettingsPage({
   const [language, setLanguage] = React.useState(i18n.language || 'en');
   const [tabValue, setTabValue] = React.useState(0);
   const [disableSchemaValidation, setDisableSchemaValidation] = React.useState(false);
-  const [nextflowStatus, setNextflowStatus] = React.useState([]);
 
   const handlePathKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -104,9 +100,6 @@ export default function SettingsPage({
     });
     API.settingsGet(SettingsKey.DisableSchemaValidation).then((value) => {
       setDisableSchemaValidation(value);
-    });
-    API.getEnvironmentStatus(EnvironmentKey.Nextflow).then((status) => {
-      setNextflowStatus(status);
     });
     if (pathRef.current && document.activeElement !== pathRef.current) {
       pathRef.current.value = collectionsPath ?? '';

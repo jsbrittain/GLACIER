@@ -1,26 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Container,
-  Paper,
-  Stack,
-  Tabs,
-  Tab,
-  TextField,
-  Typography,
-  Button,
-  Alert
-} from '@mui/material';
+import { Box, Paper, Stack, Tabs, Tab, Typography, Button } from '@mui/material';
 import { JsonForms } from '@jsonforms/react';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemAvatar from '@mui/material/ListItemAvatar';
-import Avatar from '@mui/material/Avatar';
-import NotStartedIcon from '@mui/icons-material/NotStarted';
-import DeleteIcon from '@mui/icons-material/Delete';
-import IconButton from '@mui/material/IconButton';
 import Ajv, { ErrorObject } from 'ajv'; // ajv is also used by jsonforms
 import { buildUISchema } from './buildUISchema';
 import { renderers } from './renderers';
@@ -77,14 +57,13 @@ export default function ParametersPage({ instance, refreshInstancesList, logMess
       logMessage(`Error launching workflow: ${result.error.message || 'Unknown error'}`, 'error');
       return;
     }
-    const id = result.data as number;
     logMessage(`Launched workflow ${instance.name}`);
     refreshInstancesList();
   };
 
   const onTestLaunchWorkflow = async (testProfiles) => {
     const test_profiles_str = testProfiles.join(',');
-    const id = await API.runWorkflow(instance, {}, { profile: test_profiles_str });
+    await API.runWorkflow(instance, {}, { profile: test_profiles_str });
     logMessage(`Launched test workflow ${instance.name}`);
     refreshInstancesList();
   };
@@ -216,7 +195,7 @@ export default function ParametersPage({ instance, refreshInstancesList, logMess
                 uischema={uischema}
                 data={params}
                 renderers={renderers}
-                onChange={({ data, errors }) => setParams(data)}
+                onChange={({ data }) => setParams(data)}
                 ajv={disableSchemaValidation ? undefined : ajv}
               />
             ) : (

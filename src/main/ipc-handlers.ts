@@ -1,7 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-import git from 'isomorphic-git';
-import http from 'isomorphic-git/http/node/index.cjs';
 import { ipcMain } from 'electron';
 import { Collection } from './collection.js';
 import { StoreSchema } from './settings.js';
@@ -124,7 +120,7 @@ export function registerIpcHandlers() {
     return collection.getWorkflowSchema(repoPath);
   });
 
-  ipcMain.handle('get-installable-repos-list', async (event) => {
+  ipcMain.handle('get-installable-repos-list', async () => {
     return collection.getInstallableReposList();
   });
 

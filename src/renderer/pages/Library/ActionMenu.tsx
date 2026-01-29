@@ -1,22 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { useTheme, alpha } from '@mui/material/styles';
-import {
-  Button,
-  Container,
-  IconButton,
-  Paper,
-  Stack,
-  TextField,
-  Typography,
-  Box,
-  Grid,
-  Select,
-  Snackbar,
-  Menu,
-  MenuItem,
-  Alert,
-  Link
-} from '@mui/material';
+import React, { useState } from 'react';
+import { Button, Box, Menu, MenuItem } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import QueryAddCatalogueDialog from './QueryAddCatalogueDialog';
 import QueryAddWorkflowDialog from './QueryAddWorkflowDialog';

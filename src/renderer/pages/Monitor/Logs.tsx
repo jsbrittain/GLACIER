@@ -1,21 +1,7 @@
-import React, { useEffect } from 'react';
-import { Box, Tabs, Tab, Paper, Typography } from '@mui/material';
-import Button from '@mui/material/Button';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import IconButton from '@mui/material/IconButton';
-import DoneIcon from '@mui/icons-material/Done';
-import CancelIcon from '@mui/icons-material/Cancel';
-import RefreshIcon from '@mui/icons-material/Refresh';
+import React from 'react';
+import { Box, Tabs, Tab, Paper } from '@mui/material';
 import AnsiLog from './AnsiLog.js';
-import HtmlReports from './HtmlReports.js';
-import { API } from '../../services/api.js';
 import { useTranslation } from 'react-i18next';
-import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
-import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
-
-import HeaderMenu from './HeaderMenu';
-import ProgressTracker from './ProgressTracker';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -32,14 +18,10 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-const SECOND = 1000;
-
-export default function LogsPage({ instance, stdOut, stdErr, nextflowLog, logMessage }) {
+export default function LogsPage({ stdOut, stdErr, nextflowLog }) {
   const { t } = useTranslation();
 
-  const [nextflowProgress, setNextflowProgress] = React.useState('');
   const [tabSelected, setTabSelected] = React.useState(0);
-  const [workflowStatus, setWorkflowStatus] = React.useState('unknown');
 
   const handleTabChange = (event, newValue) => {
     setTabSelected(newValue);
