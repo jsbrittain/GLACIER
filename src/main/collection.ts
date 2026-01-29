@@ -426,7 +426,7 @@ export class Collection {
       throw new Error(`Workflow ${workflow_id} has no versions.`);
     }
     let workflow_version;
-    if (version === undefined) {
+    if (version === undefined || version === 'latest') {
       // Local repository
       workflow_version = workflow.versions[0];
     } else {
@@ -1044,14 +1044,26 @@ export class Collection {
     return this.catalogues;
   }
 
-  async isRepoInstalled(url: string, version: string): Promise<boolean> {
+  async isRepoInstalled(url: string, version: string): Promise<string> {
     const owner = url.split('/')[0];
     const repo = url.split('/')[1];
     const wf = this.workflows.find((wf) => wf.id === `${owner}/${repo}`);
     if (!wf) {
-      return false;
+      return '';
+    }
+    if (version === 'latest') {
+      // Any version installed
+      if (wf.versions.length > 0) {
+        return wf.versions[0].version || '';
+      } else {
+        return '';
+      }
     }
     const ver = wf.versions.find((v) => v.version === version);
-    return ver !== undefined;
+    if (ver) {
+      return ver.version || '';
+    } else {
+      return '';
+    }
   }
 }

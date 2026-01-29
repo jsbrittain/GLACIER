@@ -21,12 +21,16 @@
     "clone-error": "Erreur lors du clonage du dépôt",
     "actions": "Actions",
     "add-catalogue": "Ajouter un catalogue",
+    "remove-catalogue": "Supprimer le catalogue",
+    "add-section": "Ajouter une section",
+    "remove-section": "Supprimer la section",
+    "add-repository": "Ajouter un dépôt",
+    "remove-repository": "Supprimer le dépôt",
     "add-catalogue-dialog": {
       "title": "Ajouter un catalogue",
       "description": "Entrez l'URL du catalogue à ajouter:",
       "repository-url": "URL du dépôt"
     },
-    "add-repository": "Ajouter un dépôt",
     "add-workflow-dialog": {
       "title": "Ajouter un flux de travail",
       "description": "Ajouter un flux de travail depuis un dépôt Github.",

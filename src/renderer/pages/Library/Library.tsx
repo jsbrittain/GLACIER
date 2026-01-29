@@ -3,6 +3,7 @@ import { useTheme, alpha } from '@mui/material/styles';
 import {
   Button,
   Container,
+  IconButton,
   Paper,
   Stack,
   TextField,
@@ -19,6 +20,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import QueryAddCatalogueDialog from './QueryAddCatalogueDialog';
 import QueryAddWorkflowDialog from './QueryAddWorkflowDialog';
+import ActionMenu from './ActionMenu';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { API } from '../../services/api.js';
 
 const resolveHttpUrl = (path, source) => {
@@ -33,111 +36,25 @@ const resolveHttpUrl = (path, source) => {
   return path;
 };
 
-function ActionMenu({ setCatalogues, permitAddCatalogues, permitAddRepos }) {
-  const { t } = useTranslation();
-  const [showQueryCatalogueDialog, setShowQueryCatalogueDialog] = useState(false);
-  const [showQueryRepositoryDialog, setShowQueryRepositoryDialog] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const menuIsOpen = Boolean(anchorEl);
-
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleDialogClose = () => {
-    setShowQueryCatalogueDialog(false);
-    setShowQueryRepositoryDialog(false);
-    handleMenuClose();
-  };
-
-  const addCatalogue = (repo, version) => {
-    API.addCatalogue(repo, version).then((result) => {
-      if (result.ok) {
-        API.getCatalogues().then((result) => {
-          if (result.ok) {
-            setCatalogues(result.data);
-          }
-        });
-      }
-    });
-    handleDialogClose();
-  };
-
-  const addUserWorkflow = (name, url, version, section) => {
-    API.addUserWorkflow(name, url, version, section).then((result) => {
-      if (result.ok) {
-        API.getCatalogues().then((result) => {
-          if (result.ok) {
-            setCatalogues(result.data);
-          }
-        });
-      }
-    });
-    handleDialogClose();
-  };
-
-  const display = permitAddCatalogues || permitAddRepos;
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'flex-end',
-        mb: 2
-      }}
-    >
-      {display && (
-        <>
-          <Button variant="contained" onClick={handleMenuOpen}>
-            {t('library.actions')}
-          </Button>
-          <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
-            {permitAddCatalogues && (
-              <MenuItem
-                onClick={() => setShowQueryCatalogueDialog(true)}
-                disabled={!permitAddCatalogues}
-              >
-                {t('library.add-catalogue')}
-              </MenuItem>
-            )}
-            {permitAddRepos && (
-              <MenuItem
-                onClick={() => setShowQueryRepositoryDialog(true)}
-                disabled={!permitAddRepos}
-              >
-                {t('library.add-repository')}
-              </MenuItem>
-            )}
-          </Menu>
-          <QueryAddCatalogueDialog
-            open={showQueryCatalogueDialog}
-            action={addCatalogue}
-            onClose={handleDialogClose}
-          />
-          <QueryAddWorkflowDialog
-            open={showQueryRepositoryDialog}
-            action={addUserWorkflow}
-            onClose={handleDialogClose}
-          />
-        </>
-      )}
-    </Box>
-  );
-}
-
 function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) {
   const { t } = useTranslation();
+
+  const [anchorEl, setAnchorEl] = useState(null);
   const [isRepoInstalled, setIsRepoInstalled] = useState(false);
+  const [versionInstalled, setVersionInstalled] = useState('');
+  const menuIsOpen = Boolean(anchorEl);
+
   workflow['id'] = workflow['repo'];
   workflow['version'] = workflow['version'] ?? 'latest';
 
   useEffect(() => {
     API.isRepoInstalled(workflow.repo, workflow.version).then((result) => {
       if (result.ok) {
-        setIsRepoInstalled(result.data);
+        const installed_version = result.data;
+        if (installed_version) {
+          setVersionInstalled(installed_version);
+          setIsRepoInstalled(true);
+        }
       }
     });
   }, []);
@@ -151,6 +68,19 @@ function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) 
     }
   };
 
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const removeWorkflow = (workflow) => async () => {
+    alert('Remove workflow not implemented yet.');
+    handleMenuClose();
+  };
+
   return (
     <Paper
       variant="outlined"
@@ -161,8 +91,27 @@ function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) 
         fontFamily: scheme['font-family'] ?? 'inherit'
       }}
     >
-      <Typography variant="h6">{workflow.name}</Typography>
-      <Typography variant="subtitle1">{workflow.version}</Typography>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          my: 0
+        }}
+      >
+        <Typography variant="h6">{workflow.name}</Typography>
+        <Box sx={{ ml: 'auto' }}>
+          <IconButton color="inherit" onClick={handleMenuOpen}>
+            <MoreVertIcon />
+          </IconButton>
+        </Box>
+        <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
+          <MenuItem onClick={removeWorkflow(workflow)}>{t('library.remove-repository')}</MenuItem>
+        </Menu>
+      </Box>
+      <Typography variant="subtitle1">
+        {workflow.version}{' '}
+        {isRepoInstalled && workflow.version === 'latest' && `(${versionInstalled})`}
+      </Typography>
       <Box sx={{ height: 8 }} />
       <Stack direction="row" spacing={1}>
         {isRepoInstalled ? (
@@ -200,7 +149,25 @@ function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) 
 }
 
 function SectionCard({ section, scheme, source, createWorkflowInstance, logMessage }) {
+  const { t } = useTranslation();
   const theme = useTheme();
+  const [open, setOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const menuIsOpen = Boolean(anchorEl);
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const removeCatalogueSection = (section) => async () => {
+    alert('Remove section not implemented yet.');
+    handleMenuClose();
+  };
+
   return (
     <Paper
       elevation={2}
@@ -246,6 +213,16 @@ function SectionCard({ section, scheme, source, createWorkflowInstance, logMessa
             </Typography>
           )}
         </Box>
+        <Box sx={{ ml: 'auto' }}>
+          <IconButton color="inherit" onClick={handleMenuOpen}>
+            <MoreVertIcon />
+          </IconButton>
+        </Box>
+        <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
+          <MenuItem onClick={removeCatalogueSection(section)}>
+            {t('library.remove-section')}
+          </MenuItem>
+        </Menu>
       </Box>
       <Grid container spacing={2} sx={{ px: 1, pb: 1 }}>
         {(section?.workflows || []).map((workflow) => (
@@ -264,7 +241,25 @@ function SectionCard({ section, scheme, source, createWorkflowInstance, logMessa
 }
 
 function CatalogueCard({ catalogue, createWorkflowInstance, logMessage }) {
+  const { t } = useTranslation();
   const theme = useTheme();
+  const [open, setOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const menuIsOpen = Boolean(anchorEl);
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const removeCatalogue = (catalogue) => async () => {
+    alert('Remove catalogue not implemented yet.');
+    handleMenuClose();
+  };
+
   return (
     <Paper
       sx={{
@@ -290,7 +285,7 @@ function CatalogueCard({ catalogue, createWorkflowInstance, logMessage }) {
         {catalogue?.icon && (
           <Box
             component="img"
-            src={`${catalogue?.['base_dir']}/${catalogue.icon}`}
+            src={`${catalogue?.['base_dir']}/${catalogue.icon}`} // `` syntax highlighting hack
             sx={{
               m: 0.5,
               maxHeight: 80
@@ -306,6 +301,14 @@ function CatalogueCard({ catalogue, createWorkflowInstance, logMessage }) {
             <Typography variant="subtitle1">{catalogue.description}</Typography>
           )}
         </Box>
+        <Box sx={{ ml: 'auto' }}>
+          <IconButton color="inherit" onClick={handleMenuOpen}>
+            <MoreVertIcon />
+          </IconButton>
+        </Box>
+        <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
+          <MenuItem onClick={removeCatalogue(catalogue)}>{t('library.remove-catalogue')}</MenuItem>
+        </Menu>
       </Box>
       <Stack spacing={1}>
         {(catalogue?.sections || []).map((section) => (

@@ -21,12 +21,16 @@
     "clone-error": "Error cloning repository",
     "actions": "Actions",
     "add-catalogue": "Add Catalogue",
+    "remove-catalogue": "Remove Catalogue",
+    "add-section": "Add Section",
+    "remove-section": "Remove Section",
+    "add-repository": "Add Workflow",
+    "remove-repository": "Remove Workflow",
     "add-catalogue-dialog": {
       "title": "Add Catalogue",
       "description": "Enter the Github organisation, or repository to add:",
       "repository-url": "Repository URL"
     },
-    "add-repository": "Add Workflow",
     "add-workflow-dialog": {
       "title": "Add Workflow",
       "description": "Enter the Github repository to add:",
