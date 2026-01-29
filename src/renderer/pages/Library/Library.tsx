@@ -163,6 +163,11 @@ function SectionCard({ section, scheme, source, createWorkflowInstance, logMessa
     setAnchorEl(null);
   };
 
+  const installAllWorkflows = async () => {
+    alert('Install all workflows not implemented yet.');
+    handleMenuClose();
+  };
+
   const removeCatalogueSection = (section) => async () => {
     alert('Remove section not implemented yet.');
     handleMenuClose();
@@ -219,6 +224,7 @@ function SectionCard({ section, scheme, source, createWorkflowInstance, logMessa
           </IconButton>
         </Box>
         <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
+          <MenuItem onClick={installAllWorkflows}>{t('library.install-all-workflows')}</MenuItem>
           <MenuItem onClick={removeCatalogueSection(section)}>
             {t('library.remove-section')}
           </MenuItem>
@@ -253,6 +259,11 @@ function CatalogueCard({ catalogue, createWorkflowInstance, logMessage }) {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const installAllWorkflows = async () => {
+    alert('Install all workflows not implemented yet.');
+    handleMenuClose();
   };
 
   const removeCatalogue = (catalogue) => async () => {
@@ -307,6 +318,7 @@ function CatalogueCard({ catalogue, createWorkflowInstance, logMessage }) {
           </IconButton>
         </Box>
         <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
+          <MenuItem onClick={installAllWorkflows}>{t('library.install-all-workflows')}</MenuItem>
           <MenuItem onClick={removeCatalogue(catalogue)}>{t('library.remove-catalogue')}</MenuItem>
         </Menu>
       </Box>
@@ -328,6 +340,7 @@ function CatalogueCard({ catalogue, createWorkflowInstance, logMessage }) {
 export default function LibraryPage({
   createWorkflowInstance,
   permitAddCatalogues,
+  permitCatalogueModifications,
   permitAddRepos,
   logMessage
 }) {

@@ -32,43 +32,16 @@ import SettingsPage from './Settings/Settings';
 import { SettingsKey } from '../../types/settings.js';
 import { API } from '../services/api.js';
 
-const defaultRepoUrl = 'jsbrittain/workflow-runner-testworkflow';
-const defaultImageName = 'testworkflow';
-
 type navbar_page = 'library' | 'instances' | 'settings';
 type severityLevels = 'info' | 'success' | 'warning' | 'error';
-
-// Quick function to predict target directory based on repo URL and base collections path
-// Replace this with a call to the backend
-const computeTargetDir = (repoUrl, basePath) => {
-  try {
-    if (repoUrl.includes('://')) {
-      const url = new URL(repoUrl);
-      const [owner, repo] = url.pathname
-        .replace(/^\//, '')
-        .replace(/\.git$/, '')
-        .split('/');
-      return `${basePath}/workflows/${owner}/${repo}`;
-    } else if (repoUrl.includes('/')) {
-      const [owner, repo] = repoUrl.replace(/\.git$/, '').split('/');
-      return `${basePath}/workflows/${owner}/${repo}`;
-    }
-  } catch {
-    return '';
-  }
-};
 
 export default function MainPage({ darkMode, setDarkMode }) {
   const { t } = useTranslation();
 
-  const [repoUrl, setRepoUrl] = useState(defaultRepoUrl);
   const [collectionsPath, setCollectionsPath] = useState('');
-  const [permitAddCatalogues, setPermitAddCatalogues] = useState(false);
-  const [permitAddRepos, setPermitAddRepos] = useState(false);
-  const [targetDir, setTargetDir] = useState('');
-  const [folderPath, setFolderPath] = useState('');
-  const [imageName, setImageName] = useState(defaultImageName);
-  const [output, setOutput] = useState('');
+  const [permitAddCatalogues, setPermitAddCatalogues] = useState(true);
+  const [permitCatalogueModifications, setPermitCatalogueModifications] = useState(true);
+  const [permitAddRepos, setPermitAddRepos] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [view, setView] = useState<navbar_page>('library');
   const [instancesList, setInstancesList] = useState([]);
@@ -94,6 +67,9 @@ export default function MainPage({ darkMode, setDarkMode }) {
       API.settingsGet(SettingsKey.PermitAddCatalogues).then((result) => {
         setPermitAddCatalogues(result);
       });
+      API.settingsGet(SettingsKey.PermitCatalogueModifications).then((result) => {
+        setPermitCatalogueModifications(result);
+      });
       API.settingsGet(SettingsKey.PermitAddRepos).then((result) => {
         setPermitAddRepos(result);
       });
@@ -102,35 +78,6 @@ export default function MainPage({ darkMode, setDarkMode }) {
       refreshInstancesList();
     })();
   }, []);
-
-  useEffect(() => {
-    const predictedPath = computeTargetDir(repoUrl, collectionsPath);
-    setTargetDir(predictedPath);
-  }, [repoUrl, collectionsPath]);
-
-  const handlePathChange = (e) => {
-    const value = e.target.value;
-    setCollectionsPath(value);
-    API.setCollectionsPath(value);
-  };
-
-  const handleList = async () => {
-    const containers = await API.listContainers();
-    setOutput(JSON.stringify(containers, null, 2));
-  };
-
-  const generateUniqueName = (baseName, queue) => {
-    let newName = '';
-    const existingNames = new Set(queue.map((item) => item.name));
-    do {
-      newName = uniqueNamesGenerator({
-        dictionaries: [adjectives, animals],
-        separator: '-',
-        length: 2
-      });
-    } while (existingNames.has(newName));
-    return newName;
-  };
 
   const createWorkflowInstance = async (repo) => {
     const workflow_id = repo.id;
@@ -236,6 +183,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
               <LibraryPage
                 createWorkflowInstance={createWorkflowInstance}
                 permitAddCatalogues={permitAddCatalogues}
+                permitCatalogueModifications={permitCatalogueModifications}
                 permitAddRepos={permitAddRepos}
                 logMessage={logMessage}
               />
@@ -255,6 +203,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 setCollectionsPath={setCollectionsPath}
                 permitAddCatalogues={permitAddCatalogues}
                 setPermitAddCatalogues={setPermitAddCatalogues}
+                permitCatalogueModifications={permitCatalogueModifications}
+                setPermitCatalogueModifications={setPermitCatalogueModifications}
                 permitAddRepos={permitAddRepos}
                 setPermitAddRepos={setPermitAddRepos}
                 logMessage={logMessage}

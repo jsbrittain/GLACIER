@@ -26,6 +26,7 @@
     "remove-section": "Supprimer la section",
     "add-repository": "Ajouter un dépôt",
     "remove-repository": "Supprimer le dépôt",
+    "install-all-workflows": "Installer tous les flux de travail",
     "add-catalogue-dialog": {
       "title": "Ajouter un catalogue",
       "description": "Entrez l'URL du catalogue à ajouter:",
@@ -113,6 +114,7 @@
     "dark-mode": "Mode sombre",
     "collections-path": "Chemin de la bibliothèque",
     "permit-add-catalogues": "Autoriser l'ajout de catalogues",
+    "permit-catalogue-modifications": "Autoriser les modifications de catalogues",
     "permit-add-repos": "Autoriser l'ajout de dépôts",
     "language-select": "Langue",
     "visual-options": "Visuelles",

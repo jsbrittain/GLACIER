@@ -27,6 +27,8 @@ export default function SettingsPage({
   setCollectionsPath,
   permitAddCatalogues,
   setPermitAddCatalogues,
+  permitCatalogueModifications,
+  setPermitCatalogueModifications,
   permitAddRepos,
   setPermitAddRepos,
   logMessage
@@ -67,6 +69,11 @@ export default function SettingsPage({
     API.settingsSet(SettingsKey.PermitAddCatalogues, value);
   };
 
+  const handlePermitCatalogueModifications = (value) => {
+    setPermitCatalogueModifications(value);
+    API.settingsSet(SettingsKey.PermitCatalogueModifications, value);
+  };
+
   const handlePermitAddRepos = (value) => {
     setPermitAddRepos(value);
     API.settingsSet(SettingsKey.PermitAddRepos, value);
@@ -88,6 +95,9 @@ export default function SettingsPage({
     });
     API.settingsGet(SettingsKey.PermitAddCatalogues).then((value) => {
       setPermitAddCatalogues(value);
+    });
+    API.settingsGet(SettingsKey.PermitCatalogueModifications).then((value) => {
+      setPermitCatalogueModifications(value);
     });
     API.settingsGet(SettingsKey.PermitAddRepos).then((value) => {
       setPermitAddRepos(value);
@@ -165,6 +175,15 @@ export default function SettingsPage({
             />
           }
           label={t('settings.permit-add-catalogues')}
+        />
+        <FormControlLabel
+          control={
+            <Switch
+              checked={permitCatalogueModifications}
+              onChange={() => handlePermitCatalogueModifications(!permitCatalogueModifications)}
+            />
+          }
+          label={t('settings.permit-catalogue-modifications')}
         />
         <FormControlLabel
           control={

@@ -26,6 +26,7 @@
     "remove-section": "Remove Section",
     "add-repository": "Add Workflow",
     "remove-repository": "Remove Workflow",
+    "install-all-workflows": "Install All Workflows",
     "add-catalogue-dialog": {
       "title": "Add Catalogue",
       "description": "Enter the Github organisation, or repository to add:",
@@ -113,6 +114,7 @@
     "dark-mode": "Dark Mode",
     "collections-path": "Library path",
     "permit-add-catalogues": "Allow adding catalogues",
+    "permit-catalogue-modifications": "Allow modifying catalogues",
     "permit-add-repos": "Allow adding repositories",
     "language-select": "Language",
     "visual-options": "Visual",
