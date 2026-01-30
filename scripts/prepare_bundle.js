@@ -21,7 +21,8 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const JAVA_VERSION = process.env.JAVA_VERSION || '25';
+const bundle_full_jre = false;
+const JAVA_VERSION = process.env.JAVA_VERSION || '21';
 const NXF_URL =
   process.env.NXF_URL || 'https://www.nextflow.io/releases/v25.10.2/nextflow-25.10.2-one.jar';
 
@@ -81,6 +82,34 @@ function downloadFile(url, destPath) {
   });
 }
 
+function detectJavaHome(javaCmd = 'java') {
+  try {
+    // java -XshowSettings:properties prints "    java.home = /path"
+    const out = runOutput(`${javaCmd} -XshowSettings:properties -version 2>&1`);
+    const m = out.match(/^\s*java\.home = (.+)$/m);
+    if (m && m[1]) return m[1].trim();
+  } catch (e) {
+    // fallback: try `which java` -> resolve path -> go up two directories
+    try {
+      const whichJava = runOutput('which java').trim();
+      if (whichJava) {
+        // On many systems 'which java' returns the wrapper; try readlink -f
+        try {
+          const resolved = runOutput(`readlink -f ${whichJava}`).trim();
+          if (resolved) {
+            // java binary lives in .../bin/java -> java.home is parent dir
+            return path.dirname(path.dirname(resolved));
+          }
+        } catch (e2) {
+          // fallback to dirname(dirname(whichJava))
+          return path.dirname(path.dirname(whichJava));
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
 async function main() {
   try {
     // SCRIPT_DIR logic: assume script is at scripts/prepare_bundle.js
@@ -118,75 +147,160 @@ async function main() {
     // Prepare Java runtime
     const jreDir = path.join(bundleDir, 'jre');
     if (!fileExists(jreDir)) {
-      log('Preparing Java runtime...');
+      if (bundle_full_jre) {
+        // --- Copy full JRE ---
 
-      // Ensure jdeps exists
-      try {
-        execSync('jdeps --version', { stdio: 'ignore' });
-      } catch (e) {
-        throw new Error(
-          'jdeps not found in PATH. Please install a JDK that includes jdeps and jlink.'
-        );
+        log('Bundling full system JRE into the app...');
+
+        // allow an override for reproducible packaging
+        const JAVA_CMD = process.env.SYSTEM_JAVA || 'java';
+        const javaHome = detectJavaHome(JAVA_CMD);
+        if (!javaHome) {
+          throw new Error(
+            'Could not detect system JAVA_HOME. Set SYSTEM_JAVA env or ensure `java` is on PATH.'
+          );
+        }
+        log('Detected java.home:', javaHome);
+
+        // Copy the full JRE/JDK directory into bundle/jre
+        // Prefer Node's fs.cpSync (Node 16+). Fallback to system 'cp -a' or rsync.
+        try {
+          // Ensure destination parent exists
+          fs.mkdirSync(jreDir, { recursive: true });
+          try {
+            // Node >= 16: use fs.cpSync for recursive copy
+            if (fs.cpSync) {
+              log('Copying JRE using fs.cpSync (fast)...');
+              fs.cpSync(javaHome, jreDir, { recursive: true });
+            } else {
+              throw new Error('fs.cpSync not available');
+            }
+          } catch (copyErr) {
+            log('fs.cpSync failed or not available, falling back to system copy (cp -a)...');
+            // Use POSIX cp -a (works on macOS/Linux)
+            run(`cp -a "${javaHome}" "${jreDir}"`);
+          }
+        } catch (copyError) {
+          err(
+            'Failed to copy JRE into bundle:',
+            copyError && copyError.message ? copyError.message : copyError
+          );
+          throw copyError;
+        }
+
+        // Normalize: in some JDKs javaHome may be the JDK root (e.g. .../Contents/Home).
+        // Ensure bin/java exists.
+        let javaBin = path.join(jreDir, 'bin', 'java');
+        if (!fileExists(javaBin)) {
+          // If the copied tree contains 'jre' inside, try that
+          const alt = path.join(jreDir, 'jre', 'bin', 'java');
+          if (fileExists(alt)) {
+            javaBin = alt;
+          } else {
+            // sometimes JDK home has 'bin/java' but copy created nested structure; search
+            const found = runOutput(
+              `find "${jreDir}" -type f -name java -print -quit 2>/dev/null`
+            ).trim();
+            if (found) javaBin = found;
+          }
+        }
+
+        if (!fileExists(javaBin)) {
+          throw new Error(`Expected java executable not found in copied JRE. Searched: ${javaBin}`);
+        }
+
+        // Make sure java binary is executable
+        try {
+          fs.chmodSync(javaBin, 0o755);
+        } catch (e) {
+          // ignore if chmod fails due to permissions on packaging system
+        }
+
+        log('Bundled java binary at:', javaBin);
+        log('Running smoke test with bundled JRE...');
+        run(`"${javaBin}" -jar "${nextflowJar}" info`);
+        log('Smoke test completed successfully (full JRE).');
+      } else {
+        // --- Minimal JRE ---
+
+        log('Preparing minimal Java runtime...');
+
+        // Ensure jdeps exists
+        try {
+          execSync('jdeps --version', { stdio: 'ignore' });
+        } catch (e) {
+          throw new Error(
+            'jdeps not found in PATH. Please install a JDK that includes jdeps and jlink.'
+          );
+        }
+
+        log('Determining Java dependencies (jdeps)...');
+
+        // Run jdeps similar to: jdeps --multi-release $JAVA_VERSION -summary nextflow.jar | awk '/->/ {print $NF}' | grep -E '^(java\.|jdk\.)' | sort -u | paste -sd, -
+        const jdepsCmd = `jdeps --multi-release ${JAVA_VERSION} -summary "${nextflowJar}"`;
+        const jdepsOut = runOutput(jdepsCmd);
+        // Parse lines containing '->' and extract right-most token, then filter java./jdk.
+        const modules = jdepsOut
+          .split(/\r?\n/)
+          .map((l) => l.trim())
+          .filter((l) => l.includes('->'))
+          .map((l) => {
+            // take last token
+            const parts = l.split(/\s+/);
+            return parts[parts.length - 1];
+          })
+          .filter((m) => /^java\.|^jdk\./.test(m))
+          .filter(Boolean);
+
+        modules.push('java.base');
+        modules.push('java.net.http');
+        modules.push('jdk.crypto.ec');
+        modules.push('jdk.crypto.cryptoki');
+        modules.push('java.security.jgss');
+        modules.push('java.naming');
+        modules.push('java.xml');
+
+        const uniqueModules = Array.from(new Set(modules)).sort();
+        if (uniqueModules.length === 0) {
+          log('Warning: no java/jdk modules found by jdeps. Falling back to "java.base".');
+        }
+        const MODULES = uniqueModules.length > 0 ? uniqueModules.join(',') : 'java.base';
+        log('Required modules:', MODULES);
+
+        // Ensure jlink exists
+        try {
+          execSync('jlink --version', { stdio: 'ignore' });
+        } catch (e) {
+          throw new Error('jlink not found in PATH. Please install a JDK that includes jlink.');
+        }
+
+        log('Creating minimal Java runtime (jlink)...');
+        // Build jlink command: jlink --add-modules "$MODULES" --strip-debug --compress zip-6 --no-header-files --no-man-pages --output ./jre
+        const jlinkCmd = [
+          'jlink',
+          `--add-modules "${MODULES}"`,
+          '--strip-debug',
+          '--compress',
+          'zip-6',
+          '--no-header-files',
+          '--no-man-pages',
+          `--output "${jreDir}"`
+        ].join(' ');
+
+        run(jlinkCmd);
+
+        log('Minimal Java runtime created.');
+
+        // Smoke test: run jre/bin/java -jar nextflow.jar info
+        const javaBin = path.join(jreDir, 'bin', 'java');
+        if (!fileExists(javaBin)) {
+          throw new Error(`Expected java executable not found at ${javaBin}`);
+        }
+
+        log('Running smoke test...');
+        run(`"${javaBin}" -jar "${nextflowJar}" info`);
+        log('Smoke test completed successfully.');
       }
-
-      log('Determining Java dependencies (jdeps)...');
-
-      // Run jdeps similar to: jdeps --multi-release $JAVA_VERSION -summary nextflow.jar | awk '/->/ {print $NF}' | grep -E '^(java\.|jdk\.)' | sort -u | paste -sd, -
-      const jdepsCmd = `jdeps --multi-release ${JAVA_VERSION} -summary "${nextflowJar}"`;
-      const jdepsOut = runOutput(jdepsCmd);
-      // Parse lines containing '->' and extract right-most token, then filter java./jdk.
-      const modules = jdepsOut
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter((l) => l.includes('->'))
-        .map((l) => {
-          // take last token
-          const parts = l.split(/\s+/);
-          return parts[parts.length - 1];
-        })
-        .filter((m) => /^java\.|^jdk\./.test(m))
-        .filter(Boolean);
-
-      const uniqueModules = Array.from(new Set(modules)).sort();
-      if (uniqueModules.length === 0) {
-        log('Warning: no java/jdk modules found by jdeps. Falling back to "java.base".');
-      }
-      const MODULES = uniqueModules.length > 0 ? uniqueModules.join(',') : 'java.base';
-      log('Required modules:', MODULES);
-
-      // Ensure jlink exists
-      try {
-        execSync('jlink --version', { stdio: 'ignore' });
-      } catch (e) {
-        throw new Error('jlink not found in PATH. Please install a JDK that includes jlink.');
-      }
-
-      log('Creating minimal Java runtime (jlink)...');
-      // Build jlink command: jlink --add-modules "$MODULES" --strip-debug --compress zip-6 --no-header-files --no-man-pages --output ./jre
-      const jlinkCmd = [
-        'jlink',
-        `--add-modules "${MODULES}"`,
-        '--strip-debug',
-        '--compress',
-        'zip-6',
-        '--no-header-files',
-        '--no-man-pages',
-        `--output "${jreDir}"`
-      ].join(' ');
-
-      run(jlinkCmd);
-
-      log('Minimal Java runtime created.');
-
-      // Smoke test: run jre/bin/java -jar nextflow.jar info
-      const javaBin = path.join(jreDir, 'bin', 'java');
-      if (!fileExists(javaBin)) {
-        throw new Error(`Expected java executable not found at ${javaBin}`);
-      }
-
-      log('Running smoke test...');
-      run(`"${javaBin}" -jar "${nextflowJar}" info`);
-      log('Smoke test completed successfully.');
     } else {
       log('Java runtime already exists. Skipping preparation.');
     }
