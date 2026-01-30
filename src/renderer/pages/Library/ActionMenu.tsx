@@ -63,7 +63,7 @@ export default function ActionMenu({ setCatalogues, permitAddCatalogues, permitA
     >
       {display && (
         <>
-          <Button variant="contained" onClick={handleMenuOpen}>
+          <Button id="library-actions-menu-button" variant="contained" onClick={handleMenuOpen}>
             {t('library.actions')}
           </Button>
           <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
@@ -77,6 +77,7 @@ export default function ActionMenu({ setCatalogues, permitAddCatalogues, permitA
             )}
             {permitAddRepos && (
               <MenuItem
+                id="library-actions-menu-add-repo"
                 onClick={() => setShowQueryRepositoryDialog(true)}
                 disabled={!permitAddRepos}
               >

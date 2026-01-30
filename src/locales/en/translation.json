@@ -17,7 +17,7 @@
     "sync": "Sync",
     "repo-sync-success": "Repository synced successfully",
     "repo-sync-failed": "Repository sync failed",
-    "no-repos-installed": "No repositories installed. Add a repository from the Hub to get started.",
+    "no-repos-installed": "No repositories installed. Add a repository or catalogue to get started.",
     "clone-error": "Error cloning repository",
     "actions": "Actions",
     "add-catalogue": "Add Catalogue",

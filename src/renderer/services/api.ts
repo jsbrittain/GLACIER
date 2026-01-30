@@ -25,7 +25,6 @@ const electronAPI = isElectron
       getWorkLog: (instance, workID, logType) =>
         window.electronAPI.getWorkLog(instance, workID, logType),
       getAvailableProfiles: (instance) => window.electronAPI.getAvailableProfiles(instance),
-
       cloneRepo: (repoUrl, ver) => window.electronAPI.cloneRepo(repoUrl, ver),
       isRepoInstalled: (repoUrl, ver) => window.electronAPI.isRepoInstalled(repoUrl, ver),
       syncRepo: (repo) => window.electronAPI.syncRepo(repo),
@@ -62,7 +61,8 @@ const httpDispatch = async (endpoint, method = 'GET', body = null) => {
   }
   const res = await fetch(endpoint, options);
   if (!res.ok) throw new Error(`HTTP error at ${endpoint}, status: ${res.status}`);
-  return res.json();
+  const js = res.json();
+  return js;
 };
 
 const httpAPI = {

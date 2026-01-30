@@ -38,7 +38,7 @@ async function call(fcn, ...args) {
 }
 
 app.post('/api/create-workflow-instance', async (req, res) =>
-  post_response(res, collection.createWorkflowInstance(req.body.workflow_id))
+  post_response(res, collection.createWorkflowInstance(req.body.workflow_id, req.body.version))
 );
 
 app.post('/api/run-workflow', async (req, res) =>
@@ -97,11 +97,14 @@ app.post('/api/get-available-profiles', async (req, res) =>
 );
 
 app.post('/api/clone-repo', async (req, res) =>
-  post_response(res, collection.cloneRepo(req.body.repoUrl, req.body.ver))
+  post_response(res, call(collection.cloneRepo.bind(collection), req.body.repoUrl, req.body.ver))
 );
 
 app.post('/api/is-repo-installed', async (req, res) =>
-  post_response(res, collection.isRepoInstalled(req.body.repoUrl, req.body.ver))
+  post_response(
+    res,
+    call(collection.isRepoInstalled.bind(collection), req.body.repoUrl, req.body.ver)
+  )
 );
 
 app.post('/api/sync-repo', async (req, res) =>
@@ -109,15 +112,23 @@ app.post('/api/sync-repo', async (req, res) =>
 );
 
 app.post('/api/add-catalogue', async (req, res) =>
-  post_response(res, collection.addCatalogue(req.body.repoUrl, req.body.ver))
+  post_response(res, call(collection.addCatalogue.bind(collection), req.body.repoUrl, req.body.ver))
 );
 
-app.post('/api/get-catalogues', async (req, res) => post_response(res, collection.getCatalogues()));
+app.post('/api/get-catalogues', async (req, res) =>
+  post_response(res, call(collection.getCatalogues.bind(collection)))
+);
 
 app.post('/api/add-user-workflow', async (req, res) =>
   post_response(
     res,
-    collection.addUserWorkflow(req.body.name, req.body.repoUrl, req.body.ver, req.body.section)
+    call(
+      collection.addUserWorkflow.bind(collection),
+      req.body.name,
+      req.body.repoUrl,
+      req.body.ver,
+      req.body.section
+    )
   )
 );
 
@@ -169,10 +180,12 @@ app.post('/api/get-workflow-information', async (req, res) =>
   post_response(res, collection.getWorkflowInformation(req.body.instance))
 );
 
-app.post('/api/settings-get', async (req, res) => post_response(res, collection.settingsGet()));
+app.post('/api/settings-get', async (req, res) =>
+  post_response(res, collection.settingsGet(req.body.key))
+);
 
 app.post('/api/settings-set', async (req, res) =>
-  post_response(res, collection.settingsSet(req.body.value))
+  post_response(res, collection.settingsSet(req.body.key, req.body.value))
 );
 
 app.post('/api/open-web-page', async (req, res) =>

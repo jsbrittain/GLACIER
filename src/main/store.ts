@@ -5,6 +5,7 @@ export interface StoreSchema {
   collectionsPath: string;
   darkMode: boolean;
   permitAddCatalogues: boolean;
+  permitCatalogueModifications: boolean;
   permitAddRepos: boolean;
   disableSchemaValidation: boolean;
 }
@@ -20,6 +21,10 @@ const store = new Store<StoreSchema>({
       default: false
     },
     permitAddCatalogues: {
+      type: 'boolean',
+      default: true
+    },
+    permitCatalogueModifications: {
       type: 'boolean',
       default: true
     },

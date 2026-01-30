@@ -17,7 +17,7 @@
     "sync": "Synchroniser",
     "repo-sync-success": "Dépôt synchronisé avec succès",
     "repo-sync-failed": "La synchronisation du dépôt a échoué",
-    "no-repos-installed": "Aucun dépôt installé. Veuillez ajouter un dépôt depuis le Hub.",
+    "no-repos-installed": "Aucun dépôt n’est installé. Ajoutez un dépôt ou un catalogue pour commencer.",
     "clone-error": "Erreur lors du clonage du dépôt",
     "actions": "Actions",
     "add-catalogue": "Ajouter un catalogue",

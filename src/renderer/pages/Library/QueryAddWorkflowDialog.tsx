@@ -36,6 +36,7 @@ export default function QueryAddWorkflowDialog({ open, action, onClose }) {
 
         <FormControl sx={{ mt: 2, width: '100%' }}>
           <TextField
+            id="query-add-workflow-repo-url"
             label={t('library.add-workflow-dialog.repository-url')}
             value={repo}
             onChange={(e) => setRepo(e.target.value)}
@@ -44,6 +45,7 @@ export default function QueryAddWorkflowDialog({ open, action, onClose }) {
 
         <FormControl sx={{ mt: 2, width: '100%' }}>
           <TextField
+            id="query-add-workflow-repo-version"
             label={t('library.add-workflow-dialog.version')}
             value={version}
             onChange={(e) => setVersion(e.target.value)}
@@ -69,7 +71,11 @@ export default function QueryAddWorkflowDialog({ open, action, onClose }) {
 
       <DialogActions>
         <Button onClick={onClose}>{t('common.cancel')}</Button>
-        <Button variant="contained" onClick={handleLaunch}>
+        <Button
+          id="query-add-workflow-dialog-okay-button"
+          variant="contained"
+          onClick={handleLaunch}
+        >
           {t('common.okay')}
         </Button>
       </DialogActions>

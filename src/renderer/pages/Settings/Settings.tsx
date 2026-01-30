@@ -163,6 +163,7 @@ export default function SettingsPage({
         <FormControlLabel
           control={
             <Switch
+              id="settings-permit-add-catalogues"
               checked={permitAddCatalogues}
               onChange={() => handlePermitAddCatalogues(!permitAddCatalogues)}
             />
@@ -172,6 +173,7 @@ export default function SettingsPage({
         <FormControlLabel
           control={
             <Switch
+              id="settings-permit-catalogue-modifications"
               checked={permitCatalogueModifications}
               onChange={() => handlePermitCatalogueModifications(!permitCatalogueModifications)}
             />
@@ -181,6 +183,7 @@ export default function SettingsPage({
         <FormControlLabel
           control={
             <Switch
+              id="settings-permit-add-repos"
               checked={permitAddRepos}
               onChange={() => handlePermitAddRepos(!permitAddRepos)}
             />

@@ -12,7 +12,7 @@ import unusedImports from 'eslint-plugin-unused-imports';
 export default [
   // Global ignore block
   {
-    ignores: ['node_modules', 'public', 'coverage']
+    ignores: ['node_modules', 'public', 'coverage', 'dist']
   },
 
   // Vite config (ESM)

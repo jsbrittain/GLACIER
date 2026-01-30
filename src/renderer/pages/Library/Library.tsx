@@ -29,7 +29,14 @@ const resolveHttpUrl = (path, source) => {
   return path;
 };
 
-function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) {
+function WorkflowCard({
+  workflow,
+  scheme,
+  createWorkflowInstance,
+  refresh,
+  setRefresh,
+  logMessage
+}) {
   const { t } = useTranslation();
 
   const [anchorEl, setAnchorEl] = useState(null);
@@ -40,7 +47,7 @@ function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) 
   workflow['id'] = workflow['repo'];
   workflow['version'] = workflow['version'] ?? 'latest';
 
-  useEffect(() => {
+  const checkRepoInstalled = () =>
     API.isRepoInstalled(workflow.repo, workflow.version).then((result) => {
       if (result.ok) {
         const installed_version = result.data;
@@ -50,15 +57,23 @@ function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) 
         }
       }
     });
-  }, []);
 
-  const cloneRepo = async (repoUrl: string, version: string) => {
-    const result = await API.cloneRepo(repoUrl, version);
+  useEffect(() => {
+    checkRepoInstalled();
+  }, [refresh]);
+
+  const cloneRepo = async () => {
+    const result = await API.cloneRepo(workflow.repo, workflow.version);
     if (result.ok) {
+      setRefresh(!refresh);
       logMessage(`Cloned ${result.data.name} to ${result.data.path}`, 'success');
     } else {
       logMessage(t('library.clone-error'), 'error');
     }
+  };
+
+  const runWorkflow = () => {
+    createWorkflowInstance(workflow);
   };
 
   const handleMenuOpen = (event) => {
@@ -109,7 +124,7 @@ function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) 
       <Stack direction="row" spacing={1}>
         {isRepoInstalled ? (
           <Button
-            id={`collections-run-${workflow.name}`}
+            id={`run-${workflow.name}`}
             size="small"
             variant="contained"
             sx={{
@@ -117,13 +132,13 @@ function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) 
               background: scheme['title-background'] ?? undefined,
               fontFamily: scheme['font-family'] ?? 'inherit'
             }}
-            onClick={() => createWorkflowInstance(workflow)}
+            onClick={() => runWorkflow()}
           >
             {t('library.run')}
           </Button>
         ) : (
           <Button
-            id={`collections-run-${workflow.name}`}
+            id={`install-${workflow.name}`}
             size="small"
             variant="contained"
             sx={{
@@ -131,7 +146,7 @@ function WorkflowCard({ workflow, scheme, createWorkflowInstance, logMessage }) 
               background: scheme['title-background'] ?? undefined,
               fontFamily: scheme['font-family'] ?? 'inherit'
             }}
-            onClick={() => cloneRepo(workflow.repo, workflow.version)}
+            onClick={() => cloneRepo()}
           >
             {t('library.install')}
           </Button>
@@ -147,6 +162,8 @@ function SectionCard({
   source,
   createWorkflowInstance,
   permitCatalogueModifications,
+  refresh,
+  setRefresh,
   logMessage
 }) {
   const { t } = useTranslation();
@@ -239,6 +256,8 @@ function SectionCard({
               workflow={workflow}
               scheme={scheme}
               createWorkflowInstance={createWorkflowInstance}
+              refresh={refresh}
+              setRefresh={setRefresh}
               logMessage={logMessage}
             />
           </Grid>
@@ -252,6 +271,8 @@ function CatalogueCard({
   catalogue,
   createWorkflowInstance,
   permitCatalogueModifications,
+  refresh,
+  setRefresh,
   logMessage
 }) {
   const { t } = useTranslation();
@@ -342,6 +363,8 @@ function CatalogueCard({
             source={catalogue?.['base_dir']}
             createWorkflowInstance={createWorkflowInstance}
             permitCatalogueModifications={permitCatalogueModifications}
+            refresh={refresh}
+            setRefresh={setRefresh}
             logMessage={logMessage}
           />
         ))}
@@ -359,6 +382,7 @@ export default function LibraryPage({
 }) {
   const { t } = useTranslation();
   const [catalogues, setCatalogues] = useState([]);
+  const [refresh, setRefresh] = useState(false);
 
   const getCatalogues = async () => {
     API.getCatalogues().then((result) => {
@@ -385,6 +409,8 @@ export default function LibraryPage({
             catalogue={catalogue}
             createWorkflowInstance={createWorkflowInstance}
             permitCatalogueModifications={permitCatalogueModifications}
+            refresh={refresh}
+            setRefresh={setRefresh}
             logMessage={logMessage}
           />
         ))}

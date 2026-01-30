@@ -1,4 +1,5 @@
 bundle
+tests/test-data/instances*
 
 # Logs
 logs
