@@ -115,6 +115,28 @@ app.post('/api/add-catalogue', async (req, res) =>
   post_response(res, call(collection.addCatalogue.bind(collection), req.body.repoUrl, req.body.ver))
 );
 
+app.post('/api/remove-catalogue', async (req, res) =>
+  post_response(res, collection.removeCatalogue(req.body.catalogue_name))
+);
+
+app.post('/api/remove-catalogue-section', async (req, res) =>
+  post_response(
+    res,
+    collection.removeCatalogueSection(req.body.catalogue_name, req.body.section_name)
+  )
+);
+
+app.post('/api/remove-catalogue-workflow', async (req, res) =>
+  post_response(
+    res,
+    collection.removeCatalogueWorkflow(
+      req.body.catalogue_name,
+      req.body.section_name,
+      req.body.workflow_name
+    )
+  )
+);
+
 app.post('/api/get-catalogues', async (req, res) =>
   post_response(res, call(collection.getCatalogues.bind(collection)))
 );

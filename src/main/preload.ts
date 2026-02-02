@@ -35,6 +35,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getCollectionRepos: () => ipcRenderer.invoke('get-collection-repos'),
   addCatalogue: (repoUrl: string, version: string) =>
     ipcRenderer.invoke('add-catalogue', repoUrl, version),
+  removeCatalogue: (catalogue_name: string) =>
+    ipcRenderer.invoke('remove-catalogue', catalogue_name),
+  removeCatalogueSection: (catalogue_name: string, section_name: string) =>
+    ipcRenderer.invoke('remove-catalogue-section', catalogue_name, section_name),
+  removeCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string) =>
+    ipcRenderer.invoke('remove-catalogue-workflow', catalogue_name, section_name, workflow_name),
   getCatalogues: () => ipcRenderer.invoke('get-catalogues'),
   addUserWorkflow: (name: string, repoUrl: string, version: string, section: string) =>
     ipcRenderer.invoke('add-user-workflow', name, repoUrl, version, section),

@@ -989,6 +989,70 @@ export class Collection {
     this.parseCatalogues(); // update catalogue
   }
 
+  async removeCatalogue(catalogue_name: string) {
+    // Remove catalogue from catalogues path
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    const owner = cat.source.split('/')[0];
+    const repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, owner, repo);
+    fs.rmSync(cat_path, { recursive: true, force: true });
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
+  async removeCatalogueSection(catalogue_name: string, section_name: string) {
+    // Remove section from catalogue
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    const section_index = cat.sections.findIndex((s) => s.name === section_name);
+    if (section_index === -1) {
+      throw new Error(`Section ${section_name} not found in catalogue ${catalogue_name}.`);
+    }
+    cat.sections.splice(section_index, 1);
+    // Save to catalogues path
+    const owner = cat.source.split('/')[0];
+    const repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, owner, repo, 'catalogue.json');
+    fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
+  async removeCatalogueWorkflow(
+    catalogue_name: string,
+    section_name: string,
+    workflow_name: string
+  ) {
+    // Remove workflow from catalogue section
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    const section = cat.sections.find((s) => s.name === section_name);
+    if (!section) {
+      throw new Error(`Section ${section_name} not found in catalogue ${catalogue_name}.`);
+    }
+    const workflow_index = section.workflows.findIndex((w) => w.name === workflow_name);
+    if (workflow_index === -1) {
+      throw new Error(
+        `Workflow ${workflow_name} not found in section ${section_name} of catalogue ${catalogue_name}.`
+      );
+    }
+    section.workflows.splice(workflow_index, 1);
+    // Save to catalogues path
+    const owner = cat.source.split('/')[0];
+    const repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, owner, repo, 'catalogue.json');
+    fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
   async addUserWorkflow(name: string, url: string, version: string, section: string) {
     if (!name) {
       name = url.split('/')[1];

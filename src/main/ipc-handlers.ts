@@ -22,6 +22,9 @@ export function registerIpcHandlers() {
     'run-workflow': collection.runWorkflow.bind(collection),
     'get-catalogues': collection.getCatalogues.bind(collection),
     'add-catalogue': collection.addCatalogue.bind(collection),
+    'remove-catalogue': collection.removeCatalogue.bind(collection),
+    'remove-catalogue-section': collection.removeCatalogueSection.bind(collection),
+    'remove-catalogue-workflow': collection.removeCatalogueWorkflow.bind(collection),
     'add-user-workflow': collection.addUserWorkflow.bind(collection),
     'clone-repo': collection.cloneRepo.bind(collection),
     'is-repo-installed': collection.isRepoInstalled.bind(collection)

@@ -31,6 +31,7 @@ const resolveHttpUrl = (path, source) => {
 
 function WorkflowCard({
   workflow,
+  deleteWorkflow,
   scheme,
   createWorkflowInstance,
   refresh,
@@ -84,8 +85,13 @@ function WorkflowCard({
     setAnchorEl(null);
   };
 
-  const removeWorkflow = () => async () => {
-    alert('Remove workflow not implemented yet.');
+  const handleDeleteWorkflow = async () => {
+    deleteWorkflow();
+    handleMenuClose();
+  };
+
+  const checkForUpdates = async () => {
+    alert('Check for updates not implemented yet.');
     handleMenuClose();
   };
 
@@ -113,7 +119,10 @@ function WorkflowCard({
           </IconButton>
         </Box>
         <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
-          <MenuItem onClick={removeWorkflow()}>{t('library.remove-repository')}</MenuItem>
+          <MenuItem onClick={handleDeleteWorkflow}>{t('library.remove-repository')}</MenuItem>
+          {workflow['version'] === 'latest' && isRepoInstalled && (
+            <MenuItem onClick={checkForUpdates}>{t('library.check-for-updates')}</MenuItem>
+          )}
         </Menu>
       </Box>
       <Typography variant="subtitle1">
@@ -132,7 +141,7 @@ function WorkflowCard({
               background: scheme['title-background'] ?? undefined,
               fontFamily: scheme['font-family'] ?? 'inherit'
             }}
-            onClick={() => runWorkflow()}
+            onClick={runWorkflow}
           >
             {t('library.run')}
           </Button>
@@ -146,7 +155,7 @@ function WorkflowCard({
               background: scheme['title-background'] ?? undefined,
               fontFamily: scheme['font-family'] ?? 'inherit'
             }}
-            onClick={() => cloneRepo()}
+            onClick={cloneRepo}
           >
             {t('library.install')}
           </Button>
@@ -158,6 +167,8 @@ function WorkflowCard({
 
 function SectionCard({
   section,
+  deleteSection,
+  deleteWorkflow,
   scheme,
   source,
   createWorkflowInstance,
@@ -183,8 +194,8 @@ function SectionCard({
     handleMenuClose();
   };
 
-  const removeCatalogueSection = () => async () => {
-    alert('Remove section not implemented yet.');
+  const handleDeleteSection = async () => {
+    deleteSection();
     handleMenuClose();
   };
 
@@ -244,7 +255,7 @@ function SectionCard({
               <MenuItem onClick={installAllWorkflows}>
                 {t('library.install-all-workflows')}
               </MenuItem>
-              <MenuItem onClick={removeCatalogueSection()}>{t('library.remove-section')}</MenuItem>
+              <MenuItem onClick={handleDeleteSection}>{t('library.remove-section')}</MenuItem>
             </Menu>
           </>
         )}
@@ -254,6 +265,7 @@ function SectionCard({
           <Grid size={3}>
             <WorkflowCard
               workflow={workflow}
+              deleteWorkflow={() => deleteWorkflow(workflow)}
               scheme={scheme}
               createWorkflowInstance={createWorkflowInstance}
               refresh={refresh}
@@ -269,6 +281,9 @@ function SectionCard({
 
 function CatalogueCard({
   catalogue,
+  deleteCatalogue,
+  deleteSection,
+  deleteWorkflow,
   createWorkflowInstance,
   permitCatalogueModifications,
   refresh,
@@ -293,8 +308,13 @@ function CatalogueCard({
     handleMenuClose();
   };
 
-  const removeCatalogue = () => async () => {
-    alert('Remove catalogue not implemented yet.');
+  const handleDeleteCatalogue = async () => {
+    deleteCatalogue();
+    handleMenuClose();
+  };
+
+  const checkForUpdates = async () => {
+    alert('Check for updates not implemented yet.');
     handleMenuClose();
   };
 
@@ -350,7 +370,8 @@ function CatalogueCard({
               <MenuItem onClick={installAllWorkflows}>
                 {t('library.install-all-workflows')}
               </MenuItem>
-              <MenuItem onClick={removeCatalogue()}>{t('library.remove-catalogue')}</MenuItem>
+              <MenuItem onClick={handleDeleteCatalogue}>{t('library.remove-catalogue')}</MenuItem>
+              <MenuItem onClick={checkForUpdates}>{t('library.check-for-updates')}</MenuItem>
             </Menu>
           </>
         )}
@@ -359,6 +380,8 @@ function CatalogueCard({
         {(catalogue?.sections || []).map((section) => (
           <SectionCard
             section={section}
+            deleteSection={() => deleteSection(section)}
+            deleteWorkflow={(workflow) => deleteWorkflow(section, workflow)}
             scheme={catalogue?.scheme || {}}
             source={catalogue?.['base_dir']}
             createWorkflowInstance={createWorkflowInstance}
@@ -396,6 +419,48 @@ export default function LibraryPage({
     getCatalogues();
   }, []);
 
+  const deleteCatalogue = async (catalogue) => {
+    if (!window.confirm(t('library.confirm-remove-catalogue', { name: catalogue.name }))) {
+      return;
+    }
+    API.removeCatalogue(catalogue.name).then((result) => {
+      if (result.ok) {
+        logMessage(t('library.catalogue-removed-success', { name: catalogue.name }), 'success');
+        getCatalogues();
+      } else {
+        logMessage(t('library.catalogue-removed-failure', { name: catalogue.name }), 'error');
+      }
+    });
+  };
+
+  const deleteSection = async (catalogue, section) => {
+    if (!window.confirm(t('library.confirm-remove-section', { name: section.name }))) {
+      return;
+    }
+    API.removeCatalogueSection(catalogue.name, section.name).then((result) => {
+      if (result.ok) {
+        logMessage(t('library.section-removed-success', { name: section.name }), 'success');
+        getCatalogues();
+      } else {
+        logMessage(t('library.section-removed-failure', { name: section.name }), 'error');
+      }
+    });
+  };
+
+  const deleteWorkflow = (catalogue, section, workflow) => {
+    if (!window.confirm(t('library.confirm-remove-workflow', { name: workflow.name }))) {
+      return;
+    }
+    API.removeCatalogueWorkflow(catalogue.name, section.name, workflow.name).then((result) => {
+      if (result.ok) {
+        logMessage(t('library.workflow-removed-success', { name: workflow.name }), 'success');
+        getCatalogues();
+      } else {
+        logMessage(t('library.workflow-removed-failure', { name: workflow.name }), 'error');
+      }
+    });
+  };
+
   return (
     <Container>
       <ActionMenu
@@ -407,6 +472,9 @@ export default function LibraryPage({
         {(catalogues || []).map((catalogue) => (
           <CatalogueCard
             catalogue={catalogue}
+            deleteCatalogue={() => deleteCatalogue(catalogue)}
+            deleteSection={(section) => deleteSection(catalogue, section)}
+            deleteWorkflow={(section, workflow) => deleteWorkflow(catalogue, section, workflow)}
             createWorkflowInstance={createWorkflowInstance}
             permitCatalogueModifications={permitCatalogueModifications}
             refresh={refresh}

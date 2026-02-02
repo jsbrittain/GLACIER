@@ -29,6 +29,11 @@ const electronAPI = isElectron
       isRepoInstalled: (repoUrl, ver) => window.electronAPI.isRepoInstalled(repoUrl, ver),
       syncRepo: (repo) => window.electronAPI.syncRepo(repo),
       addCatalogue: (repoUrl, ver) => window.electronAPI.addCatalogue(repoUrl, ver),
+      removeCatalogue: (catalogue_name) => window.electronAPI.removeCatalogue(catalogue_name),
+      removeCatalogueSection: (catalogue_name, section_name) =>
+        window.electronAPI.removeCatalogueSection(catalogue_name, section_name),
+      removeCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
+        window.electronAPI.removeCatalogueWorkflow(catalogue_name, section_name, workflow_name),
       getCatalogues: () => window.electronAPI.getCatalogues(),
       addUserWorkflow: (name, repoUrl, ver, section) =>
         window.electronAPI.addUserWorkflow(name, repoUrl, ver, section),
@@ -103,6 +108,16 @@ const httpAPI = {
   syncRepo: async (repo) => httpDispatch('/api/sync-repo', 'POST', { repo }),
   addCatalogue: async (repoUrl, ver) =>
     httpDispatch('/api/add-catalogue', 'POST', { repoUrl, ver }),
+  removeCatalogue: async (catalogue_name) =>
+    httpDispatch('/api/remove-catalogue', 'POST', { catalogue_name }),
+  removeCatalogueSection: async (catalogue_name, section_name) =>
+    httpDispatch('/api/remove-section', 'POST', { catalogue_name, section_name }),
+  removeCatalogueWorkflow: async (catalogue_name, section_name, workflow_name) =>
+    httpDispatch('/api/remove-workflow', 'POST', {
+      catalogue_name,
+      section_name,
+      workflow_name
+    }),
   getCatalogues: async () => httpDispatch('/api/get-catalogues', 'POST', {}),
   addUserWorkflow: async (name, repoUrl, ver, section) =>
     httpDispatch('/api/add-user-workflow', 'POST', { name, repoUrl, ver, section }),
