@@ -37,10 +37,16 @@
     "confirm-remove-workflow": "Are you sure you want to remove this workflow from the section?",
     "workflow-removed-success": "Workflow removed successfully",
     "workflow-removed-failure": "Failed to remove workflow",
+    "workflow-updated-success": "Workflow updated successfully",
+    "workflow-updated-failure": "Failed to update workflow",
+    "installing-workflows": "Installing workflows...",
+    "install-workflows-completed-with-errors": "Workflow installation completed with errors.",
     "add-catalogue-dialog": {
       "title": "Add Catalogue",
       "description": "Enter the Github organisation, or repository to add:",
-      "repository-url": "Repository URL"
+      "repository-url": "Repository URL",
+      "error-unable-to-add": "Unable to add catalogue. Please check the URL and try again.",
+      "error-repo-required": "Repository URL is required."
     },
     "add-workflow-dialog": {
       "title": "Add Workflow",
@@ -48,7 +54,10 @@
       "repository-url": "Repository URL",
       "version": "Version (branch, tag, or commit)",
       "section": "Section",
-      "name": "Workflow name (optional)"
+      "name": "Workflow name (optional)",
+      "error-unable-to-add": "Unable to add workflow. Please check the URL and try again.",
+      "error-repo-required": "Repository URL is required.",
+      "error-section-required": "Section is required."
     }
   },
   "instances": {

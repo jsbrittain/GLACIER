@@ -12,8 +12,10 @@ import {
   Menu,
   MenuItem
 } from '@mui/material';
+import { LoadingButton } from '@mui/lab';
 import { useTranslation } from 'react-i18next';
 import ActionMenu from './ActionMenu';
+import ProgressDialog from './ProgressDialog';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { API } from '../../services/api.js';
 
@@ -32,6 +34,7 @@ const resolveHttpUrl = (path, source) => {
 function WorkflowCard({
   workflow,
   deleteWorkflow,
+  updateWorkflow,
   scheme,
   createWorkflowInstance,
   refresh,
@@ -43,6 +46,7 @@ function WorkflowCard({
   const [anchorEl, setAnchorEl] = useState(null);
   const [isRepoInstalled, setIsRepoInstalled] = useState(false);
   const [versionInstalled, setVersionInstalled] = useState('');
+  const [loading, setLoading] = useState(false);
   const menuIsOpen = Boolean(anchorEl);
 
   workflow['id'] = workflow['repo'];
@@ -55,7 +59,10 @@ function WorkflowCard({
         if (installed_version) {
           setVersionInstalled(installed_version);
           setIsRepoInstalled(true);
+          setLoading(false);
         }
+      } else {
+        setIsRepoInstalled(false);
       }
     });
 
@@ -64,12 +71,16 @@ function WorkflowCard({
   }, [refresh]);
 
   const cloneRepo = async () => {
+    setLoading(true);
     const result = await API.cloneRepo(workflow.repo, workflow.version);
     if (result.ok) {
+      setLoading(false);
       setRefresh(!refresh);
       logMessage(`Cloned ${result.data.name} to ${result.data.path}`, 'success');
     } else {
-      logMessage(t('library.clone-error'), 'error');
+      setLoading(false);
+      setRefresh(!refresh);
+      logMessage(`${t('library.clone-error')} (${result.error.message})`, 'error');
     }
   };
 
@@ -91,7 +102,7 @@ function WorkflowCard({
   };
 
   const checkForUpdates = async () => {
-    alert('Check for updates not implemented yet.');
+    updateWorkflow();
     handleMenuClose();
   };
 
@@ -146,7 +157,7 @@ function WorkflowCard({
             {t('library.run')}
           </Button>
         ) : (
-          <Button
+          <LoadingButton
             id={`install-${workflow.name}`}
             size="small"
             variant="contained"
@@ -156,9 +167,10 @@ function WorkflowCard({
               fontFamily: scheme['font-family'] ?? 'inherit'
             }}
             onClick={cloneRepo}
+            loading={loading}
           >
             {t('library.install')}
-          </Button>
+          </LoadingButton>
         )}
       </Stack>
     </Paper>
@@ -169,12 +181,14 @@ function SectionCard({
   section,
   deleteSection,
   deleteWorkflow,
+  updateWorkflow,
   scheme,
   source,
   createWorkflowInstance,
   permitCatalogueModifications,
   refresh,
   setRefresh,
+  installAllWorkflows,
   logMessage
 }) {
   const { t } = useTranslation();
@@ -189,8 +203,16 @@ function SectionCard({
     setAnchorEl(null);
   };
 
-  const installAllWorkflows = async () => {
-    alert('Install all workflows not implemented yet.');
+  const queueInstallWorkflows = async () => {
+    let workflows = section?.workflows || [];
+    await installAllWorkflows(
+      workflows.map((workflow) => ({
+        id: `${workflow.repo}@${workflow.version}`,
+        repo: workflow.repo,
+        version: workflow.version
+      }))
+    );
+    setRefresh(!refresh);
     handleMenuClose();
   };
 
@@ -252,7 +274,7 @@ function SectionCard({
               </IconButton>
             </Box>
             <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
-              <MenuItem onClick={installAllWorkflows}>
+              <MenuItem onClick={queueInstallWorkflows}>
                 {t('library.install-all-workflows')}
               </MenuItem>
               <MenuItem onClick={handleDeleteSection}>{t('library.remove-section')}</MenuItem>
@@ -266,6 +288,7 @@ function SectionCard({
             <WorkflowCard
               workflow={workflow}
               deleteWorkflow={() => deleteWorkflow(workflow)}
+              updateWorkflow={() => updateWorkflow(workflow)}
               scheme={scheme}
               createWorkflowInstance={createWorkflowInstance}
               refresh={refresh}
@@ -284,10 +307,12 @@ function CatalogueCard({
   deleteCatalogue,
   deleteSection,
   deleteWorkflow,
+  updateWorkflow,
   createWorkflowInstance,
   permitCatalogueModifications,
   refresh,
   setRefresh,
+  installAllWorkflows,
   logMessage
 }) {
   const { t } = useTranslation();
@@ -303,8 +328,19 @@ function CatalogueCard({
     setAnchorEl(null);
   };
 
-  const installAllWorkflows = async () => {
-    alert('Install all workflows not implemented yet.');
+  const queueInstallWorkflows = async () => {
+    let workflows = [];
+    for (const section of catalogue.sections || []) {
+      for (const workflow of section.workflows || []) {
+        workflows.push({
+          id: `${workflow.repo}@${workflow.version}`,
+          repo: workflow.repo,
+          version: workflow.version
+        });
+      }
+    }
+    await installAllWorkflows(workflows);
+    setRefresh(!refresh);
     handleMenuClose();
   };
 
@@ -314,7 +350,7 @@ function CatalogueCard({
   };
 
   const checkForUpdates = async () => {
-    alert('Check for updates not implemented yet.');
+    await API.syncRepo(catalogue?.['base_dir']);
     handleMenuClose();
   };
 
@@ -367,7 +403,7 @@ function CatalogueCard({
               </IconButton>
             </Box>
             <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
-              <MenuItem onClick={installAllWorkflows}>
+              <MenuItem onClick={queueInstallWorkflows}>
                 {t('library.install-all-workflows')}
               </MenuItem>
               <MenuItem onClick={handleDeleteCatalogue}>{t('library.remove-catalogue')}</MenuItem>
@@ -384,12 +420,14 @@ function CatalogueCard({
             section={section}
             deleteSection={() => deleteSection(section)}
             deleteWorkflow={(workflow) => deleteWorkflow(section, workflow)}
+            updateWorkflow={(workflow) => updateWorkflow(section, workflow)}
             scheme={catalogue?.scheme || {}}
             source={catalogue?.['base_dir']}
             createWorkflowInstance={createWorkflowInstance}
             permitCatalogueModifications={permitCatalogueModifications}
             refresh={refresh}
             setRefresh={setRefresh}
+            installAllWorkflows={installAllWorkflows}
             logMessage={logMessage}
           />
         ))}
@@ -408,6 +446,9 @@ export default function LibraryPage({
   const { t } = useTranslation();
   const [catalogues, setCatalogues] = useState([]);
   const [refresh, setRefresh] = useState(false);
+
+  const [progressCount, setProgressCount] = useState(0);
+  const [progressValue, setProgressValue] = useState(0);
 
   const getCatalogues = async () => {
     API.getCatalogues().then((result) => {
@@ -463,12 +504,54 @@ export default function LibraryPage({
     });
   };
 
+  const updateWorkflow = (catalogue, section, workflow) => {
+    API.updateCatalogueWorkflow(catalogue.name, section.name, workflow.name).then((result) => {
+      if (result.ok) {
+        logMessage(t('library.workflow-updated-success', { name: workflow.name }), 'success');
+        getCatalogues();
+      } else {
+        logMessage(t('library.workflow-updated-failure', { name: workflow.name }), 'error');
+      }
+    });
+  };
+
+  const installAllWorkflows = async (workflows) => {
+    // Remove duplicates
+    workflows = workflows.filter(
+      (workflow, index, self) => index === self.findIndex((w) => w.id === workflow.id)
+    );
+    // Clone
+    setProgressValue(0);
+    setProgressCount(workflows.length);
+    const failed_list = [];
+    for (const workflow of workflows) {
+      const result = await API.cloneRepo(workflow.repo, workflow.version);
+      if (!result.ok) {
+        failed_list.push(workflow.id);
+      }
+      setProgressValue((prev) => prev + 1);
+    }
+    setProgressCount(0);
+    setProgressValue(0);
+    if (failed_list.length > 0) {
+      const failed_str = failed_list.join(', ');
+      logMessage(`${t('library.install-workflows-completed-with-errors')}: ${failed_str}`, 'error');
+    }
+    setRefresh(!refresh);
+  };
+
   return (
     <Container>
       <ActionMenu
         setCatalogues={setCatalogues}
         permitAddCatalogues={permitAddCatalogues}
         permitAddRepos={permitAddRepos}
+      />
+      <ProgressDialog
+        open={progressCount > 0}
+        title={t('library.installing-workflows')}
+        value={progressValue}
+        total={progressCount}
       />
       <Stack spacing={2}>
         {(catalogues || []).map((catalogue) => (
@@ -477,10 +560,12 @@ export default function LibraryPage({
             deleteCatalogue={() => deleteCatalogue(catalogue)}
             deleteSection={(section) => deleteSection(catalogue, section)}
             deleteWorkflow={(section, workflow) => deleteWorkflow(catalogue, section, workflow)}
+            updateWorkflow={(section, workflow) => updateWorkflow(catalogue, section, workflow)}
             createWorkflowInstance={createWorkflowInstance}
             permitCatalogueModifications={permitCatalogueModifications}
             refresh={refresh}
             setRefresh={setRefresh}
+            installAllWorkflows={installAllWorkflows}
             logMessage={logMessage}
           />
         ))}

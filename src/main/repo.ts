@@ -64,6 +64,15 @@ export async function cloneRepo(
 
   // Determine and create the target directory
   const targetDir = path.join(workflowDir, owner, repo + '@' + version);
+  if (fs.existsSync(targetDir)) {
+    return {
+      owner: owner,
+      repo: repo,
+      version: version,
+      url: url,
+      path: targetDir
+    } as ICloneRepo;
+  }
   fs.mkdirSync(targetDir, { recursive: true });
 
   // Clone

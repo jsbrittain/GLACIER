@@ -34,6 +34,8 @@ const electronAPI = isElectron
         window.electronAPI.removeCatalogueSection(catalogue_name, section_name),
       removeCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
         window.electronAPI.removeCatalogueWorkflow(catalogue_name, section_name, workflow_name),
+      updateCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
+        window.electronAPI.updateCatalogueWorkflow(catalogue_name, section_name, workflow_name),
       getCatalogues: () => window.electronAPI.getCatalogues(),
       addUserWorkflow: (name, repoUrl, ver, section) =>
         window.electronAPI.addUserWorkflow(name, repoUrl, ver, section),
@@ -111,9 +113,15 @@ const httpAPI = {
   removeCatalogue: async (catalogue_name) =>
     httpDispatch('/api/remove-catalogue', 'POST', { catalogue_name }),
   removeCatalogueSection: async (catalogue_name, section_name) =>
-    httpDispatch('/api/remove-section', 'POST', { catalogue_name, section_name }),
+    httpDispatch('/api/remove-catalogue-section', 'POST', { catalogue_name, section_name }),
   removeCatalogueWorkflow: async (catalogue_name, section_name, workflow_name) =>
-    httpDispatch('/api/remove-workflow', 'POST', {
+    httpDispatch('/api/remove-catalogue-workflow', 'POST', {
+      catalogue_name,
+      section_name,
+      workflow_name
+    }),
+  updateCatalogueWorkflow: async (catalogue_name, section_name, workflow_name) =>
+    httpDispatch('/api/update-catalogue-workflow', 'POST', {
       catalogue_name,
       section_name,
       workflow_name

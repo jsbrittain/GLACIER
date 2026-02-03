@@ -26,27 +26,34 @@ export default function ActionMenu({ setCatalogues, permitAddCatalogues, permitA
     handleMenuClose();
   };
 
-  const addCatalogue = (repo, version) => {
-    API.addCatalogue(repo, version).then((result) => {
+  const addCatalogue = async (repo, version) => {
+    return API.addCatalogue(repo, version).then((result) => {
       if (result.ok) {
-        API.getCatalogues().then((result) => {
+        return API.getCatalogues().then((result) => {
           if (result.ok) {
             setCatalogues(result.data);
+          } else {
+            throw new Error(result.error.message);
           }
         });
+      } else {
+        throw new Error(result.error.message);
       }
     });
-    handleDialogClose();
   };
 
-  const addUserWorkflow = (name, url, version, section) => {
-    API.addUserWorkflow(name, url, version, section).then((result) => {
+  const addUserWorkflow = async (name, url, version, section) => {
+    return API.addUserWorkflow(name, url, version, section).then((result) => {
       if (result.ok) {
-        API.getCatalogues().then((result) => {
+        return API.getCatalogues().then((result) => {
           if (result.ok) {
             setCatalogues(result.data);
+          } else {
+            throw new Error(result.error.message);
           }
         });
+      } else {
+        throw new Error(result.error.message);
       }
     });
     handleDialogClose();

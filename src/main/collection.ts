@@ -737,7 +737,7 @@ export class Collection {
     // Check if version already exists
     let version = wf.versions.find((v) => v.version === repo.version);
     if (version !== undefined) {
-      throw new Error(`Workflow ${wf_id}@${repo.version} already exists.`);
+      return version;
     }
     version = new WorkflowVersion({
       id: `${wf_id}@${repo.version}`,
@@ -1053,6 +1053,46 @@ export class Collection {
     this.parseCatalogues();
   }
 
+  async updateCatalogueWorkflow(
+    catalogue_name: string,
+    section_name: string,
+    workflow_name: string
+  ) {
+    // Update workflow in catalogue section by re-fetching tags/branches
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    const section = cat.sections.find((s) => s.name === section_name);
+    if (!section) {
+      throw new Error(`Section ${section_name} not found in catalogue ${catalogue_name}.`);
+    }
+    const workflow = section.workflows.find((w) => w.name === workflow_name);
+    if (!workflow) {
+      throw new Error(
+        `Workflow ${workflow_name} not found in section ${section_name} of catalogue ${catalogue_name}.`
+      );
+    }
+    // Re-fetch tags and branches
+    const tags = await getRepoTags(workflow.repo);
+    const branches = await getRepoBranches(workflow.repo);
+    const all_versions = tags.concat(branches);
+    if (all_versions.length === 0) {
+      throw new Error(`No tags or branches found for repository: ${workflow.repo}`);
+    }
+    // Update version if current version not found
+    if (workflow.version !== 'latest' && !all_versions.includes(workflow.version || '')) {
+      workflow.version = all_versions[0];
+    }
+    // Save to catalogues path
+    const owner = cat.source.split('/')[0];
+    const repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, owner, repo, 'catalogue.json');
+    fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
   async addUserWorkflow(name: string, url: string, version: string, section: string) {
     if (!name) {
       name = url.split('/')[1];
@@ -1062,6 +1102,20 @@ export class Collection {
     }
     if (!version) {
       version = 'latest';
+    }
+    // Verify that repository url exists
+    const tags = await getRepoTags(url);
+    const branches = await getRepoBranches(url);
+    const all_versions = tags.concat(branches);
+    if (all_versions.length === 0) {
+      throw new Error(`No tags or branches found for repository: ${url}`);
+    }
+    if (version !== 'latest' && !all_versions.includes(version)) {
+      throw new Error(
+        `Version ${version} not found for repository: ${url}. Available versions: ${all_versions.join(
+          ', '
+        )}`
+      );
     }
     // Add workflow to catalogue
     const user_cat_path = path.join(

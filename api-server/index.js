@@ -137,6 +137,17 @@ app.post('/api/remove-catalogue-workflow', async (req, res) =>
   )
 );
 
+app.post('/api/update-catalogue-workflow', async (req, res) =>
+  post_response(
+    res,
+    collection.updateCatalogueWorkflow(
+      req.body.catalogue_name,
+      req.body.section_name,
+      req.body.workflow_name
+    )
+  )
+);
+
 app.post('/api/get-catalogues', async (req, res) =>
   post_response(res, call(collection.getCatalogues.bind(collection)))
 );

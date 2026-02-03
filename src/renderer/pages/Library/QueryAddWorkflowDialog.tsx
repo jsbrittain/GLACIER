@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
+  Alert,
   Button,
   Dialog,
   DialogTitle,
@@ -9,19 +10,56 @@ import {
   Typography,
   TextField
 } from '@mui/material';
+import LoadingButton from '@mui/lab/LoadingButton';
 import { useTranslation } from 'react-i18next';
 
 export default function QueryAddWorkflowDialog({ open, action, onClose }) {
   const { t } = useTranslation();
 
+  const default_version = 'latest';
+  const default_section = 'My Workflows';
+
   const [name, setName] = React.useState('');
   const [repo, setRepo] = React.useState('');
-  const [version, setVersion] = React.useState('latest');
-  const [section, setSection] = React.useState('My Workflows');
+  const [version, setVersion] = React.useState(default_version);
+  const [section, setSection] = React.useState(default_section);
 
-  const handleLaunch = () => {
-    action(name, repo, version, section);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+
+  const handleLaunch = async () => {
+    // Validate inputs
+    if (!repo) {
+      setError(t('library.add-workflow-dialog.error-repo-required'));
+      return;
+    }
+    if (!section) {
+      setError(t('library.add-workflow-dialog.error-section-required'));
+      return;
+    }
+    // Perform the action
+    setLoading(true);
+    action(name, repo, version, section)
+      .then(() => {
+        // close the dialog after action is completed successfully
+        setLoading(false);
+        onClose();
+      })
+      .catch((error) => {
+        setLoading(false);
+        setError(`${t('library.add-workflow-dialog.error-unable-to-add')}
+(${error.message})`);
+      });
   };
+
+  useEffect(() => {
+    // Reset state when dialog is opened
+    setName('');
+    setRepo('');
+    setVersion(default_version);
+    setSection(default_section);
+    setError(null);
+  }, [open]);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
@@ -39,6 +77,12 @@ export default function QueryAddWorkflowDialog({ open, action, onClose }) {
           <Typography variant="body2" gutterBottom>
             {t('library.add-workflow-dialog.description')}
           </Typography>
+
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
 
           <FormControl sx={{ mt: 2, width: '100%' }}>
             <TextField
@@ -78,9 +122,14 @@ export default function QueryAddWorkflowDialog({ open, action, onClose }) {
 
         <DialogActions>
           <Button onClick={onClose}>{t('common.cancel')}</Button>
-          <Button id="query-add-workflow-dialog-okay-button" type="submit" variant="contained">
+          <LoadingButton
+            id="query-add-workflow-dialog-okay-button"
+            type="submit"
+            variant="contained"
+            loading={loading}
+          >
             {t('common.okay')}
-          </Button>
+          </LoadingButton>
         </DialogActions>
       </form>
     </Dialog>
