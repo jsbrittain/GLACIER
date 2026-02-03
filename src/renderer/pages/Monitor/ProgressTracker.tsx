@@ -1,8 +1,5 @@
 import React, { useEffect } from 'react';
-import { Box, Tabs, Tab, Paper, Typography } from '@mui/material';
-import Button from '@mui/material/Button';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
+import { Box, Typography } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import DoneIcon from '@mui/icons-material/Done';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -55,7 +52,7 @@ export default function ProgressTracker({ instance, nextflowProgress, workflowSt
     return () => clearInterval(interval);
   }, [showWork]);
 
-  const FormatWorkflowStatus = ({ workflowStatus: string }) => {
+  const FormatWorkflowStatus = ({ workflowStatus }: { workflowStatus: string }) => {
     let color_palette = 'info';
     if (workflowStatus === WorkflowStatus.Failed) {
       color_palette = 'error';

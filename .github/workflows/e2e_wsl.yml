@@ -15,20 +15,9 @@ jobs:
         with:
           node-version: lts/*
           cache: 'npm'
-
-      - name: Enable WSL
-        run: |
-          curl -L "https://cloud-images.ubuntu.com/releases/jammy/release/ubuntu-22.04-server-cloudimg-amd64-root.tar.xz" -o ubuntu-22.04.tar.xz
-          wsl --import glacier . ubuntu-22.04.tar.xz
-      - name: Install dependencies inside WSL
-        run: |
-          wsl bash -lc "sudo apt-get update"
-          wsl bash -lc "sudo apt-get install -y openjdk-17-jre curl unzip"
-      - name: Install Nextflow inside WSL
-        run: |
-          wsl bash -lc "curl -s https://get.nextflow.io | bash"
-          wsl bash -lc "sudo mv nextflow /usr/local/bin/"
-
+      - name: Setup WSL
+        shell: pwsh
+        run: ./scripts/wsl-setup.ps1
       - name: Install dependencies
         run: npm ci
       - name: Install Playwright Browsers

@@ -19,7 +19,12 @@ export interface IRunWorkflowOpts {
 const is_windows = process.platform === 'win32';
 
 const toPosixPath = (base: string) => {
-  return slash(base).replace('C:', '/mnt/c');
+  return slash(
+    base.replace(
+      /^([A-Za-z]):\\/,
+      (_, drive) => `/mnt/${drive.toLowerCase()}/`
+    )
+  );
 };
 
 const resolvePath = (base: string, name: string) => {
@@ -205,12 +210,34 @@ export async function runWorkflow(
     '-Dcapsule.trampoline',
     '-Dcom.sun.security.enableAIAcaIssuers=true',
     '-Djava.awt.headless=true',
+
+    // performance
     '-XX:+TieredCompilation',
     '-XX:TieredStopAtLevel=1',
-    '--add-opens=java.base/java.lang=ALL-UNNAMED',
-    '--add-opens=java.base/java.io=ALL-UNNAMED',
+
+    // Native access
     '--enable-native-access=ALL-UNNAMED',
-    '--sun-misc-unsafe-memory-access=allow'
+
+    // Core reflection (Groovy / Nextflow)
+    '--add-opens=java.base/java.lang=ALL-UNNAMED',
+    '--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+    '--add-opens=java.base/java.io=ALL-UNNAMED',
+
+    // Collections / Kryo serializers
+    '--add-opens=java.base/java.util=ALL-UNNAMED',
+    '--add-opens=java.base/java.util.concurrent=ALL-UNNAMED',
+
+    // FileSystemProvider injection
+    '--add-opens=java.base/java.nio.file.spi=ALL-UNNAMED',
+    '--add-exports=java.base/java.nio.file.spi=ALL-UNNAMED',
+
+    // FTP support (Nextflow HTTP/FTP provider)
+    '--add-exports=java.base/sun.net.www.protocol.ftp=ALL-UNNAMED',
+    '--add-opens=java.base/sun.net.www.protocol.ftp=ALL-UNNAMED',
+
+    // Internal memory access
+    '--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED',
+    '--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED'
   ];
 
   console.log(`Spawning nextflow with command: nextflow ${cmd.join(' ')} from ${instancePath}`);

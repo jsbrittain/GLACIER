@@ -1,18 +1,6 @@
-import React, { useEffect } from 'react';
-import {
-  Box,
-  Button,
-  Typography,
-  Stack,
-  Paper,
-  LinearProgress,
-  Accordion,
-  AccordionDetails,
-  AccordionSummary
-} from '@mui/material';
+import React from 'react';
+import { Box, Typography, Accordion, AccordionDetails, AccordionSummary } from '@mui/material';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-
-import { useTranslation } from 'react-i18next';
 
 const nextflowLicenseText = `
 
@@ -193,8 +181,6 @@ const nextflowLicenseText = `
 `;
 
 export default function LicensesPage() {
-  const { t, i18n } = useTranslation();
-
   return (
     <Box sx={{ mb: 2 }}>
       <Accordion>

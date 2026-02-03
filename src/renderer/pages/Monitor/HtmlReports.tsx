@@ -1,22 +1,10 @@
-import React, { useEffect } from 'react';
-import { Box, Tabs, Tab, Paper, Typography } from '@mui/material';
-import Button from '@mui/material/Button';
-import Menu from '@mui/material/Menu';
+import React from 'react';
+import { Box, Typography } from '@mui/material';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
-import IconButton from '@mui/material/IconButton';
-import DoneIcon from '@mui/icons-material/Done';
-import CancelIcon from '@mui/icons-material/Cancel';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import FormControl from '@mui/material/FormControl';
-import AnsiLog from './AnsiLog.js';
 import { API } from '../../services/api.js';
 import { useTranslation } from 'react-i18next';
-import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
-import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
-
-import HeaderMenu from './HeaderMenu';
-import ProgressTracker from './ProgressTracker';
 
 export default function HtmlReports({ instance }) {
   const { t } = useTranslation();

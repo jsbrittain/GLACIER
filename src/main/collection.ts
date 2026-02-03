@@ -10,9 +10,8 @@ import { cloneRepo, ICloneRepo, getRepoTags, getRepoBranches } from './repo.js';
 import { runWorkflow } from './runner.js';
 import { getEnvironmentStatus, performEnvironmentAction } from '../runners/environment.js';
 import { WorkflowStatus } from '../types/types.js';
-import { EnvironmentKey } from '../types/environment.js';
 import { syncRepo, getWorkflowParams, getWorkflowSchema } from './repo.js';
-import { getCollectionsPath, getDefaultCollectionsDir, locateReports } from './paths.js';
+import { getCollectionsPath, locateReports } from './paths.js';
 import { settings, StoreSchema } from './settings.js';
 
 // Should remove imports from specific runners
@@ -22,7 +21,28 @@ import { parseNextflowLog } from '../runners/nextflow/nf-parse.js';
 
 const instance_database_file = 'instances.json';
 
-const default_repos = ['artic-network/artic-mpxv-nf', 'artic-network/amplicon-nf'];
+export interface Catalogue {
+  name: string;
+  source: string;
+  description?: string;
+  icon?: string;
+  scheme?: Record<string, string>;
+  sections: CatalogueSection[];
+}
+
+export interface CatalogueSection {
+  name: string;
+  description?: string;
+  icon?: string;
+  scheme?: Record<string, string>;
+  workflows: CatalogueWorkflow[];
+}
+
+export interface CatalogueWorkflow {
+  name: string;
+  repo: string;
+  version?: string;
+}
 
 export enum IWorkflowType {
   NEXTFLOW = 'nextflow',
@@ -75,8 +95,6 @@ class Workflow implements IWorkflow {
   repo: string;
   url: string;
   versions: WorkflowVersion[];
-
-  project: IProject | null = null; // reference to project if applicable
 
   constructor(wf: IWorkflow) {
     this.id = wf.id;
@@ -156,28 +174,6 @@ class WorkflowInstance implements IWorkflowInstance {
   }
 }
 
-// A project is a collection of workflows, mainly used for branding
-export interface IProject {
-  id: string;
-  name: string;
-  url: string;
-  workflows: IWorkflow[];
-}
-
-class Project implements IProject {
-  id: string;
-  name: string;
-  url: string;
-  workflows: IWorkflow[];
-
-  constructor({ id, name, url, workflows = [] }: IProject) {
-    this.id = id;
-    this.name = name;
-    this.url = url;
-    this.workflows = workflows;
-  }
-}
-
 // Singleton class
 export class Collection {
   // --- Class management --------------------------------------------------------------
@@ -203,7 +199,7 @@ export class Collection {
 
   root_path: string = '';
 
-  projects: Project[] = [];
+  catalogues: Catalogue[] = [];
   workflows: Workflow[] = [];
   workflow_instances: WorkflowInstance[] = [];
 
@@ -219,11 +215,16 @@ export class Collection {
     return path.join(this.root_path, 'instances');
   }
 
+  get catalogues_path(): string {
+    return path.join(this.root_path, 'catalogues');
+  }
+
   // --- Logic -------------------------------------------------------------------------
 
   async parseCollection() {
     this.parseWorkflows();
     this.parseInstallableRepos();
+    await this.parseCatalogues();
     await this.parseInstances();
   }
 
@@ -273,11 +274,7 @@ export class Collection {
     }
   }
 
-  private parseInstallableRepos() {
-    default_repos.forEach((repo) => {
-      this.addInstallableRepo(repo);
-    });
-  }
+  private parseInstallableRepos() {}
 
   private async parseInstances() {
     // Clean existing instances
@@ -356,7 +353,7 @@ export class Collection {
             try {
               process.kill(pid, 0); // Check if process is running
               console.log(`Instance ${instance.id} has running PID: ${pid}`);
-            } catch (e) {
+            } catch {
               console.log(`Instance ${instance.id} PID ${pid} is not running, updating status.`);
               // Remove PID from instance
               instance.pid = instance.pid.filter((p) => p !== pid);
@@ -406,6 +403,7 @@ export class Collection {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   determineWorkflowType(folder: string): IWorkflowType {
     // Placeholder logic, can be improved
     return IWorkflowType.NEXTFLOW;
@@ -428,7 +426,7 @@ export class Collection {
       throw new Error(`Workflow ${workflow_id} has no versions.`);
     }
     let workflow_version;
-    if (version === undefined) {
+    if (version === undefined || version === 'latest') {
       // Local repository
       workflow_version = workflow.versions[0];
     } else {
@@ -542,12 +540,12 @@ export class Collection {
       try {
         process.kill(-pid, sig); // signal the process group
         return true;
-      } catch (e) {
+      } catch {
         // Fallback: try the single process
         try {
           process.kill(pid, sig);
           return true;
-        } catch (_) {
+        } catch {
           return false;
         }
       }
@@ -739,7 +737,7 @@ export class Collection {
     // Check if version already exists
     let version = wf.versions.find((v) => v.version === repo.version);
     if (version !== undefined) {
-      throw new Error(`Workflow ${wf_id}@${repo.version} already exists.`);
+      return version;
     }
     version = new WorkflowVersion({
       id: `${wf_id}@${repo.version}`,
@@ -760,7 +758,7 @@ export class Collection {
     await this.parseCollection();
   }
 
-  getCollections(): IRepo[] {
+  getCollectionRepos(): IRepo[] {
     const repos: IRepo[] = [];
     this.workflows.forEach((wf) => {
       wf.versions.forEach((ver) => {
@@ -861,34 +859,6 @@ export class Collection {
     return locateReports(instance.path);
   }
 
-  getProjectsList(): IProject[] {
-    if (this.projects.length > 0) {
-      return this.projects;
-    }
-    return this.projects;
-  }
-
-  addProject(repoPath: string): string {
-    // /// Replace with repo parsing logic ///
-    const i = this.projects.length + 1;
-    this.projects.push(
-      new Project({
-        id: i.toString(),
-        name: `New Project ${i}`,
-        url: repoPath,
-        workflows: []
-      })
-    );
-    return '';
-  }
-
-  removeProject(project: IProject) {
-    const index = this.projects.findIndex((p) => p.id === project.id);
-    if (index === -1) return 'Project not found in collection.';
-    this.projects.splice(index, 1);
-    return '';
-  }
-
   getInstallableReposList(): IRepoVersions[] {
     return this.installable_repos;
   }
@@ -974,5 +944,244 @@ export class Collection {
 
   async performEnvironmentAction(key: string, action: string) {
     return performEnvironmentAction(key, action);
+  }
+
+  async parseCatalogues() {
+    // Clear existing catalogues
+    this.catalogues = [];
+
+    // Read catalogues from catalogues path
+    if (!fs.existsSync(this.catalogues_path)) {
+      console.log(`Catalogues path ${this.catalogues_path} does not exist.`);
+      return;
+    }
+    const owners = fs.readdirSync(this.catalogues_path);
+    for (const owner of owners) {
+      const ownerPath = path.join(this.catalogues_path, owner);
+      const repoDirs = fs.readdirSync(ownerPath);
+      for (const repo of repoDirs) {
+        const repoPath = path.join(ownerPath, repo);
+        // Read catalogue.json
+        const cat_file = path.join(repoPath, 'catalogue.json');
+        const cat_contents = fs.readFileSync(cat_file, 'utf-8');
+        const js = JSON.parse(cat_contents);
+        js['source'] = `${owner}/${repo}`;
+        js['base_dir'] = repoPath;
+        // Add to catalogues
+        this.catalogues.push(js);
+      }
+    }
+  }
+
+  async addCatalogue(url: string, version: string) {
+    // Clone catalogue repository and refresh catalogues list
+    console.log(`Cloning catalogue repository ${url} version ${version}`);
+    const hasSlash = url.includes('/');
+    if (!hasSlash) {
+      url = `${url}/glacier-catalogue`;
+    }
+    const repo: ICloneRepo = await cloneRepo(url, this.catalogues_path, version);
+    const cat_file = path.join(repo.path, 'catalogue.json');
+    const contents = fs.readFileSync(cat_file, 'utf-8');
+    const js = JSON.parse(contents);
+    js['source'] = url;
+    js['base_dir'] = repo.path;
+    this.parseCatalogues(); // update catalogue
+  }
+
+  async removeCatalogue(catalogue_name: string) {
+    // Remove catalogue from catalogues path
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    const owner = cat.source.split('/')[0];
+    const repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, owner, repo);
+    fs.rmSync(cat_path, { recursive: true, force: true });
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
+  async removeCatalogueSection(catalogue_name: string, section_name: string) {
+    // Remove section from catalogue
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    const section_index = cat.sections.findIndex((s) => s.name === section_name);
+    if (section_index === -1) {
+      throw new Error(`Section ${section_name} not found in catalogue ${catalogue_name}.`);
+    }
+    cat.sections.splice(section_index, 1);
+    // Save to catalogues path
+    const owner = cat.source.split('/')[0];
+    const repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, owner, repo, 'catalogue.json');
+    fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
+  async removeCatalogueWorkflow(
+    catalogue_name: string,
+    section_name: string,
+    workflow_name: string
+  ) {
+    // Remove workflow from catalogue section
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    const section = cat.sections.find((s) => s.name === section_name);
+    if (!section) {
+      throw new Error(`Section ${section_name} not found in catalogue ${catalogue_name}.`);
+    }
+    const workflow_index = section.workflows.findIndex((w) => w.name === workflow_name);
+    if (workflow_index === -1) {
+      throw new Error(
+        `Workflow ${workflow_name} not found in section ${section_name} of catalogue ${catalogue_name}.`
+      );
+    }
+    section.workflows.splice(workflow_index, 1);
+    // Save to catalogues path
+    const owner = cat.source.split('/')[0];
+    const repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, owner, repo, 'catalogue.json');
+    fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
+  async updateCatalogueWorkflow(
+    catalogue_name: string,
+    section_name: string,
+    workflow_name: string
+  ) {
+    // Update workflow in catalogue section by re-fetching tags/branches
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    const section = cat.sections.find((s) => s.name === section_name);
+    if (!section) {
+      throw new Error(`Section ${section_name} not found in catalogue ${catalogue_name}.`);
+    }
+    const workflow = section.workflows.find((w) => w.name === workflow_name);
+    if (!workflow) {
+      throw new Error(
+        `Workflow ${workflow_name} not found in section ${section_name} of catalogue ${catalogue_name}.`
+      );
+    }
+    // Re-fetch tags and branches
+    const tags = await getRepoTags(workflow.repo);
+    const branches = await getRepoBranches(workflow.repo);
+    const all_versions = tags.concat(branches);
+    if (all_versions.length === 0) {
+      throw new Error(`No tags or branches found for repository: ${workflow.repo}`);
+    }
+    // Update version if current version not found
+    if (workflow.version !== 'latest' && !all_versions.includes(workflow.version || '')) {
+      workflow.version = all_versions[0];
+    }
+    // Save to catalogues path
+    const owner = cat.source.split('/')[0];
+    const repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, owner, repo, 'catalogue.json');
+    fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
+  async addUserWorkflow(name: string, url: string, version: string, section: string) {
+    if (!name) {
+      name = url.split('/')[1];
+    }
+    if (!section) {
+      section = 'My Workflows';
+    }
+    if (!version) {
+      version = 'latest';
+    }
+    // Verify that repository url exists
+    const tags = await getRepoTags(url);
+    const branches = await getRepoBranches(url);
+    const all_versions = tags.concat(branches);
+    if (all_versions.length === 0) {
+      throw new Error(`No tags or branches found for repository: ${url}`);
+    }
+    if (version !== 'latest' && !all_versions.includes(version)) {
+      throw new Error(
+        `Version ${version} not found for repository: ${url}. Available versions: ${all_versions.join(
+          ', '
+        )}`
+      );
+    }
+    // Add workflow to catalogue
+    const user_cat_path = path.join(
+      this.catalogues_path,
+      'user_collection',
+      'store',
+      'catalogue.json'
+    );
+    let user_catalogue: Catalogue;
+    if (fs.existsSync(user_cat_path)) {
+      // Read existing catalogue
+      const contents = fs.readFileSync(user_cat_path, 'utf-8');
+      user_catalogue = JSON.parse(contents);
+    } else {
+      // Create new catalogue
+      user_catalogue = {
+        name: 'User collection',
+        source: 'local',
+        sections: []
+      };
+    }
+    // Find (or create) section
+    let user_section = user_catalogue.sections.find((sec) => sec.name === section);
+    if (!user_section) {
+      user_section = {
+        name: section,
+        workflows: []
+      };
+      user_catalogue.sections.push(user_section);
+    }
+    user_section.workflows.push({
+      name: name,
+      repo: url,
+      version: version
+    });
+    // Save to catalogues path
+    this.ensurePathExists(path.dirname(user_cat_path));
+    fs.writeFileSync(user_cat_path, JSON.stringify(user_catalogue, null, 2));
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
+  async getCatalogues() {
+    return this.catalogues;
+  }
+
+  async isRepoInstalled(url: string, version: string): Promise<string> {
+    const owner = url.split('/')[0];
+    const repo = url.split('/')[1];
+    const wf = this.workflows.find((wf) => wf.id === `${owner}/${repo}`);
+    if (!wf) {
+      return '';
+    }
+    if (version === 'latest') {
+      // Any version installed
+      if (wf.versions.length > 0) {
+        return wf.versions[0].version || '';
+      } else {
+        return '';
+      }
+    }
+    const ver = wf.versions.find((v) => v.version === version);
+    if (ver) {
+      return ver.version || '';
+    } else {
+      return '';
+    }
   }
 }

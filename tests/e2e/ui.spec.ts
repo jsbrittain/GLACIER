@@ -39,6 +39,12 @@ test('clone a repository', async ({ page }) => {
   const library_path = path.resolve(path.join(glacier_path, 'library'));
   fs.mkdirSync(library_path, { recursive: true }); // rebuild
   await page.fill('#settings-collections-path', `${library_path}`);
+  await page.locator('#settings-collections-path').blur();
+
+  // Ensure repositories and catalogues can be modified in settings
+  await page.check('#settings-permit-add-catalogues');
+  await page.check('#settings-permit-catalogue-modifications');
+  await page.check('#settings-permit-add-repos');
 
   // Use English language for this test
   await page.click('#settings-language-panel');
@@ -49,46 +55,27 @@ test('clone a repository', async ({ page }) => {
 
   // Check that the Library is empty
   await page.click('#sidebar-library-button');
-  expect(await page.locator('[id^="collections-sync-"]').count()).toBe(0);
-
-  // --- Navigate to Hub page
-  await page.click('#sidebar-hub-button');
+  await expect(page.getByText('No repositories installed.')).toBeVisible({ timeout: TIMEOUT_10s });
 
   // Add repository
   const repo_owner = 'jsbrittain';
   const repo_name = 'workflow-runner-test-nextflow';
-  await page.fill('#collections-repo-url', `${repo_owner}/${repo_name}`);
-  await page.click('#collections-add-button');
-  await page.waitForSelector('#hub-install-workflow-runner-test-nextflow', {
-    timeout: TIMEOUT_10s
-  });
 
-  // Clone the new repository
-  await page.click('#hub-install-workflow-runner-test-nextflow');
-
-  // --- Navigate to Library page
-  await page.click('#sidebar-library-button');
-  for (let i = 0; i < 30; i++) {
-    if ((await page.locator(`[id="collections-sync-${cssEscape(repo_name)}"]`).count()) == 1) {
-      break;
-    }
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-    await page.click('#sidebar-library-button');
-    await page.waitForTimeout(1000);
-  }
-
-  // Find the cloned workflow
-  await expect(page.locator('h6').filter({ hasText: 'workflow-runner-test-nextflow' })).toBeVisible(
-    { timeout: TIMEOUT_10s }
-  );
-
-  // Sync the repository
-  await page.click(`#collections-sync-${cssEscape(repo_name)}`);
-  await waitForLogLine(page, 'Repository synced');
+  // Click Actions menu button
+  await page.click('#library-actions-menu-button');
+  await page.click('#library-actions-menu-add-repo');
+  // Fill in repo details
+  await page.fill('#query-add-workflow-repo-url', `${repo_owner}/${repo_name}`);
+  await page.fill('#query-add-workflow-repo-version', 'main');
+  await page.click('#query-add-workflow-dialog-okay-button');
+  // Wait for workflow to be added
+  await expect(page.getByText('User collection')).toBeVisible({ timeout: TIMEOUT_10s });
+  await expect(page.getByText(repo_name)).toBeVisible({ timeout: TIMEOUT_10s });
+  // Click Install (clone the repository)
+  await page.click(`#install-${cssEscape(repo_name)}`);
 
   // Create an instance of the workflow (redirects to Parameters page)
-  await page.click(`#collections-run-${cssEscape(repo_name)}`);
+  await page.click(`#run-${cssEscape(repo_name)}`);
   // 'Launch Workflow' button should now be visible
   await expect(page.getByRole('button', { name: 'Launch Workflow' })).toBeVisible({
     timeout: TIMEOUT_10s
@@ -96,43 +83,22 @@ test('clone a repository', async ({ page }) => {
 });
 
 test('launch local workflow', async ({ page }) => {
-  const local_workflow_path = path.resolve(
-    path.join(__dirname, '..', 'test-data', 'sleep@undefined')
-  );
+  const local_collections_path = path.resolve(path.join(__dirname, '..', 'test-data'));
 
   // Navigate to Settings page
   await page.click('#sidebar-settings-button');
 
   // Get the library path
   await page.click('#settings-general-panel');
-  const library_path = await page.inputValue('#settings-collections-path');
-  const dest_path = path.join(library_path, 'workflows', 'local', 'sleep@undefined');
-
-  // Copy the local workflow to the library path
-  fs.cpSync(local_workflow_path, dest_path, { recursive: true });
-
-  // Check folder exists
-  if (!fs.existsSync(dest_path)) {
-    throw new Error(`Failed to copy local workflow to library: ${dest_path}`);
-  }
-
-  // Force refresh of workflows (change collections-path twice)
-  await page.fill('#settings-collections-path', library_path + '_temp');
-  await page.locator('#settings-collections-path').blur(); // trigger change event
-  await page.fill('#settings-collections-path', library_path);
+  await page.fill('#settings-collections-path', `${local_collections_path}`);
   await page.locator('#settings-collections-path').blur();
 
   // --- Navigate to Library page
   await page.click('#sidebar-library-button');
   const repo_name = 'sleep';
 
-  // Find the cloned workflow
-  await expect(page.locator('h6').filter({ hasText: repo_name })).toBeVisible({
-    timeout: TIMEOUT_10s
-  });
-
   // Create an instance of the workflow (redirects to Parameters page)
-  await page.click(`#collections-run-${cssEscape(repo_name)}`);
+  await page.click(`#run-${cssEscape(repo_name)}`);
 
   // Default display is Description, switch to Parameters tab
   await page.click('#parameters-params-tab');

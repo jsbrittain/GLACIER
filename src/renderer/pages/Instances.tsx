@@ -1,16 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Container,
-  Paper,
-  Stack,
-  Tabs,
-  Tab,
-  TextField,
-  Typography,
-  Button,
-  Alert
-} from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Box, Container, Paper, Typography, Button } from '@mui/material';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -20,20 +9,12 @@ import TableRow from '@mui/material/TableRow';
 import Tooltip from '@mui/material/Tooltip';
 import MonitorPage from './Monitor/Monitor';
 import ParametersPage from './Parameters/Parameters';
-import { JsonForms } from '@jsonforms/react';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemText from '@mui/material/ListItemText';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemAvatar from '@mui/material/ListItemAvatar';
-import Avatar from '@mui/material/Avatar';
 import CreatedIcon from '@mui/icons-material/PlayCircle';
 import ClosedIcon from '@mui/icons-material/PlayCircle';
 import RunningIcon from '@mui/icons-material/Update';
 import QuestionMarkIcon from '@mui/icons-material/QuestionMark';
 import CompletedIcon from '@mui/icons-material/CheckCircle';
 import FailedIcon from '@mui/icons-material/Error';
-import DeleteIcon from '@mui/icons-material/Delete';
 import IconButton from '@mui/material/IconButton';
 import { API } from '../services/api.js';
 import { useTranslation } from 'react-i18next';
@@ -119,9 +100,9 @@ const InstanceList = ({ rows, setItem, instancesList, refreshInstancesList }) =>
                 </TableCell>
                 <TableCell>{row.workflow}</TableCell>
                 <TableCell align="right">
-                  <IconButton onClick={() => handleDeleteInstance(row.name)}>
-                    <DeleteIcon />
-                  </IconButton>
+                  <Button onClick={() => handleDeleteInstance(row.name)} variant="contained">
+                    Delete
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
@@ -142,12 +123,6 @@ export default function InstancesPage({
   const { t } = useTranslation();
 
   const [rows, setRows] = useState([]);
-
-  const onLaunch = async (instance, params) => {
-    API.runWorkflow(instance, params, {}).then(() => {
-      logMessage(`Launched workflow ${instance.name}`);
-    });
-  };
 
   useEffect(() => {
     setRows(

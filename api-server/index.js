@@ -38,7 +38,7 @@ async function call(fcn, ...args) {
 }
 
 app.post('/api/create-workflow-instance', async (req, res) =>
-  post_response(res, collection.createWorkflowInstance(req.body.workflow_id))
+  post_response(res, collection.createWorkflowInstance(req.body.workflow_id, req.body.version))
 );
 
 app.post('/api/run-workflow', async (req, res) =>
@@ -97,15 +97,76 @@ app.post('/api/get-available-profiles', async (req, res) =>
 );
 
 app.post('/api/clone-repo', async (req, res) =>
-  post_response(res, collection.cloneRepo(req.body.repoUrl, req.body.ver))
+  post_response(res, call(collection.cloneRepo.bind(collection), req.body.repoUrl, req.body.ver))
+);
+
+app.post('/api/is-repo-installed', async (req, res) =>
+  post_response(
+    res,
+    call(collection.isRepoInstalled.bind(collection), req.body.repoUrl, req.body.ver)
+  )
 );
 
 app.post('/api/sync-repo', async (req, res) =>
   post_response(res, collection.syncRepo(req.body.repo))
 );
 
-app.post('/api/get-collections', async (req, res) =>
-  post_response(res, collection.getCollections())
+app.post('/api/add-catalogue', async (req, res) =>
+  post_response(res, call(collection.addCatalogue.bind(collection), req.body.repoUrl, req.body.ver))
+);
+
+app.post('/api/remove-catalogue', async (req, res) =>
+  post_response(res, collection.removeCatalogue(req.body.catalogue_name))
+);
+
+app.post('/api/remove-catalogue-section', async (req, res) =>
+  post_response(
+    res,
+    collection.removeCatalogueSection(req.body.catalogue_name, req.body.section_name)
+  )
+);
+
+app.post('/api/remove-catalogue-workflow', async (req, res) =>
+  post_response(
+    res,
+    collection.removeCatalogueWorkflow(
+      req.body.catalogue_name,
+      req.body.section_name,
+      req.body.workflow_name
+    )
+  )
+);
+
+app.post('/api/update-catalogue-workflow', async (req, res) =>
+  post_response(
+    res,
+    collection.updateCatalogueWorkflow(
+      req.body.catalogue_name,
+      req.body.section_name,
+      req.body.workflow_name
+    )
+  )
+);
+
+app.post('/api/get-catalogues', async (req, res) =>
+  post_response(res, call(collection.getCatalogues.bind(collection)))
+);
+
+app.post('/api/add-user-workflow', async (req, res) =>
+  post_response(
+    res,
+    call(
+      collection.addUserWorkflow.bind(collection),
+      req.body.name,
+      req.body.repoUrl,
+      req.body.ver,
+      req.body.section
+    )
+  )
+);
+
+app.post('/api/get-collection-repos', async (req, res) =>
+  post_response(res, collection.getCollectionRepos())
 );
 
 app.post('/api/get-collections-path', async (req, res) =>
@@ -136,18 +197,6 @@ app.post('/api/get-workflow-schema', async (req, res) =>
   post_response(res, collection.getWorkflowSchema(req.body.repoPath))
 );
 
-app.post('/api/get-projects-list', async (req, res) =>
-  post_response(res, collection.getProjectsList())
-);
-
-app.post('/api/add-project', async (req, res) =>
-  post_response(res, collection.addProject(req.body.repoPath))
-);
-
-app.post('/api/remove-project', async (req, res) =>
-  post_response(res, collection.removeProject(req.body.project))
-);
-
 app.post('/api/get-installable-repos-list', async (req, res) =>
   post_response(res, collection.getInstallableReposList())
 );
@@ -164,10 +213,12 @@ app.post('/api/get-workflow-information', async (req, res) =>
   post_response(res, collection.getWorkflowInformation(req.body.instance))
 );
 
-app.post('/api/settings-get', async (req, res) => post_response(res, collection.settingsGet()));
+app.post('/api/settings-get', async (req, res) =>
+  post_response(res, collection.settingsGet(req.body.key))
+);
 
 app.post('/api/settings-set', async (req, res) =>
-  post_response(res, collection.settingsSet(req.body.value))
+  post_response(res, collection.settingsSet(req.body.key, req.body.value))
 );
 
 app.post('/api/open-web-page', async (req, res) =>

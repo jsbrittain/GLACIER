@@ -1,7 +1,3 @@
-import fs from 'fs';
-import path from 'path';
-import git from 'isomorphic-git';
-import http from 'isomorphic-git/http/node/index.cjs';
 import { ipcMain } from 'electron';
 import { Collection } from './collection.js';
 import { StoreSchema } from './settings.js';
@@ -22,6 +18,29 @@ async function call(fcn: any, ...args: any[]): Promise<Result<any>> {
 }
 
 export function registerIpcHandlers() {
+  const redirect = {
+    'run-workflow': collection.runWorkflow.bind(collection),
+    'get-catalogues': collection.getCatalogues.bind(collection),
+    'add-catalogue': collection.addCatalogue.bind(collection),
+    'remove-catalogue': collection.removeCatalogue.bind(collection),
+    'remove-catalogue-section': collection.removeCatalogueSection.bind(collection),
+    'remove-catalogue-workflow': collection.removeCatalogueWorkflow.bind(collection),
+    'update-catalogue-workflow': collection.updateCatalogueWorkflow.bind(collection),
+    'add-user-workflow': collection.addUserWorkflow.bind(collection),
+    'clone-repo': collection.cloneRepo.bind(collection),
+    'is-repo-installed': collection.isRepoInstalled.bind(collection)
+  };
+
+  for (const [channel, fcn] of Object.entries(redirect)) {
+    ipcMain.handle(channel, async (event, ...args) => {
+      return call(fcn, ...args);
+    });
+  }
+
+  /*
+   * Legacy call format - update to use call() for consistent error handling
+   */
+
   ipcMain.handle(
     'create-workflow-instance',
     async (event, workflow_id: string, version: string) => {
@@ -81,10 +100,6 @@ export function registerIpcHandlers() {
     return collection.getAvailableProfiles(instance);
   });
 
-  ipcMain.handle('clone-repo', async (event, repoUrl, ver) => {
-    return await collection.cloneRepo(repoUrl, ver);
-  });
-
   ipcMain.handle('get-collections-path', () => {
     return collection.getCollectionsPath();
   });
@@ -93,12 +108,8 @@ export function registerIpcHandlers() {
     return collection.setCollectionsPath(path);
   });
 
-  ipcMain.handle('get-collections', async () => {
-    return collection.getCollections();
-  });
-
-  ipcMain.handle('run-workflow', async (event, ...args) => {
-    return call(collection.runWorkflow.bind(collection), ...args);
+  ipcMain.handle('get-collection-repos', async () => {
+    return collection.getCollectionRepos();
   });
 
   ipcMain.handle('sync-repo', async (event, path: string) => {
@@ -113,19 +124,7 @@ export function registerIpcHandlers() {
     return collection.getWorkflowSchema(repoPath);
   });
 
-  ipcMain.handle('get-projects-list', async (event) => {
-    return collection.getProjectsList();
-  });
-
-  ipcMain.handle('add-project', async (event, repoPath) => {
-    return collection.addProject(repoPath);
-  });
-
-  ipcMain.handle('remove-project', async (event, project) => {
-    return collection.removeProject(project);
-  });
-
-  ipcMain.handle('get-installable-repos-list', async (event) => {
+  ipcMain.handle('get-installable-repos-list', async () => {
     return collection.getInstallableReposList();
   });
 

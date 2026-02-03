@@ -3,7 +3,6 @@ import path from 'path';
 // import { userDataDir } from 'platformdirs';
 import fs from 'fs';
 import store from './store.js';
-import { IRepo } from './types';
 
 export function getDefaultCollectionsDir(): string {
   const homeDir = os.homedir();

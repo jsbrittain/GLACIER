@@ -1,10 +1,8 @@
-import { getDefaultCollectionsDir } from './paths.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import yaml from 'js-yaml';
 import git from 'isomorphic-git';
 import http from 'isomorphic-git/http/node';
-import { IRepo } from './types.js';
 import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator';
 
 interface WorkflowData {
@@ -55,24 +53,43 @@ export async function cloneRepo(
 
   // Determine the version to clone
   let version = ver || (await getDefaultBranch(url));
-  if (version === null || version === '') {
-    version = 'main'; // Fallback
+  if (version === null || version === '' || version === 'latest') {
+    const tags = (await getRepoTags(url)) || [];
+    if (tags.length === 0) {
+      version = 'main';
+    } else {
+      version = tags[0];
+    }
   }
 
   // Determine and create the target directory
   const targetDir = path.join(workflowDir, owner, repo + '@' + version);
+  if (fs.existsSync(targetDir)) {
+    return {
+      owner: owner,
+      repo: repo,
+      version: version,
+      url: url,
+      path: targetDir
+    } as ICloneRepo;
+  }
   fs.mkdirSync(targetDir, { recursive: true });
 
   // Clone
-  await git.clone({
-    fs,
-    http,
-    dir: targetDir,
-    url: url,
-    ref: version, // branch or tag
-    singleBranch: true,
-    depth: 1
-  });
+  try {
+    await git.clone({
+      fs,
+      http,
+      dir: targetDir,
+      url: url,
+      ref: version, // branch or tag
+      singleBranch: true,
+      depth: 1
+    });
+  } catch (err: unknown) {
+    fs.rmSync(targetDir, { recursive: true, force: true }); // Clean up on failure
+    throw err;
+  }
 
   return {
     owner: owner,
@@ -124,22 +141,22 @@ export async function deleteRepo(repoPath: string) {
 }
 
 export async function getRepoTags(url: string) {
-  const { owner, repo, url: full_url } = parseRepoUrl(url);
+  const { url: full_url } = parseRepoUrl(url);
   try {
     const info = await git.getRemoteInfo({ http, url: full_url });
     return Object.keys(info.refs.tags).reverse();
-  } catch (err) {
+  } catch {
     console.info(`Failed to fetch tags from ${url}`);
     return [];
   }
 }
 
 export async function getRepoBranches(url: string) {
-  const { owner, repo, url: full_url } = parseRepoUrl(url);
+  const { url: full_url } = parseRepoUrl(url);
   try {
     const info = await git.getRemoteInfo({ http, url: full_url });
     return Object.keys(info.refs.heads);
-  } catch (err) {
+  } catch {
     console.info(`Failed to fetch branches from ${url}`);
     return [];
   }

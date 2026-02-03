@@ -1,0 +1,16 @@
+{
+  "name": "User collection",
+  "source": "local",
+  "sections": [
+    {
+      "name": "My Workflows",
+      "workflows": [
+        {
+          "name": "sleep",
+          "repo": "glacier/sleep",
+          "version": "main"
+        }
+      ]
+    }
+  ]
+}

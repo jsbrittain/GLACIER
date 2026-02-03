@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import {
   Box,
-  Container,
   Typography,
   Switch,
   FormControlLabel,
@@ -13,12 +12,10 @@ import {
   Tab,
   Tabs
 } from '@mui/material';
-import ProjectsList from './ProjectsList.js';
 import EnvironmentPage from './Environment.js';
 import LicensesPage from './Licenses.js';
 import { API } from '../../services/api.js';
 import { SettingsKey } from '../../../types/settings.js';
-import { EnvironmentKey } from '../../../types/environment.js';
 import { useTranslation } from 'react-i18next';
 
 export default function SettingsPage({
@@ -26,20 +23,19 @@ export default function SettingsPage({
   setDarkMode,
   collectionsPath,
   setCollectionsPath,
-  allowArbitraryRepoCloning,
-  setAllowArbitraryRepoCloning,
-  projectsList,
-  getProjectsList,
-  logMessage
+  permitAddCatalogues,
+  setPermitAddCatalogues,
+  permitCatalogueModifications,
+  setPermitCatalogueModifications,
+  permitAddRepos,
+  setPermitAddRepos
 }) {
   const { t, i18n } = useTranslation();
 
   const pathRef = React.useRef(null);
   const [language, setLanguage] = React.useState(i18n.language || 'en');
   const [tabValue, setTabValue] = React.useState(0);
-  const [disableProjects, setDisableProjects] = React.useState(false);
   const [disableSchemaValidation, setDisableSchemaValidation] = React.useState(false);
-  const [nextflowStatus, setNextflowStatus] = React.useState([]);
 
   const handlePathKeyDown = (e) => {
     if (e.key === 'Enter') {
@@ -64,9 +60,24 @@ export default function SettingsPage({
     i18n.changeLanguage(newLang);
   };
 
-  const handleDisableProjects = (value) => {
-    setDisableProjects(value);
-    API.settingsSet(SettingsKey.DisableProjects, value);
+  const handlePermitAddCatalogues = (value) => {
+    setPermitAddCatalogues(value);
+    API.settingsSet(SettingsKey.PermitAddCatalogues, value);
+  };
+
+  const handlePermitCatalogueModifications = (value) => {
+    setPermitCatalogueModifications(value);
+    API.settingsSet(SettingsKey.PermitCatalogueModifications, value);
+  };
+
+  const handlePermitAddRepos = (value) => {
+    setPermitAddRepos(value);
+    API.settingsSet(SettingsKey.PermitAddRepos, value);
+  };
+
+  const handleDarkMode = (value) => {
+    setDarkMode(value);
+    API.settingsSet(SettingsKey.DarkMode, value);
   };
 
   const handleDisableSchemaValidation = (value) => {
@@ -75,14 +86,20 @@ export default function SettingsPage({
   };
 
   useEffect(() => {
+    API.settingsGet(SettingsKey.DarkMode).then((value) => {
+      setDarkMode(value);
+    });
+    API.settingsGet(SettingsKey.PermitAddCatalogues).then((value) => {
+      setPermitAddCatalogues(value);
+    });
+    API.settingsGet(SettingsKey.PermitCatalogueModifications).then((value) => {
+      setPermitCatalogueModifications(value);
+    });
+    API.settingsGet(SettingsKey.PermitAddRepos).then((value) => {
+      setPermitAddRepos(value);
+    });
     API.settingsGet(SettingsKey.DisableSchemaValidation).then((value) => {
       setDisableSchemaValidation(value);
-    });
-    API.settingsGet(SettingsKey.DisableProjects).then((value) => {
-      setDisableProjects(value);
-    });
-    API.getEnvironmentStatus(EnvironmentKey.Nextflow).then((status) => {
-      setNextflowStatus(status);
     });
     if (pathRef.current && document.activeElement !== pathRef.current) {
       pathRef.current.value = collectionsPath ?? '';
@@ -125,11 +142,6 @@ export default function SettingsPage({
         sx={{ borderRight: 1, borderColor: 'divider' }}
       >
         <Tab id="settings-general-panel" label={t('settings.general')} />
-        <Tab
-          id="settings-project-panel"
-          label={t('settings.project-options')}
-          disabled={disableProjects}
-        />
         <Tab id="settings-visual-panel" label={t('settings.visual-options')} />
         <Tab id="settings-language-panel" label={t('settings.language-select')} />
         <Tab id="settings-environment-panel" label={t('settings.environment-options')} />
@@ -148,34 +160,46 @@ export default function SettingsPage({
           onBlur={handlePathBlur}
           sx={{ mt: 2 }}
         />
-
         <FormControlLabel
           control={
             <Switch
-              checked={allowArbitraryRepoCloning}
-              onChange={() => setAllowArbitraryRepoCloning(!allowArbitraryRepoCloning)}
+              id="settings-permit-add-catalogues"
+              checked={permitAddCatalogues}
+              onChange={() => handlePermitAddCatalogues(!permitAddCatalogues)}
             />
           }
-          label={t('settings.allow-arbitrary-repo-cloning')}
+          label={t('settings.permit-add-catalogues')}
+        />
+        <FormControlLabel
+          control={
+            <Switch
+              id="settings-permit-catalogue-modifications"
+              checked={permitCatalogueModifications}
+              onChange={() => handlePermitCatalogueModifications(!permitCatalogueModifications)}
+            />
+          }
+          label={t('settings.permit-catalogue-modifications')}
+        />
+        <FormControlLabel
+          control={
+            <Switch
+              id="settings-permit-add-repos"
+              checked={permitAddRepos}
+              onChange={() => handlePermitAddRepos(!permitAddRepos)}
+            />
+          }
+          label={t('settings.permit-add-repos')}
         />
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
-        <ProjectsList
-          projectsList={projectsList}
-          getProjectsList={getProjectsList}
-          logMessage={logMessage}
-        />
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={2}>
         <FormControlLabel
-          control={<Switch checked={darkMode} onChange={() => setDarkMode(!darkMode)} />}
+          control={<Switch checked={darkMode} onChange={() => handleDarkMode(!darkMode)} />}
           label={t('settings.dark-mode')}
         />
       </TabPanel>
 
-      <TabPanel value={tabValue} index={3}>
+      <TabPanel value={tabValue} index={2}>
         <Select
           labelId="settings-language-select-label"
           id="settings-language-select"
@@ -188,21 +212,12 @@ export default function SettingsPage({
         </Select>
       </TabPanel>
 
-      <TabPanel value={tabValue} index={4}>
+      <TabPanel value={tabValue} index={3}>
         <EnvironmentPage />
       </TabPanel>
 
-      <TabPanel value={tabValue} index={5}>
+      <TabPanel value={tabValue} index={4}>
         <Stack spacing={2}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={disableProjects}
-                onChange={() => handleDisableProjects(!disableProjects)}
-              />
-            }
-            label={t('settings.disable-projects')}
-          />
           <FormControlLabel
             control={
               <Switch
@@ -215,7 +230,7 @@ export default function SettingsPage({
         </Stack>
       </TabPanel>
 
-      <TabPanel value={tabValue} index={6}>
+      <TabPanel value={tabValue} index={5}>
         <LicensesPage />
       </TabPanel>
     </Paper>
