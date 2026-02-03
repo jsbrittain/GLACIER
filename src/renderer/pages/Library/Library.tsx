@@ -371,7 +371,9 @@ function CatalogueCard({
                 {t('library.install-all-workflows')}
               </MenuItem>
               <MenuItem onClick={handleDeleteCatalogue}>{t('library.remove-catalogue')}</MenuItem>
-              <MenuItem onClick={checkForUpdates}>{t('library.check-for-updates')}</MenuItem>
+              {catalogue?.name !== 'User collection' && (
+                <MenuItem onClick={checkForUpdates}>{t('library.check-for-updates')}</MenuItem>
+              )}
             </Menu>
           </>
         )}

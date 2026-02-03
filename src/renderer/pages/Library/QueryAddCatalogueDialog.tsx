@@ -22,31 +22,39 @@ export default function QueryAddCatalogueDialog({ open, action, onClose }) {
   };
 
   return (
-    <Dialog open={open} fullWidth maxWidth="sm">
-      <DialogTitle id="library.add-catalogue-dialog.title">
-        {t('library.add-catalogue-dialog.title')}
-      </DialogTitle>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleLaunch();
+        }}
+      >
+        <DialogTitle id="library.add-catalogue-dialog.title">
+          {t('library.add-catalogue-dialog.title')}
+        </DialogTitle>
 
-      <DialogContent dividers>
-        <Typography variant="body2" gutterBottom>
-          {t('library.add-catalogue-dialog.description')}
-        </Typography>
+        <DialogContent dividers>
+          <Typography variant="body2" gutterBottom>
+            {t('library.add-catalogue-dialog.description')}
+          </Typography>
 
-        <FormControl sx={{ mt: 1, width: '100%' }}>
-          <TextField
-            label={t('library.add-catalogue-dialog.repository-url')}
-            value={repo}
-            onChange={(e) => setRepo(e.target.value)}
-          />
-        </FormControl>
-      </DialogContent>
+          <FormControl sx={{ mt: 1, width: '100%' }}>
+            <TextField
+              label={t('library.add-catalogue-dialog.repository-url')}
+              value={repo}
+              onChange={(e) => setRepo(e.target.value)}
+              autoFocus
+            />
+          </FormControl>
+        </DialogContent>
 
-      <DialogActions>
-        <Button onClick={onClose}>{t('common.cancel')}</Button>
-        <Button variant="contained" onClick={handleLaunch}>
-          {t('common.okay')}
-        </Button>
-      </DialogActions>
+        <DialogActions>
+          <Button onClick={onClose}>{t('common.cancel')}</Button>
+          <Button variant="contained" type="submit">
+            {t('common.okay')}
+          </Button>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 }
