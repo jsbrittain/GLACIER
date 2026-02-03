@@ -12,7 +12,6 @@ import {
   Menu,
   MenuItem
 } from '@mui/material';
-import { LoadingButton } from '@mui/lab';
 import { useTranslation } from 'react-i18next';
 import ActionMenu from './ActionMenu';
 import ProgressDialog from './ProgressDialog';
@@ -157,7 +156,7 @@ function WorkflowCard({
             {t('library.run')}
           </Button>
         ) : (
-          <LoadingButton
+          <Button
             id={`install-${workflow.name}`}
             size="small"
             variant="contained"
@@ -170,7 +169,7 @@ function WorkflowCard({
             loading={loading}
           >
             {t('library.install')}
-          </LoadingButton>
+          </Button>
         )}
       </Stack>
     </Paper>

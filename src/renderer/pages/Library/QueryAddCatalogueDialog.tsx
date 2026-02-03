@@ -10,7 +10,6 @@ import {
   Typography,
   TextField
 } from '@mui/material';
-import LoadingButton from '@mui/lab/LoadingButton';
 import { useTranslation } from 'react-i18next';
 
 export default function QueryAddCatalogueDialog({ open, action, onClose }) {
@@ -82,9 +81,9 @@ export default function QueryAddCatalogueDialog({ open, action, onClose }) {
 
         <DialogActions>
           <Button onClick={onClose}>{t('common.cancel')}</Button>
-          <LoadingButton variant="contained" type="submit" loading={loading}>
+          <Button variant="contained" type="submit" loading={loading}>
             {t('common.okay')}
-          </LoadingButton>
+          </Button>
         </DialogActions>
       </form>
     </Dialog>

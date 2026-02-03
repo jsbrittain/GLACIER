@@ -10,7 +10,6 @@ import {
   Typography,
   TextField
 } from '@mui/material';
-import LoadingButton from '@mui/lab/LoadingButton';
 import { useTranslation } from 'react-i18next';
 
 export default function QueryAddWorkflowDialog({ open, action, onClose }) {
@@ -122,14 +121,14 @@ export default function QueryAddWorkflowDialog({ open, action, onClose }) {
 
         <DialogActions>
           <Button onClick={onClose}>{t('common.cancel')}</Button>
-          <LoadingButton
+          <Button
             id="query-add-workflow-dialog-okay-button"
             type="submit"
             variant="contained"
             loading={loading}
           >
             {t('common.okay')}
-          </LoadingButton>
+          </Button>
         </DialogActions>
       </form>
     </Dialog>

@@ -82,7 +82,6 @@
     "@jsonforms/material-renderers": "^3.7.0-alpha.1",
     "@jsonforms/react": "^3.7.0-alpha.1",
     "@mui/icons-material": "^7.2.0",
-    "@mui/lab": "^7.0.1-beta.21",
     "@mui/material": "^7.2.0",
     "@mui/system": "^7.3.7",
     "@vitejs/plugin-react": "^4.6.0",
