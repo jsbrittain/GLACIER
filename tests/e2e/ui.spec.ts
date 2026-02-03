@@ -39,6 +39,7 @@ test('clone a repository', async ({ page }) => {
   const library_path = path.resolve(path.join(glacier_path, 'library'));
   fs.mkdirSync(library_path, { recursive: true }); // rebuild
   await page.fill('#settings-collections-path', `${library_path}`);
+  await page.locator('#settings-collections-path').blur();
 
   // Ensure repositories and catalogues can be modified in settings
   await page.check('#settings-permit-add-catalogues');
