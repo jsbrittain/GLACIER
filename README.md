@@ -1,14 +1,10 @@
 # GLACIER
 
-[![GLACIER](https://github.com/ARTIC-Kraemer-Lab/GLACIER/actions/workflows/GLACIER.yml/badge.svg)](https://github.com/ARTIC-Kraemer-Lab/GLACIER/actions/workflows/GLACIER.yml)
+[![GLACIER](https://github.com/ARTIC-Kraemer-Lab/GLACIER/actions/workflows/GLACIER.yml/badge.svg)](https://github.com/ARTIC-Kraemer-Lab/GLACIER/actions/workflows/GLACIER.yml) [![Documentation Status](https://readthedocs.org/projects/glacier/badge/?version=latest)](https://glacier.readthedocs.io/en/latest/?badge=latest)
 
-**G**raphical<br>
-**L**aunchpad for<br>
-**A**nalysis,<br>
-**C**omputation,<br>
-**I**nference and<br>
-**E**xplication of<br>
-**R**esults
+**G**raphical **L**aunchpad for **A**nalysis,**C**omputation, **I**nference and **E**xplication of **R**esults
+
+Documentation: [ReadTheDocs](https://glacier.readthedocs.io/en/latest)
 
 ## Quick start
 
@@ -29,8 +25,8 @@ npm run dist
 
 Within the application:
 
-- Clone the default repository: `jsbrittain/workflow-runner-testworkflow`
-- Click the run button on the workflow card to launch the container/workflow
+- Click Actions - Add a Catalogue, and enter e.g. `artic-network`
+- Click Install, then Run on a workflow card to launch the container/workflow
 
 ## Web deployment
 
