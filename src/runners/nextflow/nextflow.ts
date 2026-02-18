@@ -19,12 +19,7 @@ export interface IRunWorkflowOpts {
 const is_windows = process.platform === 'win32';
 
 const toPosixPath = (base: string) => {
-  return slash(
-    base.replace(
-      /^([A-Za-z]):\\/,
-      (_, drive) => `/mnt/${drive.toLowerCase()}/`
-    )
-  );
+  return slash(base.replace(/^([A-Za-z]):\\/, (_, drive) => `/mnt/${drive.toLowerCase()}/`));
 };
 
 const resolvePath = (base: string, name: string) => {

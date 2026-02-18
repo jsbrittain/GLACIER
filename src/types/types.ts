@@ -21,5 +21,18 @@ export enum WorkflowStatus {
   Completed = 'completed',
   Closed = 'closed',
   Failed = 'failed',
-  Unknown = 'unknown'
+  Unknown = 'unknown',
+  Undefined = 'undefined'
+}
+
+// Process status enumeration
+export enum ProcessStatus {
+  Created = 'created',
+  Starting = 'starting',
+  Submitted = 'submitted',
+  Completed = 'completed',
+  Error = 'error',
+  Stopped = 'stopped',
+  Unknown = 'unknown',
+  Undefined = 'undefined'
 }
