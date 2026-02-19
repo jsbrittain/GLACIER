@@ -394,6 +394,7 @@ export default function ProgressTracker({ instance }) {
       });
     };
 
+    fetchAll();  // Initial fetch
     const interval = setInterval(fetchAll, 5 * SECOND);
     return () => clearInterval(interval);
   }, [instance]);
