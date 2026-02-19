@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Tabs, Tab, Paper } from '@mui/material';
 import AnsiLog from './AnsiLog.js';
 import { useTranslation } from 'react-i18next';
+import { API } from '../../services/api.js';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -18,9 +19,31 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-export default function LogsPage({ stdOut, stdErr, nextflowLog }) {
-  const { t } = useTranslation();
+const ShowLog = (instance, log_type) => {
+  const [log, setLog] = React.useState('');
 
+  useEffect(() => {
+    const fetchLogs = () => {
+      API.getWorkflowInstanceLogs(instance, log_type).then((log) => {
+        setLog(log);
+      });
+    };
+
+    fetchLogs(); // initial fetch
+    const timerId = setInterval(fetchLogs, 1 * SECOND);
+
+    return () => {
+      clearInterval(timerId);
+    };
+  }, [instance, log_type]);
+
+  return <AnsiLog text={log} />;
+};
+
+const SECOND = 1000;
+
+export default function LogsPage(instance) {
+  const { t } = useTranslation();
   const [tabSelected, setTabSelected] = React.useState(0);
 
   const handleTabChange = (event, newValue) => {
@@ -35,13 +58,13 @@ export default function LogsPage({ stdOut, stdErr, nextflowLog }) {
         <Tab label={t('monitor.logs.nextflow-log')} />
       </Tabs>
       <TabPanel value={tabSelected} index={0}>
-        <AnsiLog text={stdOut} />
+        <ShowLog instance={instance} log_type="stdout" />
       </TabPanel>
       <TabPanel value={tabSelected} index={1}>
-        <AnsiLog text={stdErr} />
+        <ShowLog instance={instance} log_type="stderr" />
       </TabPanel>
       <TabPanel value={tabSelected} index={2}>
-        <AnsiLog text={nextflowLog} />
+        <ShowLog instance={instance} log_type=".nextflow" />
       </TabPanel>
     </Paper>
   );

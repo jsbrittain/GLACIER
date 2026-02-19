@@ -98,7 +98,12 @@
       "title": "Journaux",
       "stdout": "Sortie standard",
       "stderr": "Erreur standard",
-      "nextflow-log": "Journal Nextflow"
+      "nextflow-log": "Journal Nextflow",
+      "log": "Journal",
+      "run": "Exécuter",
+      "shell": "Shell",
+      "trace": "Trace",
+      "begin": "Début des journaux"
     },
     "reports": "Rapports",
     "select-report": "Sélectionner le rapport",
@@ -123,7 +128,13 @@
       "running": "En cours",
       "completed": "Terminé",
       "unknown": "Inconnu",
-      "failed": "Échoué"
+      "failed": "Échoué",
+      "view-log": "Voir le journal",
+      "hide-log": "Masquer le journal",
+      "open-folder": "Ouvrir le dossier",
+      "loading": "Chargement du progrès...",
+      "waiting-for-report": "Chargement du rapport...",
+      "no-logs": "Ce fichier journal est vide."
     },
     "open-results-folder": "Ouvrir le dossier des résultats"
   },

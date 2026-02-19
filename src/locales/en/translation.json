@@ -98,7 +98,12 @@
       "title": "Logs",
       "stdout": "Standard Output",
       "stderr": "Standard Error",
-      "nextflow-log": "Nextflow Log"
+      "nextflow-log": "Nextflow Log",
+      "log": "Log",
+      "run": "Run",
+      "shell": "Shell",
+      "trace": "Trace",
+      "begin": "Begin Log"
     },
     "reports": "Reports",
     "select-report": "Select Report",
@@ -123,7 +128,13 @@
       "running": "Running",
       "completed": "Completed",
       "unknown": "Unknown",
-      "failed": "Failed"
+      "failed": "Failed",
+      "view-log": "View Log",
+      "hide-log": "Hide Log",
+      "open-folder": "Open Folder",
+      "loading": "Loading...",
+      "waiting-for-report": "Loading report...",
+      "no-logs": "This log file is empty."
     },
     "open-results-folder": "Open Results Folder"
   },

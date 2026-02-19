@@ -13,3 +13,11 @@ Since GLACIER supports both an electron build (where the backend runs in the sam
 - Define the IPC handler in `src/electron/ipc-handler.ts`. This is where the backend logic can be implemented, but is generally instead used to call the relevant service.
 - Most services are defined in a (singleton) `Collection` object (`src/main/collection.ts`), which manages the lifecycle of workflows. You can add a new services here as needed.
 - For HTTP, define the service endpoint in `api-server/index.js`, which should call the same service as the IPC handler by invoking the relevant method in the `Collection` object.
+
+# Adding languages
+
+GLACIER uses i8n for language support. To add a new language, you need to do the following:
+
+- Add the translation file in `src/locale/`
+- Register the new language in `src/renderer/i18n.js`
+- Add the language to the locale map (used by date-fns) in `src/locale/index.ts`

@@ -8,7 +8,7 @@ const converter = new AnsiToHtml({
   bg: '#000',
   newline: true,
   escapeXML: true,
-  stream: true
+  stream: false
 });
 
 export default function AnsiLog({ text }) {

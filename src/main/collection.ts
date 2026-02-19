@@ -668,7 +668,13 @@ export class Collection {
 
   getWorkLog(instance: IWorkflowInstance, workID: string, log_type: string): string {
     const log_filenames = {
-      stdout: '.command.out'
+      stdout: '.command.out',
+      stderr: '.command.err',
+      log: '.command.log',
+      run: '.command.run',
+      shell: '.command.sh',
+      trace: '.command.trace',
+      begin: '.command.begin'
     };
     let log_filename;
     if (log_type in log_filenames) {

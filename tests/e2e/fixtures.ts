@@ -7,9 +7,8 @@ type Fixtures = {
 export const test = base.extend<Fixtures>({
   page: async ({ browser, page }, use, testInfo) => {
     if (testInfo.project.name.includes('Electron')) {
-      
       // Electron mode
-      
+
       const electronApp: ElectronApplication = await electron.launch({
         args: ['.', '--fullscreen', '--no-sandbox']
       });
