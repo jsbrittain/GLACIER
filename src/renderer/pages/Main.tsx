@@ -165,7 +165,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
       </Drawer>
 
       <PanelGroup direction="vertical" style={{ height: '100vh', width: '100%' }}>
-        <Panel defaultSize={96}>
+        <Panel>
           <Paper
             variant="outlined"
             sx={{ width: '100%', height: '100%', overflowY: 'auto', minHeight: 0, p: 3 }}
@@ -206,7 +206,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
 
         <PanelResizeHandle />
 
-        <Panel defaultSize={4}>
+        <Panel defaultSize={4} minSize={3} collapsible>
           <Paper
             variant="outlined"
             sx={{ width: '100%', height: '100%', overflowY: 'auto' }}

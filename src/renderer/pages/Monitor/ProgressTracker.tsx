@@ -394,18 +394,18 @@ export default function ProgressTracker({ instance }) {
       });
     };
 
-    fetchAll();  // Initial fetch
+    fetchAll(); // Initial fetch
     const interval = setInterval(fetchAll, 5 * SECOND);
     return () => clearInterval(interval);
   }, [instance]);
 
   return (
-    <Box sx={{ display: 'flex', gap: 2 }}>
-      <Box sx={{ flex: 1 }}>
+    <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <Box>
           <FormatWorkflowStatus workflowStatus={workflowStatus} />
         </Box>
-        <Box>
+        <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
           {items?.length > 0 ? (
             <LogIDContext.Provider value={{ logID, setLogID }}>
               <GetInstanceContext.Provider value={instance}>
