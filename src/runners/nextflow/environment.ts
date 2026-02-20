@@ -3,7 +3,11 @@ import { mkdirSync, chmodSync, createWriteStream } from 'fs';
 import { execFileSync, spawn } from 'child_process';
 import path from 'path';
 
+import pkg from 'electron';
+const { shell } = pkg;
+
 const is_windows = process.platform === 'win32';
+const is_electron = process.versions?.electron !== undefined;
 const nextflowPath = path.join(process.env.HOME || '', 'GLACIER', 'bin', 'nextflow');
 const distroPath = path.join(process.env.HOME || '', 'GLACIER', 'wsl', 'ubuntu-22.04.tar.xz');
 
@@ -23,6 +27,8 @@ export async function nextflowAction(action: string) {
       return installWSL2();
     case 'install.wsl2.distro':
       return installWSL2distro();
+    case 'install.docker':
+      return installDocker();
     default:
       throw new Error(`Unknown Nextflow action: ${action}`);
   }
@@ -36,7 +42,7 @@ function nextflowStatus_win() {
         title: 'Windows Subsystem for Linux (v2)',
         description:
           'Windows Subsystem for Linux (WSL) version 2 must be installed for nextflow. This requires administrative rights. After install, restart GLACIER.',
-        status: 'info',
+        status: 'warning',
         actions: [
           {
             action: 'install.wsl2',
@@ -50,10 +56,10 @@ function nextflowStatus_win() {
   if (!wslCheckDistro()) {
     return [
       {
-        title: 'Prepare WSL',
+        title: 'Windows Subsystem for Linux (Configuration)',
         description:
           'Window Subsystem for Linux is installed but has not been configured. Configuring will install and configure an appropriate distribution.',
-        status: 'info',
+        status: 'warning',
         actions: [
           {
             action: 'install.wsl2.distro',
@@ -88,58 +94,53 @@ function wslCheckDistro() {
 function nextflowStatus_unix() {
   // Non-Windows Nextflow installation process (MacOS, Linux)
 
+  interface Action {
+    action: string;
+    label: string;
+  }
+
   // MacOS / Linux install is bundled
-  return [
+  const status_list = [
     {
       title: 'Nextflow',
       description: 'GLACIER provides a managed version of Nextflow. No further action is required.',
       status: 'info',
-      actions: []
+      actions: [] as Action[]
     }
   ];
 
-  if (isNextflowInstalled(nextflowPath)) {
-    // GLACIER Nextflow installation
-    return [
-      {
-        title: 'Nextflow',
-        description: 'A GLACIER managed version of Nextflow is installed and accessible.',
-        status: 'info',
-        actions: []
-      }
-    ];
-  } else if (isNextflowInstalled()) {
-    // System Nextflow installation
-    return [
-      {
-        title: 'Nextflow',
-        description:
-          'A system install is available and accessible. You can install a GLACIER managed version if you prefer.',
-        status: 'info',
-        actions: [
-          {
-            action: 'install.nextflow',
-            label: 'Install Nextflow'
-          }
-        ]
-      }
-    ];
-  } else {
-    // No Nextflow installation found
-    return [
-      {
-        title: 'Nextflow',
-        description: 'A working Nextflow installation cannot be found. Please install Nextflow.',
+  if (!checkExecutable('docker', ['--version'])) {
+    if (is_electron) {
+      status_list.push({
+        title: 'Docker',
+        description: 'It is recommended to have Docker installed for launching workflows.',
         status: 'warning',
         actions: [
           {
-            action: 'install.nextflow',
-            label: 'Install Nextflow'
+            action: 'install.docker',
+            label: 'Download Docker Desktop'
           }
         ]
-      }
-    ];
+      });
+    } else {
+      status_list.push({
+        title: 'Docker',
+        description:
+          'Docker not found. It is recommended to have Docker installed for launching workflows. Please contact your system administrator to request installation.',
+        status: 'warning',
+        actions: []
+      });
+    }
+  } else {
+    status_list.push({
+      title: 'Docker',
+      description: 'A Docker installation is accessible. No further action is required.',
+      status: 'info',
+      actions: []
+    });
   }
+
+  return status_list;
 }
 
 function isNextflowInstalled(nextflowPath: string = 'nextflow'): boolean {
@@ -289,4 +290,10 @@ function installWSL2distro() {
       )
       .on('error', () => reject({ ok: false }));
   });
+}
+
+function installDocker() {
+  // open Docker download page
+  shell.openExternal('https://www.docker.com/products/docker-desktop/');
+  return { ok: true };
 }

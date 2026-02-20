@@ -58,6 +58,11 @@
       "error-unable-to-add": "Unable to add workflow. Please check the URL and try again.",
       "error-repo-required": "Repository URL is required.",
       "error-section-required": "Section is required."
+    },
+    "environment": {
+      "missing-deps": "Missing dependencies",
+      "required-deps": "The following programs were not detected: ",
+      "go-to-settings": "Configure"
     }
   },
   "instances": {
