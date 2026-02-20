@@ -42,7 +42,7 @@ function nextflowStatus_win() {
         title: 'Windows Subsystem for Linux (v2)',
         description:
           'Windows Subsystem for Linux (WSL) version 2 must be installed for nextflow. This requires administrative rights. After install, restart GLACIER.',
-        status: 'info',
+        status: 'warning',
         actions: [
           {
             action: 'install.wsl2',
@@ -56,10 +56,10 @@ function nextflowStatus_win() {
   if (!wslCheckDistro()) {
     return [
       {
-        title: 'Prepare WSL',
+        title: 'Windows Subsystem for Linux (Configuration)',
         description:
           'Window Subsystem for Linux is installed but has not been configured. Configuring will install and configure an appropriate distribution.',
-        status: 'info',
+        status: 'warning',
         actions: [
           {
             action: 'install.wsl2.distro',
