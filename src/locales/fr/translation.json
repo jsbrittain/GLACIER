@@ -58,6 +58,11 @@
       "error-unable-to-add": "Impossible d'ajouter le flux de travail. Veuillez vérifier l'URL et réessayer.",
       "error-repo-required": "L'URL du dépôt est requise.",
       "error-section-required": "Le nom de la section est requis."
+    },
+    "environment": {
+      "missing-deps": "Dépendances manquantes",
+      "required-deps": "Les programmes suivants n'ont pas été détectés : ",
+      "go-to-settings": "Configurer"
     }
   },
   "instances": {

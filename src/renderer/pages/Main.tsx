@@ -42,6 +42,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [message, setMessage] = useState('');
   const [open, setOpen] = useState(false);
   const [item, setItem] = useState('');
+  const [navigateToSettingsPage, setNavigateToSettingsPage] = useState('');
 
   const refreshInstancesList = async () => {
     API.listWorkflowInstances().then((instances) => {
@@ -81,6 +82,11 @@ export default function MainPage({ darkMode, setDarkMode }) {
         return newQueue;
       });
     });
+  };
+
+  const navigateToSettingsEnv = () => {
+    setView('settings');
+    setNavigateToSettingsPage('environment');
   };
 
   const logMessage = (text, level: severityLevels = 'info') => {
@@ -177,6 +183,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 permitAddCatalogues={permitAddCatalogues}
                 permitCatalogueModifications={permitCatalogueModifications}
                 permitAddRepos={permitAddRepos}
+                navigateToSettingsEnv={navigateToSettingsEnv}
                 logMessage={logMessage}
               />
             ) : view === 'instances' ? (
@@ -199,6 +206,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 setPermitCatalogueModifications={setPermitCatalogueModifications}
                 permitAddRepos={permitAddRepos}
                 setPermitAddRepos={setPermitAddRepos}
+                navigateToPage={navigateToSettingsPage}
+                setNavigateToPage={setNavigateToSettingsPage}
               />
             ) : null}
           </Paper>

@@ -28,7 +28,9 @@ export default function SettingsPage({
   permitCatalogueModifications,
   setPermitCatalogueModifications,
   permitAddRepos,
-  setPermitAddRepos
+  setPermitAddRepos,
+  navigateToPage,
+  setNavigateToPage
 }) {
   const { t, i18n } = useTranslation();
 
@@ -105,6 +107,13 @@ export default function SettingsPage({
       pathRef.current.value = collectionsPath ?? '';
     }
   }, []);
+
+  useEffect(() => {
+    if (navigateToPage === 'environment') {
+      setTabValue(3);
+      setNavigateToPage('');
+    }
+  }, [navigateToPage]);
 
   const TabPanel = (props) => {
     const { children, value, index, ...other } = props;
@@ -212,6 +221,7 @@ export default function SettingsPage({
         </Select>
       </TabPanel>
 
+      {/* Update useEffect if environment tab index changes */}
       <TabPanel value={tabValue} index={3}>
         <EnvironmentPage />
       </TabPanel>

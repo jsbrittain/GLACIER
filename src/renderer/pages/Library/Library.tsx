@@ -13,6 +13,7 @@ import {
   MenuItem
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import EnvironmentStatus from './EnvironmentStatus';
 import ActionMenu from './ActionMenu';
 import ProgressDialog from './ProgressDialog';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -440,6 +441,7 @@ export default function LibraryPage({
   permitAddCatalogues,
   permitCatalogueModifications,
   permitAddRepos,
+  navigateToSettingsEnv,
   logMessage
 }) {
   const { t } = useTranslation();
@@ -541,11 +543,26 @@ export default function LibraryPage({
 
   return (
     <Container>
-      <ActionMenu
-        setCatalogues={setCatalogues}
-        permitAddCatalogues={permitAddCatalogues}
-        permitAddRepos={permitAddRepos}
-      />
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2
+        }}
+      >
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <EnvironmentStatus navigateToSettingsEnv={navigateToSettingsEnv} />
+        </Box>
+        <Box sx={{ flex: '0 0 auto' }}>
+          <ActionMenu
+            setCatalogues={setCatalogues}
+            permitAddCatalogues={permitAddCatalogues}
+            permitAddRepos={permitAddRepos}
+          />
+        </Box>
+      </Box>
       <ProgressDialog
         open={progressCount > 0}
         title={t('library.installing-workflows')}
