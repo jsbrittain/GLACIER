@@ -1,19 +1,25 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box } from '@mui/material';
 import List from '@mui/material/List';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemButton from '@mui/material/ListItemButton';
+import CircularProgress from '@mui/material/CircularProgress';
 import Tooltip from '@mui/material/Tooltip';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { API } from '../../services/api.js';
 
 export default function HtmlReports({ instance }) {
+  const [loading, setLoading] = React.useState(false);
   const [selected, setSelected] = React.useState(null);
   const [reportsList, setReportsList] = React.useState<Record<string, string>[]>([]);
 
   API.getInstanceReportsList(instance).then((reports) => {
     setReportsList(reports || []);
   });
+
+  useEffect(() => {
+    if (selected?.path) setLoading(true);
+  }, [selected]);
 
   return (
     <Box sx={{ display: 'flex', flex: 1, minHeight: 0, height: '100%' }}>
@@ -72,11 +78,28 @@ export default function HtmlReports({ instance }) {
         <PanelResizeHandle />
 
         {/* Render HTML report (right side) */}
-        <Panel style={{ flex: 1, minHeight: 0 }}>
+        <Panel style={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
+          {/* Loading spinner overlay */}
+          {loading && (
+            <Box
+              sx={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <CircularProgress />
+            </Box>
+          )}
+
+          {/* Iframe to display the selected report */}
           <iframe
             title="preview"
             src={selected?.path || ''}
+            onLoad={() => setLoading(false)}
             style={{ width: '100%', height: '100%', border: 'none' }}
+            hidden={!selected?.path || loading}
           />
         </Panel>
       </PanelGroup>
