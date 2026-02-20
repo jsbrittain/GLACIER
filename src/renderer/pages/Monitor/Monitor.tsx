@@ -15,9 +15,28 @@ interface TabPanelProps {
 
 function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
+
+  const isActive = value === index;
+
   return (
-    <Box role="tabpanel" hidden={value !== index} id={`tabpanel-${index}`} {...other}>
-      {value === index && <Box>{children}</Box>}
+    <Box
+      role="tabpanel"
+      hidden={!isActive}
+      id={`tabpanel-${index}`}
+      sx={{
+        display: isActive ? 'flex' : 'none',
+        flexDirection: 'column',
+        flex: 1,
+        minHeight: 0,
+        overflow: 'hidden'
+      }}
+      {...other}
+    >
+      {isActive && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          {children}
+        </Box>
+      )}
     </Box>
   );
 }
@@ -31,7 +50,7 @@ export default function MonitorPage({ instance, logMessage }) {
   };
 
   return (
-    <Paper>
+    <Paper sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <HeaderMenu instance={instance} logMessage={logMessage} />
       <Tabs value={tabSelected} onChange={handleTabChange}>
         <Tab label={t('monitor.progress.title')} />

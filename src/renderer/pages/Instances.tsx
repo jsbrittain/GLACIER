@@ -142,7 +142,7 @@ export default function InstancesPage({
   };
 
   return (
-    <Container>
+    <Container sx={{ height: '100%' }}>
       {item === '' ? (
         /* List view for all instances */
         <InstanceList
