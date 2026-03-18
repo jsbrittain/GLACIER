@@ -233,6 +233,10 @@ app.post('/api/perform-environment-action', async (req, res) =>
   post_response(res, collection.performEnvironmentAction(req.body.key, req.body.action))
 );
 
+app.post('/api/get-system-resources', async (req, res) =>
+  post_response(res, collection.getSystemResources())
+);
+
 const PORT = process.env.PORT || 3030;
 app.listen(PORT, () => {
   console.log(`✅ API server listening on http://localhost:${PORT}`);

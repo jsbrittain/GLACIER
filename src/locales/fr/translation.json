@@ -168,7 +168,11 @@
     "environment-options": "Environnement",
     "environment": {
       "nextflow": "Nextflow",
-      "checking-status": "Vérification du statut..."
+      "checking-status": "Vérification du statut...",
+      "system-resources": "Ressources système",
+      "cpu-cores": "Cœurs CPU",
+      "free-memory": "Mémoire libre",
+      "total-memory": "Mémoire totale"
     },
     "licenses": "Licences"
   }
