@@ -40,6 +40,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [log, setLog] = useState([]);
   const [severity, setSeverity] = useState<severityLevels>('info');
   const [message, setMessage] = useState('');
+  const [showHiddenParams, setShowHiddenParams] = useState(false);
   const [open, setOpen] = useState(false);
   const [item, setItem] = useState('');
   const [navigateToSettingsPage, setNavigateToSettingsPage] = useState('');
@@ -193,6 +194,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 logMessage={logMessage}
                 item={item}
                 setItem={setItem}
+                showHiddenParams={showHiddenParams}
               />
             ) : view === 'settings' ? (
               <SettingsPage
@@ -206,6 +208,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 setPermitCatalogueModifications={setPermitCatalogueModifications}
                 permitAddRepos={permitAddRepos}
                 setPermitAddRepos={setPermitAddRepos}
+                showHiddenParams={showHiddenParams}
+                setShowHiddenParams={setShowHiddenParams}
                 navigateToPage={navigateToSettingsPage}
                 setNavigateToPage={setNavigateToSettingsPage}
               />

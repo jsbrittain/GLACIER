@@ -156,6 +156,7 @@
     "advanced-options": "Avancées",
     "disable-projects": "Désactiver la gestion des projets",
     "disable-schema-validation": "Désactiver la validation stricte du schéma",
+    "show-hidden-params": "Afficher les paramètres cachés",
     "project-options": "Projets",
     "projects": {
       "url": "URL",
