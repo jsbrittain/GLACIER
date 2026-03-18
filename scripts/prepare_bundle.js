@@ -124,6 +124,24 @@ async function main() {
     }
     process.chdir(bundleDir);
 
+    // Move build config to bundle folder (pre-configures catalogue list)
+
+    // Check input arguments for --variant {variant} and include build config is specified
+    const args = process.argv.slice(2);
+    if (args.length >= 2 && args[0] === '--variant') {
+      const variant = args[1];
+      const configPath = path.join(repoRoot, 'build_config', `${variant}.json`);
+      if (fileExists(configPath)) {
+        fs.copyFileSync(configPath, path.join(bundleDir, 'manifest.json'));
+        log(`Using build config for variant "${variant}".`);
+      } else {
+        err(`Build config for variant "${variant}" not found at ${configPath}. Using default.`);
+        return 1;
+      }
+    } else {
+      log('No variant specified. Using empty build config.');
+    }
+
     // Detect OS; match original behavior: check RUNNER_OS env or uname
     const RUNNER_OS = process.env.RUNNER_OS || os.type(); // e.g. 'Linux', 'Darwin', or 'Windows_NT'
     if (/windows/i.test(RUNNER_OS) || process.platform === 'win32') {

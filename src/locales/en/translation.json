@@ -168,7 +168,11 @@
     "environment-options": "Environment",
     "environment": {
       "nextflow": "Nextflow",
-      "checking-status": "Checking status..."
+      "checking-status": "Checking status...",
+      "system-resources": "System Resources",
+      "cpu-cores": "CPU Cores",
+      "free-memory": "Free Memory",
+      "total-memory": "Total Memory"
     },
     "licenses": "Licenses"
   }

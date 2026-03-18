@@ -28,7 +28,8 @@ export function registerIpcHandlers() {
     'update-catalogue-workflow': collection.updateCatalogueWorkflow.bind(collection),
     'add-user-workflow': collection.addUserWorkflow.bind(collection),
     'clone-repo': collection.cloneRepo.bind(collection),
-    'is-repo-installed': collection.isRepoInstalled.bind(collection)
+    'is-repo-installed': collection.isRepoInstalled.bind(collection),
+    'get-system-resources': collection.getSystemResources.bind(collection)
   };
 
   for (const [channel, fcn] of Object.entries(redirect)) {

@@ -56,7 +56,8 @@ const electronAPI = isElectron
       openWebPage: (url) => window.electronAPI.openWebPage(url),
       getEnvironmentStatus: (key) => window.electronAPI.getEnvironmentStatus(key),
       performEnvironmentAction: (key, action) =>
-        window.electronAPI.performEnvironmentAction(key, action)
+        window.electronAPI.performEnvironmentAction(key, action),
+      getSystemResources: () => window.electronAPI.getSystemResources()
     }
   : null;
 
@@ -153,7 +154,8 @@ const httpAPI = {
   openWebPage: async (url) => httpDispatch('/api/open-web-page', 'POST', { url }),
   getEnvironmentStatus: async (key) => httpDispatch('/api/get-environment-status', 'POST', { key }),
   performEnvironmentAction: async (key, action) =>
-    httpDispatch('/api/perform-environment-action', 'POST', { key, action })
+    httpDispatch('/api/perform-environment-action', 'POST', { key, action }),
+  getSystemResources: async () => httpDispatch('/api/get-system-resources', 'POST', {})
 };
 
 export const API = isElectron ? electronAPI : httpAPI;

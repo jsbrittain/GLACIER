@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getWorkLog: (instance: any, workID: string, logType: string) =>
     ipcRenderer.invoke('get-work-log', instance, workID, logType),
   getAvailableProfiles: (instance: any) => ipcRenderer.invoke('get-available-profiles', instance),
+  getSystemResources: () => ipcRenderer.invoke('get-system-resources'),
 
   cloneRepo: (repoUrl: string, ver: string) => ipcRenderer.invoke('clone-repo', repoUrl, ver),
   isRepoInstalled: (repoUrl: string, ver: string) =>

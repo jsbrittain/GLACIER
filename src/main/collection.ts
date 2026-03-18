@@ -3,6 +3,7 @@
 import pkg from 'electron';
 const { shell } = pkg;
 import path from 'path';
+import os from 'os';
 import fs from 'fs';
 import { IRepo, IRepoVersions } from './types.js';
 import { generateUniqueName } from './repo.js';
@@ -1189,5 +1190,17 @@ export class Collection {
     } else {
       return '';
     }
+  }
+
+  async getSystemResources(): Promise<Record<string, unknown>> {
+    // ram and cores
+    const cpus = os.cpus();
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    return {
+      cpuCores: cpus.length,
+      totalMem: totalMem,
+      freeMem: freeMem
+    };
   }
 }
