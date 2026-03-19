@@ -1,3 +1,7 @@
+# Build variants
+
+The `scripts/prepare_bundle.js` script looks for an environment variable `GLACIER_MANIFEST` in order to determine which manifest file from `build-configs/` to use for the build. For instance, `GLACIER_MANIFEST=artic-network npm run dist` will include the `artic-network.json` manifest file. If unspecified, no default manifest is included.
+
 # Testing
 
 Run `npm test` to execute the unit test suite, which also produces coverage reports.

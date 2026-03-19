@@ -125,21 +125,20 @@ async function main() {
     process.chdir(bundleDir);
 
     // Move build config to bundle folder (pre-configures catalogue list)
-
-    // Check input arguments for --variant {variant} and include build config is specified
-    const args = process.argv.slice(2);
-    if (args.length >= 2 && args[0] === '--variant') {
-      const variant = args[1];
-      const configPath = path.join(repoRoot, 'build_config', `${variant}.json`);
+    
+    // Check environment variable GLACIER_MANIFEST and include build config if specified
+    const manifest = process.env.GLACIER_MANIFEST || null;
+    if (manifest) {
+      const configPath = path.join(repoRoot, 'build-configs', `${manifest}.json`);
       if (fileExists(configPath)) {
         fs.copyFileSync(configPath, path.join(bundleDir, 'manifest.json'));
-        log(`Using build config for variant "${variant}".`);
+        log(`Using build config for manifest "${manifest}".`);
       } else {
-        err(`Build config for variant "${variant}" not found at ${configPath}. Using default.`);
+        err(`Build config for manifest "${manifest}" not found at ${configPath}.`);
         return 1;
       }
     } else {
-      log('No variant specified. Using empty build config.');
+      log('No manifest specified.');
     }
 
     // Detect OS; match original behavior: check RUNNER_OS env or uname
