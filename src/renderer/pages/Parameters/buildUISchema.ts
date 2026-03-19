@@ -11,15 +11,10 @@ export function buildUISchema(
 ): UISchemaElement {
   const showHidden = !!opts?.showHidden;
 
-  const categories = (schema.allOf ?? [])
-    .map((entry: any) => {
-      const ref: string | undefined = entry?.$ref;
-      if (!ref) return null;
-      if (!ref.startsWith('#/$defs/') && !ref.startsWith('#/definitions/')) return null;
-
-      let defKey = ref.replace('#/definitions/', '');
+  const categories = Object.entries(schema?.$defs || schema?.definitions || {})
+    .map(([key, def]: [string, Record<string, any>]) => {
+      let defKey = key.replace('#/definitions/', '');
       defKey = defKey.replace('#/$defs/', '');
-      const def = schema.definitions?.[defKey] || schema.$defs?.[defKey];
       if (!def || def.type !== 'object') return null;
 
       const props = def.properties ?? {};
@@ -78,7 +73,7 @@ export function buildUISchema(
   if (rootProps.length > 0) {
     categories.push({
       type: 'Category',
-      label: schema.title ?? 'General',
+      label: 'General',
       elements: [
         {
           type: 'Group',
@@ -88,6 +83,35 @@ export function buildUISchema(
             scope: `#/properties/${k}`,
             options: {
               description: schema.properties?.[k]?.description ?? schema.properties?.[k]?.help_text
+            }
+          }))
+        }
+      ]
+    });
+  }
+
+  const advOptField = 'Launch settings';
+  const advProps = Object.keys(schema[advOptField] ?? {}).filter((k) => {
+    if (allDefPropNames.has(k)) return false;
+    const hiddenVal = schema[advOptField]?.[k]?.hidden;
+    const isHidden = hiddenVal === true || hiddenVal === 'true' || hiddenVal === 'True';
+    return showHidden || !isHidden;
+  });
+
+  if (advProps.length > 0) {
+    categories.push({
+      type: 'Category',
+      label: advOptField,
+      elements: [
+        {
+          type: 'Group',
+          label: advOptField,
+          elements: advProps.map((k) => ({
+            type: 'Control',
+            scope: `#/${advOptField}/${k}`,
+            options: {
+              description:
+                schema[advOptField]?.[k]?.description ?? schema[advOptField]?.[k]?.help_text
             }
           }))
         }

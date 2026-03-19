@@ -156,6 +156,7 @@
     "advanced-options": "Advanced",
     "disable-projects": "Disable projects",
     "disable-schema-validation": "Disable strict schema validation",
+    "show-hidden-params": "Show hidden parameters",
     "project-options": "Projects",
     "projects": {
       "url": "URL",

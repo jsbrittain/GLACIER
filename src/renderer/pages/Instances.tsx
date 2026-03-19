@@ -118,7 +118,8 @@ export default function InstancesPage({
   refreshInstancesList,
   logMessage,
   item,
-  setItem
+  setItem,
+  showHiddenParams
 }) {
   const { t } = useTranslation();
 
@@ -162,6 +163,7 @@ export default function InstancesPage({
               <ParametersPage
                 instance={instance}
                 refreshInstancesList={refreshInstancesList}
+                showHiddenParams={showHiddenParams}
                 logMessage={logMessage}
               />
             ) : (

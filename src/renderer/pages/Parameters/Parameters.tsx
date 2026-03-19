@@ -34,7 +34,12 @@ function TabPanel({ children, value, index }) {
   return value === index ? <Box sx={{ p: 2, flexGrow: 1 }}>{children}</Box> : null;
 }
 
-export default function ParametersPage({ instance, refreshInstancesList, logMessage }) {
+export default function ParametersPage({
+  instance,
+  refreshInstancesList,
+  showHiddenParams,
+  logMessage
+}) {
   const { t } = useTranslation();
   const default_profile = 'standard';
 
@@ -81,10 +86,10 @@ export default function ParametersPage({ instance, refreshInstancesList, logMess
       let schema = await API.getWorkflowSchema(instance.workflow_version.path);
       // Add profile selection to the a separate schema category
       if (profiles.length > 0) {
-        if (!schema['properties']) {
-          schema['properties'] = {};
+        if (!schema['Launch settings']) {
+          schema['Launch settings'] = {};
         }
-        schema['properties']['profile'] = {
+        schema['Launch settings']['profile'] = {
           type: 'array',
           title: 'Execution Profile(s)',
           description: 'Select one or more execution profile to use',
@@ -133,7 +138,7 @@ export default function ParametersPage({ instance, refreshInstancesList, logMess
   }, [schema]);
 
   // Build the UI schema with stepper options
-  const uischema = buildUISchema(schema, { showHidden: false });
+  const uischema = buildUISchema(schema, { showHidden: showHiddenParams });
   (uischema as any).options = { variant: 'stepper', showNavButtons: true };
 
   const schemaErrors: ErrorObject[] | null = useMemo(() => {

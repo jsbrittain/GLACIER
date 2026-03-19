@@ -29,6 +29,8 @@ export default function SettingsPage({
   setPermitCatalogueModifications,
   permitAddRepos,
   setPermitAddRepos,
+  showHiddenParams,
+  setShowHiddenParams,
   navigateToPage,
   setNavigateToPage
 }) {
@@ -236,6 +238,15 @@ export default function SettingsPage({
               />
             }
             label={t('settings.disable-schema-validation')}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showHiddenParams}
+                onChange={() => setShowHiddenParams(!showHiddenParams)}
+              />
+            }
+            label={t('settings.show-hidden-params')}
           />
         </Stack>
       </TabPanel>
