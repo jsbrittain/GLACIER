@@ -45,6 +45,7 @@ export default function ParametersPage({ instance, refreshInstancesList, logMess
   const [allProfiles, setAllProfiles] = useState<string[]>([]);
   const [tabSelected, setTabSelected] = React.useState(0);
   const [readme, setReadme] = useState<string>('');
+  const [license, setLicense] = useState<string>('');
 
   const onLaunch = async (instance, params) => {
     // Strip out profile from params before sending to backend
@@ -109,8 +110,16 @@ export default function ParametersPage({ instance, refreshInstancesList, logMess
       }
     };
     const fetchReadme = async () => {
-      const desc = await API.getWorkflowReadme(instance);
-      setReadme(desc || '');
+      const result = await API.getWorkflowReadme(instance);
+      if (result.ok) {
+        setReadme(result.data || '');
+      }
+    };
+    const fetchLicense = async () => {
+      const result = await API.getWorkflowLicense(instance);
+      if (result.ok) {
+        setLicense(result.data || '');
+      }
     };
 
     get_available_profiles().then((profiles) => {
@@ -118,6 +127,7 @@ export default function ParametersPage({ instance, refreshInstancesList, logMess
       get_schema(profiles);
       get_params();
       fetchReadme();
+      fetchLicense();
     });
   }, [instance]);
 
@@ -179,6 +189,11 @@ export default function ParametersPage({ instance, refreshInstancesList, logMess
 
       <Tabs value={tabSelected} onChange={handleTabChange}>
         <Tab label={t('parameters.info.title')} id="parameters-info-tab" />
+        <Tab
+          label={t('parameters.license.title')}
+          id="parameters-license-tab"
+          disabled={isEmpty(license)}
+        />
         <Tab label={t('parameters.params.title')} id="parameters-params-tab" />
       </Tabs>
 
@@ -187,6 +202,10 @@ export default function ParametersPage({ instance, refreshInstancesList, logMess
       </TabPanel>
 
       <TabPanel value={tabSelected} index={1}>
+        <MarkdownRenderer content={license} basePath={instance.workflow_version.path} />
+      </TabPanel>
+
+      <TabPanel value={tabSelected} index={2}>
         <Stack spacing={2} sx={{ mt: 1 }}>
           <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
             {!isEmpty(schema) ? (

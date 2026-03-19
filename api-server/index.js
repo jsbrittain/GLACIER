@@ -209,6 +209,10 @@ app.post('/api/get-workflow-readme', async (req, res) =>
   post_response(res, collection.getWorkflowReadme(req.body.instance))
 );
 
+app.post('/api/get-workflow-license', async (req, res) =>
+  post_response(res, collection.getWorkflowLicense(req.body.instance))
+);
+
 app.post('/api/get-workflow-information', async (req, res) =>
   post_response(res, collection.getWorkflowInformation(req.body.instance))
 );

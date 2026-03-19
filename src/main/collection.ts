@@ -929,7 +929,19 @@ export class Collection {
     if (fs.existsSync(readmeFile)) {
       return fs.readFileSync(readmeFile, 'utf-8');
     } else {
-      return 'No README.md found for this workflow.';
+      throw new Error('No README.md file found for this workflow.');
+    }
+  }
+
+  getWorkflowLicense(instance: IWorkflowInstance): string {
+    if (!instance || !instance.workflow_version) {
+      return 'Invalid workflow instance.';
+    }
+    const licenseFile = path.join(instance.workflow_version.path, 'LICENSE');
+    if (fs.existsSync(licenseFile)) {
+      return fs.readFileSync(licenseFile, 'utf-8');
+    } else {
+      throw new Error('No LICENSE file found for this workflow.');
     }
   }
 

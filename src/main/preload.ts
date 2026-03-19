@@ -59,6 +59,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getWorkflowInformation: (instance: any) =>
     ipcRenderer.invoke('get-workflow-information', instance),
   getWorkflowReadme: (instance: any) => ipcRenderer.invoke('get-workflow-readme', instance),
+  getWorkflowLicense: (instance: any) => ipcRenderer.invoke('get-workflow-license', instance),
   settingsGet: (key: string) => ipcRenderer.invoke('settings-get', key),
   settingsSet: (key: string, value: any) => ipcRenderer.invoke('settings-set', key, value),
   openWebPage: (url: string) => ipcRenderer.invoke('open-web-page', url),

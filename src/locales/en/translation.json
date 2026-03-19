@@ -88,6 +88,9 @@
     "info": {
       "title": "Description"
     },
+    "license": {
+      "title": "License"
+    },
     "params": {
       "title": "Parameters",
       "no-parameters": "No parameters available"
