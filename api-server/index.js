@@ -126,6 +126,24 @@ app.post('/api/remove-catalogue-section', async (req, res) =>
   )
 );
 
+app.post('/api/hide-catalogue-workflow', async (req, res) =>
+  post_response(
+    res,
+    collection.hideCatalogueWorkflow(
+      req.body.catalogue_name,
+      req.body.section_name,
+      req.body.workflow_name
+    )
+  )
+);
+
+app.post('/api/hide-catalogue-section', async (req, res) =>
+  post_response(
+    res,
+    collection.hideCatalogueSection(req.body.catalogue_name, req.body.section_name)
+  )
+);
+
 app.post('/api/remove-catalogue-workflow', async (req, res) =>
   post_response(
     res,
@@ -146,6 +164,21 @@ app.post('/api/update-catalogue-workflow', async (req, res) =>
       req.body.workflow_name
     )
   )
+);
+
+app.post('/api/show-catalogue-section-workflows', async (req, res) =>
+  post_response(
+    res,
+    collection.showCatalogueSectionWorkflows(req.body.catalogue_name, req.body.section_name)
+  )
+);
+
+app.post('/api/show-catalogue-workflows', async (req, res) =>
+  post_response(res, collection.showCatalogueWorkflows(req.body.catalogue_name))
+);
+
+app.post('/api/show-catalogue-sections', async (req, res) =>
+  post_response(res, collection.showCatalogueSections(req.body.catalogue_name))
 );
 
 app.post('/api/get-catalogues', async (req, res) =>

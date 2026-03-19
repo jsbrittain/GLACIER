@@ -37,12 +37,14 @@ export interface CatalogueSection {
   icon?: string;
   scheme?: Record<string, string>;
   workflows: CatalogueWorkflow[];
+  hidden?: boolean;
 }
 
 export interface CatalogueWorkflow {
   name: string;
   repo: string;
   version?: string;
+  hidden?: boolean;
 }
 
 export enum IWorkflowType {
@@ -1060,6 +1062,53 @@ export class Collection {
     this.parseCatalogues();
   }
 
+  async hideCatalogueSection(catalogue_name: string, section_name: string) {
+    // Hide catalogue section by adding "hidden" property
+    console.log('Hiding section', section_name, 'in catalogue', catalogue_name);
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    const section = cat.sections.find((s) => s.name === section_name);
+    if (!section) {
+      throw new Error(`Section ${section_name} not found in catalogue ${catalogue_name}.`);
+    }
+    section.hidden = true;
+    // Save to catalogues path
+    const owner = cat.source.split('/')[0];
+    const repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, owner, repo, 'catalogue.json');
+    fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
+  async hideCatalogueWorkflow(catalogue_name: string, section_name: string, workflow_name: string) {
+    // Hide workflow in catalogue section by adding "hidden" property
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    const section = cat.sections.find((s) => s.name === section_name);
+    if (!section) {
+      throw new Error(`Section ${section_name} not found in catalogue ${catalogue_name}.`);
+    }
+    const workflow = section.workflows.find((w) => w.name === workflow_name);
+    if (!workflow) {
+      throw new Error(
+        `Workflow ${workflow_name} not found in section ${section_name} of catalogue ${catalogue_name}.`
+      );
+    }
+    workflow.hidden = true;
+    // Save to catalogues path
+    const owner = cat.source.split('/')[0];
+    const repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, owner, repo, 'catalogue.json');
+    fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
   async updateCatalogueWorkflow(
     catalogue_name: string,
     section_name: string,
@@ -1091,6 +1140,72 @@ export class Collection {
     if (workflow.version !== 'latest' && !all_versions.includes(workflow.version || '')) {
       workflow.version = all_versions[0];
     }
+    // Save to catalogues path
+    const owner = cat.source.split('/')[0];
+    const repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, owner, repo, 'catalogue.json');
+    fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
+  async showCatalogueSectionWorkflows(catalogue_name: string, section_name: string) {
+    // Show hidden workflows in catalogue section by removing "hidden" property
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    const section = cat.sections.find((s) => s.name === section_name);
+    if (!section) {
+      throw new Error(`Section ${section_name} not found in catalogue ${catalogue_name}.`);
+    }
+    section.workflows.forEach((w) => {
+      w.hidden = false;
+    });
+    // Save to catalogues path
+    const owner = cat.source.split('/')[0];
+    const repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, owner, repo, 'catalogue.json');
+    fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
+  async showCatalogueSections(catalogue_name: string) {
+    // Show hidden sections in catalogue by removing "hidden" property
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    cat.sections.forEach((s) => {
+      s.hidden = false;
+    });
+    // Show all workflows in section
+    cat.sections.forEach((s) => {
+      s.workflows.forEach((w) => {
+        w.hidden = false;
+      });
+    });
+    // Save to catalogues path
+    const owner = cat.source.split('/')[0];
+    const repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, owner, repo, 'catalogue.json');
+    fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
+    // Refresh catalogues
+    this.parseCatalogues();
+  }
+
+  async showCatalogueWorkflows(catalogue_name: string) {
+    // Show hidden workflows in catalogue by removing "hidden" property
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    cat.sections.forEach((s) => {
+      s.workflows.forEach((w) => {
+        w.hidden = false;
+      });
+    });
     // Save to catalogues path
     const owner = cat.source.split('/')[0];
     const repo = cat.source.split('/')[1];
