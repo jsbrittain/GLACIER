@@ -125,7 +125,13 @@ async function main() {
     process.chdir(bundleDir);
 
     // Move build config to bundle folder (pre-configures catalogue list)
-    
+
+    // remove existing manifest, if one exists
+    const existingManifest = path.join(bundleDir, 'manifest.json');
+    if (fileExists(existingManifest)) {
+      fs.unlinkSync(existingManifest);
+    }
+
     // Check environment variable GLACIER_MANIFEST and include build config if specified
     const manifest = process.env.GLACIER_MANIFEST || null;
     if (manifest) {
