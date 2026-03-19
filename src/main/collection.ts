@@ -226,7 +226,8 @@ export class Collection {
   // --- Logic -------------------------------------------------------------------------
 
   async startup() {
-    if (!fs.existsSync(this.catalogues_path)) {
+    const is_electron = process.versions?.electron !== undefined;
+    if (is_electron && !fs.existsSync(this.catalogues_path)) {
       // Import manifest if one exists
       const { app } = await import('electron');
       const resource_root = path.join(
