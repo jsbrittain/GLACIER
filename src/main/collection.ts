@@ -1102,7 +1102,7 @@ export class Collection {
 
   async addUserWorkflow(name: string, url: string, version: string, section: string) {
     if (!name) {
-      name = url.split('/')[1];
+      name = url.split('/').slice(-1)[0]; // repo name
     }
     if (!section) {
       section = 'My Workflows';
