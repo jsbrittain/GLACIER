@@ -34,7 +34,9 @@ export function registerIpcHandlers() {
     'add-user-workflow': collection.addUserWorkflow.bind(collection),
     'clone-repo': collection.cloneRepo.bind(collection),
     'is-repo-installed': collection.isRepoInstalled.bind(collection),
-    'get-system-resources': collection.getSystemResources.bind(collection)
+    'get-system-resources': collection.getSystemResources.bind(collection),
+    'get-workflow-readme': collection.getWorkflowReadme.bind(collection),
+    'get-workflow-license': collection.getWorkflowLicense.bind(collection)
   };
 
   for (const [channel, fcn] of Object.entries(redirect)) {
@@ -140,10 +142,6 @@ export function registerIpcHandlers() {
 
   ipcMain.handle('get-workflow-information', async (event, instance) => {
     return collection.getWorkflowInformation(instance);
-  });
-
-  ipcMain.handle('get-workflow-readme', async (event, instance) => {
-    return collection.getWorkflowReadme(instance);
   });
 
   ipcMain.handle('settings-get', async (event, key: keyof StoreSchema) => {

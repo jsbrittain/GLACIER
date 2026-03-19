@@ -103,6 +103,9 @@
     "info": {
       "title": "Description"
     },
+    "license": {
+      "title": "Licence"
+    },
     "params": {
       "title": "Paramètres",
       "no-parameters": "Aucun paramètre requis pour ce flux de travail."

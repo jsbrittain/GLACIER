@@ -61,6 +61,7 @@ const electronAPI = isElectron
       addInstallableRepo: (repoUrl) => window.electronAPI.addInstallableRepo(repoUrl),
       getWorkflowInformation: (instance) => window.electronAPI.getWorkflowInformation(instance),
       getWorkflowReadme: (instance) => window.electronAPI.getWorkflowReadme(instance),
+      getWorkflowLicense: (instance) => window.electronAPI.getWorkflowLicense(instance),
       settingsGet: (key) => window.electronAPI.settingsGet(key),
       settingsSet: (key, value) => window.electronAPI.settingsSet(key, value),
       openWebPage: (url) => window.electronAPI.openWebPage(url),
@@ -173,6 +174,8 @@ const httpAPI = {
     httpDispatch('/api/get-workflow-information', 'POST', { instance }),
   getWorkflowReadme: async (instance) =>
     httpDispatch('/api/get-workflow-readme', 'POST', { instance }),
+  getWorkflowLicense: async (instance) =>
+    httpDispatch('/api/get-workflow-license', 'POST', { instance }),
   settingsGet: async (key) => httpDispatch('/api/settings-get', 'POST', { key }),
   settingsSet: async (key, value) => httpDispatch('/api/settings-set', 'POST', { key, value }),
   openWebPage: async (url) => httpDispatch('/api/open-web-page', 'POST', { url }),
