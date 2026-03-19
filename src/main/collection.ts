@@ -187,7 +187,7 @@ export class Collection {
   // private constructor to prevent direct instantiation
   private constructor() {
     this.root_path = getCollectionsPath();
-    this.parseCollection();
+    this.startup();
   }
 
   // Method to get the singleton instance
@@ -201,6 +201,7 @@ export class Collection {
   // --- Data --------------------------------------------------------------------------
 
   root_path: string = '';
+  starting_up: boolean = true;
 
   catalogues: Catalogue[] = [];
   workflows: Workflow[] = [];
@@ -223,6 +224,24 @@ export class Collection {
   }
 
   // --- Logic -------------------------------------------------------------------------
+
+  async startup() {
+    const is_electron = process.versions?.electron !== undefined;
+    if (is_electron && !fs.existsSync(this.catalogues_path)) {
+      // Import manifest if one exists
+      const { app } = await import('electron');
+      const resource_root = path.join(
+        app.isPackaged ? process.resourcesPath : app.getAppPath(),
+        'bundle'
+      );
+      const manifestPath = path.join(resource_root, 'manifest.json');
+      if (fs.existsSync(manifestPath)) {
+        await this.importManifest(manifestPath);
+      }
+    }
+    this.parseCollection();
+    this.starting_up = false;
+  }
 
   async parseCollection() {
     this.parseWorkflows();
@@ -1293,6 +1312,14 @@ export class Collection {
   }
 
   async getCatalogues() {
+    // Max timeout of 10 seconds to wait for catalogues to be parsed
+    const start = Date.now();
+    while (this.starting_up) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      if (Date.now() - start > 10000) {
+        return this.catalogues;
+      }
+    }
     return this.catalogues;
   }
 
@@ -1329,5 +1356,24 @@ export class Collection {
       totalMem: totalMem,
       freeMem: freeMem
     };
+  }
+
+  async importManifest(manifestPath: string) {
+    const contents = fs.readFileSync(manifestPath, 'utf-8');
+    const manifest = JSON.parse(contents);
+    if (manifest.catalogues && Array.isArray(manifest.catalogues)) {
+      for (const cat of manifest.catalogues) {
+        const url = cat.url;
+        const version = cat?.version || '';
+        try {
+          await this.addCatalogue(url, version);
+          console.log(`Successfully imported catalogue from ${url}`);
+        } catch (err) {
+          console.error(`Failed to import catalogue from ${url}: ${err}`);
+        }
+      }
+    } else {
+      console.error('Invalid manifest format: "catalogues" array is missing.');
+    }
   }
 }

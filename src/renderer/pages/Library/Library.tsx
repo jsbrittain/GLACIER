@@ -485,7 +485,7 @@ export default function LibraryPage({
   logMessage
 }) {
   const { t } = useTranslation();
-  const [catalogues, setCatalogues] = useState([]);
+  const [catalogues, setCatalogues] = useState(null);
   const [refresh, setRefresh] = useState(false);
 
   const [progressCount, setProgressCount] = useState(0);
@@ -680,7 +680,14 @@ export default function LibraryPage({
           />
         ))}
       </Stack>
-      {catalogues.length === 0 && (
+      {catalogues === null && (
+        <Container>
+          <Typography variant="h5" sx={{ mt: 2 }}>
+            {t('library.loading-library')}
+          </Typography>
+        </Container>
+      )}
+      {Array.isArray(catalogues) && catalogues.length === 0 && (
         <Container>
           <Typography variant="h5" sx={{ mt: 2 }}>
             {t('library.no-repos-installed')}

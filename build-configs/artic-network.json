@@ -1,0 +1,9 @@
+{
+  "catalogues": [
+    {
+      "name": "ARTIC Network",
+      "url": "artic-network",
+      "description": "The ARTIC Network provides protocols and resources for sequencing viral genomes."
+    }
+  ]
+}
