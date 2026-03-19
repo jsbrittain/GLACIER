@@ -32,10 +32,20 @@ const electronAPI = isElectron
       removeCatalogue: (catalogue_name) => window.electronAPI.removeCatalogue(catalogue_name),
       removeCatalogueSection: (catalogue_name, section_name) =>
         window.electronAPI.removeCatalogueSection(catalogue_name, section_name),
+      hideCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
+        window.electronAPI.hideCatalogueWorkflow(catalogue_name, section_name, workflow_name),
+      hideCatalogueSection: (catalogue_name, section_name) =>
+        window.electronAPI.hideCatalogueSection(catalogue_name, section_name),
       removeCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
         window.electronAPI.removeCatalogueWorkflow(catalogue_name, section_name, workflow_name),
       updateCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
         window.electronAPI.updateCatalogueWorkflow(catalogue_name, section_name, workflow_name),
+      showCatalogueSectionWorkflows: (catalogue_name, section_name) =>
+        window.electronAPI.showCatalogueSectionWorkflows(catalogue_name, section_name),
+      showCatalogueWorkflows: (catalogue_name) =>
+        window.electronAPI.showCatalogueWorkflows(catalogue_name),
+      showCatalogueSections: (catalogue_name) =>
+        window.electronAPI.showCatalogueSections(catalogue_name),
       getCatalogues: () => window.electronAPI.getCatalogues(),
       addUserWorkflow: (name, repoUrl, ver, section) =>
         window.electronAPI.addUserWorkflow(name, repoUrl, ver, section),
@@ -115,6 +125,14 @@ const httpAPI = {
     httpDispatch('/api/remove-catalogue', 'POST', { catalogue_name }),
   removeCatalogueSection: async (catalogue_name, section_name) =>
     httpDispatch('/api/remove-catalogue-section', 'POST', { catalogue_name, section_name }),
+  hideCatalogueWorkflow: async (catalogue_name, section_name, workflow_name) =>
+    httpDispatch('/api/hide-catalogue-workflow', 'POST', {
+      catalogue_name,
+      section_name,
+      workflow_name
+    }),
+  hideCatalogueSection: async (catalogue_name, section_name) =>
+    httpDispatch('/api/hide-catalogue-section', 'POST', { catalogue_name, section_name }),
   removeCatalogueWorkflow: async (catalogue_name, section_name, workflow_name) =>
     httpDispatch('/api/remove-catalogue-workflow', 'POST', {
       catalogue_name,
@@ -127,6 +145,12 @@ const httpAPI = {
       section_name,
       workflow_name
     }),
+  showCatalogueSectionWorkflows: async (catalogue_name, section_name) =>
+    httpDispatch('/api/show-catalogue-section-workflows', 'POST', { catalogue_name, section_name }),
+  showCatalogueWorkflows: async (catalogue_name) =>
+    httpDispatch('/api/show-catalogue-workflows', 'POST', { catalogue_name }),
+  showCatalogueSections: async (catalogue_name) =>
+    httpDispatch('/api/show-catalogue-sections', 'POST', { catalogue_name }),
   getCatalogues: async () => httpDispatch('/api/get-catalogues', 'POST', {}),
   addUserWorkflow: async (name, repoUrl, ver, section) =>
     httpDispatch('/api/add-user-workflow', 'POST', { name, repoUrl, ver, section }),

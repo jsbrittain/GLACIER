@@ -33,6 +33,7 @@ const resolveHttpUrl = (path, source) => {
 
 function WorkflowCard({
   workflow,
+  hideWorkflow,
   deleteWorkflow,
   updateWorkflow,
   scheme,
@@ -96,6 +97,11 @@ function WorkflowCard({
     setAnchorEl(null);
   };
 
+  const handleHideWorkflow = async () => {
+    hideWorkflow();
+    handleMenuClose();
+  };
+
   const handleDeleteWorkflow = async () => {
     deleteWorkflow();
     handleMenuClose();
@@ -130,6 +136,7 @@ function WorkflowCard({
           </IconButton>
         </Box>
         <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
+          <MenuItem onClick={handleHideWorkflow}>{t('library.hide-repository')}</MenuItem>
           <MenuItem onClick={handleDeleteWorkflow}>{t('library.remove-repository')}</MenuItem>
           {workflow['version'] === 'latest' && isRepoInstalled && (
             <MenuItem onClick={checkForUpdates}>{t('library.check-for-updates')}</MenuItem>
@@ -180,8 +187,11 @@ function WorkflowCard({
 function SectionCard({
   section,
   deleteSection,
+  hideWorkflow,
   deleteWorkflow,
   updateWorkflow,
+  hideSection,
+  showSectionWorkflows,
   scheme,
   source,
   createWorkflowInstance,
@@ -213,6 +223,11 @@ function SectionCard({
       }))
     );
     setRefresh(!refresh);
+    handleMenuClose();
+  };
+
+  const handleShowSectionWorkflows = async () => {
+    showSectionWorkflows();
     handleMenuClose();
   };
 
@@ -277,26 +292,36 @@ function SectionCard({
               <MenuItem onClick={queueInstallWorkflows}>
                 {t('library.install-all-workflows')}
               </MenuItem>
+              <MenuItem
+                onClick={handleShowSectionWorkflows}
+                disabled={!(section?.workflows || []).some((workflow) => workflow?.hidden)}
+              >
+                {t('library.show-all-workflows')}
+              </MenuItem>
+              <MenuItem onClick={hideSection}>{t('library.hide-section')}</MenuItem>
               <MenuItem onClick={handleDeleteSection}>{t('library.remove-section')}</MenuItem>
             </Menu>
           </>
         )}
       </Box>
       <Grid container spacing={2} sx={{ px: 1, pb: 1 }}>
-        {(section?.workflows || []).map((workflow) => (
-          <Grid size={3}>
-            <WorkflowCard
-              workflow={workflow}
-              deleteWorkflow={() => deleteWorkflow(workflow)}
-              updateWorkflow={() => updateWorkflow(workflow)}
-              scheme={scheme}
-              createWorkflowInstance={createWorkflowInstance}
-              refresh={refresh}
-              setRefresh={setRefresh}
-              logMessage={logMessage}
-            />
-          </Grid>
-        ))}
+        {(section?.workflows || [])
+          .filter((workflow) => !(workflow?.hidden || false))
+          .map((workflow) => (
+            <Grid size={3}>
+              <WorkflowCard
+                workflow={workflow}
+                hideWorkflow={() => hideWorkflow(workflow)}
+                deleteWorkflow={() => deleteWorkflow(workflow)}
+                updateWorkflow={() => updateWorkflow(workflow)}
+                scheme={scheme}
+                createWorkflowInstance={createWorkflowInstance}
+                refresh={refresh}
+                setRefresh={setRefresh}
+                logMessage={logMessage}
+              />
+            </Grid>
+          ))}
       </Grid>
     </Paper>
   );
@@ -306,8 +331,12 @@ function CatalogueCard({
   catalogue,
   deleteCatalogue,
   deleteSection,
+  hideWorkflow,
   deleteWorkflow,
   updateWorkflow,
+  hideSection,
+  showSectionWorkflows,
+  showSections,
   createWorkflowInstance,
   permitCatalogueModifications,
   refresh,
@@ -346,6 +375,11 @@ function CatalogueCard({
 
   const handleDeleteCatalogue = async () => {
     deleteCatalogue();
+    handleMenuClose();
+  };
+
+  const handleShowSections = async () => {
+    showSections();
     handleMenuClose();
   };
 
@@ -407,6 +441,7 @@ function CatalogueCard({
                 {t('library.install-all-workflows')}
               </MenuItem>
               <MenuItem onClick={handleDeleteCatalogue}>{t('library.remove-catalogue')}</MenuItem>
+              <MenuItem onClick={handleShowSections}>{t('library.show-all-workflows')}</MenuItem>
               {catalogue?.name !== 'User collection' && (
                 <MenuItem onClick={checkForUpdates}>{t('library.check-for-updates')}</MenuItem>
               )}
@@ -415,22 +450,27 @@ function CatalogueCard({
         )}
       </Box>
       <Stack spacing={1}>
-        {(catalogue?.sections || []).map((section) => (
-          <SectionCard
-            section={section}
-            deleteSection={() => deleteSection(section)}
-            deleteWorkflow={(workflow) => deleteWorkflow(section, workflow)}
-            updateWorkflow={(workflow) => updateWorkflow(section, workflow)}
-            scheme={catalogue?.scheme || {}}
-            source={catalogue?.['base_dir']}
-            createWorkflowInstance={createWorkflowInstance}
-            permitCatalogueModifications={permitCatalogueModifications}
-            refresh={refresh}
-            setRefresh={setRefresh}
-            installAllWorkflows={installAllWorkflows}
-            logMessage={logMessage}
-          />
-        ))}
+        {(catalogue?.sections || [])
+          .filter((section) => !(section?.hidden || false))
+          .map((section) => (
+            <SectionCard
+              section={section}
+              deleteSection={() => deleteSection(section)}
+              hideWorkflow={(workflow) => hideWorkflow(section, workflow)}
+              deleteWorkflow={(workflow) => deleteWorkflow(section, workflow)}
+              updateWorkflow={(workflow) => updateWorkflow(section, workflow)}
+              hideSection={() => hideSection(section)}
+              showSectionWorkflows={() => showSectionWorkflows(section)}
+              scheme={catalogue?.scheme || {}}
+              source={catalogue?.['base_dir']}
+              createWorkflowInstance={createWorkflowInstance}
+              permitCatalogueModifications={permitCatalogueModifications}
+              refresh={refresh}
+              setRefresh={setRefresh}
+              installAllWorkflows={installAllWorkflows}
+              logMessage={logMessage}
+            />
+          ))}
       </Stack>
     </Paper>
   );
@@ -477,6 +517,20 @@ export default function LibraryPage({
     });
   };
 
+  const hideSection = async (catalogue, section) => {
+    if (!window.confirm(t('library.confirm-hide-section', { name: section.name }))) {
+      return;
+    }
+    API.hideCatalogueSection(catalogue.name, section.name).then((result) => {
+      if (result.ok) {
+        logMessage(t('library.section-hidden-success', { name: section.name }), 'success');
+        getCatalogues();
+      } else {
+        logMessage(t('library.section-hidden-failure', { name: section.name }), 'error');
+      }
+    });
+  };
+
   const deleteSection = async (catalogue, section) => {
     if (!window.confirm(t('library.confirm-remove-section', { name: section.name }))) {
       return;
@@ -487,6 +541,20 @@ export default function LibraryPage({
         getCatalogues();
       } else {
         logMessage(t('library.section-removed-failure', { name: section.name }), 'error');
+      }
+    });
+  };
+
+  const hideWorkflow = (catalogue, section, workflow) => {
+    if (!window.confirm(t('library.confirm-hide-workflow', { name: workflow.name }))) {
+      return;
+    }
+    API.hideCatalogueWorkflow(catalogue.name, section.name, workflow.name).then((result) => {
+      if (result.ok) {
+        logMessage(t('library.workflow-hidden-success', { name: workflow.name }), 'success');
+        getCatalogues();
+      } else {
+        logMessage(t('library.workflow-hidden-failure', { name: workflow.name }), 'error');
       }
     });
   };
@@ -512,6 +580,28 @@ export default function LibraryPage({
         getCatalogues();
       } else {
         logMessage(t('library.workflow-updated-failure', { name: workflow.name }), 'error');
+      }
+    });
+  };
+
+  const showCatalogueSectionWorkflows = (catalogue, section) => {
+    API.showCatalogueSectionWorkflows(catalogue.name, section.name).then((result) => {
+      if (result.ok) {
+        logMessage(t('library.workflows-shown-success', { name: section.name }), 'success');
+        getCatalogues();
+      } else {
+        logMessage(t('library.workflows-shown-failure', { name: section.name }), 'error');
+      }
+    });
+  };
+
+  const showSections = (catalogue) => {
+    API.showCatalogueSections(catalogue.name).then((result) => {
+      if (result.ok) {
+        logMessage(t('library.workflows-shown-success', { name: catalogue.name }), 'success');
+        getCatalogues();
+      } else {
+        logMessage(t('library.workflows-shown-failure', { name: catalogue.name }), 'error');
       }
     });
   };
@@ -575,8 +665,12 @@ export default function LibraryPage({
             catalogue={catalogue}
             deleteCatalogue={() => deleteCatalogue(catalogue)}
             deleteSection={(section) => deleteSection(catalogue, section)}
+            hideWorkflow={(section, workflow) => hideWorkflow(catalogue, section, workflow)}
             deleteWorkflow={(section, workflow) => deleteWorkflow(catalogue, section, workflow)}
             updateWorkflow={(section, workflow) => updateWorkflow(catalogue, section, workflow)}
+            hideSection={(section) => hideSection(catalogue, section)}
+            showSections={() => showSections(catalogue)}
+            showSectionWorkflows={(section) => showCatalogueSectionWorkflows(catalogue, section)}
             createWorkflowInstance={createWorkflowInstance}
             permitCatalogueModifications={permitCatalogueModifications}
             refresh={refresh}
