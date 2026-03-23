@@ -19,7 +19,14 @@ export function locateReports(reportsDir: string): Record<string, string>[] {
     throw new Error(`Reports directory does not exist: ${reportsDir}`);
   }
   const reportFiles: Record<string, string>[] = [];
+
   function walkDir(currentPath: string) {
+    // If first level 'work' folder, then skip
+    const relativePath = path.relative(reportsDir, currentPath);
+    if (relativePath.split(path.sep)[0] === 'work') {
+      return;
+    }
+
     const files = fs.readdirSync(currentPath);
     for (const file of files) {
       const fullPath = path.join(currentPath, file);
@@ -36,6 +43,7 @@ export function locateReports(reportsDir: string): Record<string, string>[] {
       }
     }
   }
+
   walkDir(reportsDir);
   return reportFiles;
 }
