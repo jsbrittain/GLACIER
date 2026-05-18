@@ -117,9 +117,10 @@ function WorkflowCard({
       variant="outlined"
       sx={{
         p: 1,
-        color: scheme['foreground'] ?? 'text.primary',
-        background: scheme['background'] ?? 'background.paper',
-        fontFamily: scheme['font-family'] ?? 'inherit'
+        color: scheme['workflow-fg'] ?? 'text.primary',
+        background: scheme['workflow-bg'] ?? 'background.paper',
+        fontFamily: scheme['font-family'] ?? 'inherit',
+        fontSize: scheme['font-size'] ?? 'inherit'
       }}
     >
       <Box
@@ -155,9 +156,10 @@ function WorkflowCard({
             size="small"
             variant="contained"
             sx={{
-              color: scheme['title-foreground'] ?? undefined,
-              background: scheme['title-background'] ?? undefined,
-              fontFamily: scheme['font-family'] ?? 'inherit'
+              color: scheme['control-fg'] ?? undefined,
+              background: scheme['control-bg'] ?? undefined,
+              fontFamily: scheme['font-family'] ?? 'inherit',
+              fontSize: scheme['font-size'] ?? 'inherit'
             }}
             onClick={runWorkflow}
           >
@@ -169,9 +171,10 @@ function WorkflowCard({
             size="small"
             variant="contained"
             sx={{
-              color: scheme['title-foreground'] ?? undefined,
-              background: scheme['title-background'] ?? undefined,
-              fontFamily: scheme['font-family'] ?? 'inherit'
+              color: scheme['control-fg'] ?? undefined,
+              background: scheme['control-bg'] ?? undefined,
+              fontFamily: scheme['font-family'] ?? 'inherit',
+              fontSize: scheme['font-size'] ?? 'inherit'
             }}
             onClick={cloneRepo}
             loading={loading}
@@ -241,20 +244,37 @@ function SectionCard({
       elevation={2}
       sx={{
         color:
-          section?.scheme?.['project-foreground'] ?? scheme['project-foreground'] ?? 'text.primary',
+          section?.scheme?.['section-fg'] ?? scheme['section-fg'] ?? 'text.primary',
         background:
-          section?.scheme?.['project-background'] ??
-          scheme['project-background'] ??
+          section?.scheme?.['section-bg'] ??
+          scheme['section-bg'] ??
           'background.paper',
         fontFamily:
-          section?.scheme?.['project-font-family'] ?? scheme['project-font-family'] ?? 'inherit'
+          section?.scheme?.['font-family'] ?? scheme['font-family'] ?? 'inherit',
+        fontSize:
+          section?.scheme?.['font-size'] ?? scheme['font-size'] ?? 'inherit'
       }}
     >
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
-          my: 1
+          my: 1,
+          color: section?.scheme?.['section-title-fg'] ??
+            scheme['section-title-fg'] ??
+            'text.primary',
+          background:
+            section?.scheme?.['section-title-bg'] ??
+            scheme['section-title-bg'] ??
+            'transparent',
+          fontFamily:
+            section?.scheme?.['title-font-family'] ??
+            scheme['title-font-family'] ??
+            'inherit',
+          fontSize:
+            section?.scheme?.['title-font-size'] ??
+            scheme['title-font-size'] ??
+            'inherit'
         }}
       >
         {section?.icon && (
@@ -272,7 +292,13 @@ function SectionCard({
           />
         )}
         <Box>
-          <Typography variant="h6" sx={{ px: 1, py: 0.2 }}>
+          <Typography
+            variant="h6"
+            sx={{
+              px: 1,
+              py: 0.2,
+            }}
+          >
             {section.name}
           </Typography>
           {section.description && (
@@ -394,7 +420,8 @@ function CatalogueCard({
         p: 1,
         background: catalogue?.scheme?.['background'] ?? 'background.paper',
         color: catalogue?.scheme?.['foreground'] ?? 'text.primary',
-        fontFamily: catalogue?.scheme?.['font-family'] ?? 'inherit'
+        fontFamily: catalogue?.scheme?.['font-family'] ?? 'inherit',
+        fontSize: catalogue?.scheme?.['font-size'] ?? 'inherit'
       }}
     >
       <Box
@@ -405,9 +432,10 @@ function CatalogueCard({
           p: 1,
           mb: 1,
           borderRadius: 2,
-          background: catalogue?.scheme?.['title-background'] ?? theme.palette.primary.main,
-          color: catalogue?.scheme?.['title-foreground'] ?? theme.palette.primary.contrastText,
-          fontFamily: catalogue?.scheme?.['title-font-family'] ?? 'inherit'
+          background: catalogue?.scheme?.['title-bg'] ?? theme.palette.primary.main,
+          color: catalogue?.scheme?.['title-fg'] ?? theme.palette.primary.contrastText,
+          fontFamily: catalogue?.scheme?.['title-font-family'] ?? 'inherit',
+          fontSize: catalogue?.scheme?.['title-font-size'] ?? 'inherit'
         }}
       >
         {catalogue?.icon && (
