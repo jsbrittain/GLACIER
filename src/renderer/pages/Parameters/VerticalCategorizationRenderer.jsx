@@ -1,36 +1,34 @@
-// VerticalCategorizationRenderer.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { rankWith, uiTypeIs } from '@jsonforms/core';
-import { JsonFormsDispatch, withJsonFormsLayoutProps } from '@jsonforms/react';
+import { JsonFormsDispatch, withJsonFormsLayoutProps, useJsonForms } from '@jsonforms/react';
 import { Tabs, Tab, Box } from '@mui/material';
 
-/**
- * Tester: match Categorization with a high rank so it overrides the default Categorization renderer.
- */
 export const verticalCategorizationTester = rankWith(10, uiTypeIs('Categorization'));
 
-/**
- * VerticalCategorization renderer
- *
- * Expects uischema to be:
- * {
- *   type: "Categorization",
- *   elements: [
- *     { type: "Category", label: "...", elements: [  ] },
- *     ...
- *   ]
- * }
- *
- * It will render Tabs vertically on the left and the raw elements for each category on the right.
- * No requirement to wrap category elements inside a VerticalLayout — JsonFormsDispatch will render each element.
- */
 const VerticalCategorization = ({ uischema, schema, path, visible }) => {
   const categories = (uischema && uischema.elements) || [];
   const [value, setValue] = useState(0);
+  const [tabHasError, setTabHasError] = useState([]);
+  const panelRefs = useRef([]);
+  const jsonforms = useJsonForms();
 
   if (!visible) return null;
 
-  // helper to get label text (supports variations)
+  useEffect(() => {
+    const next = categories.map((_, i) => {
+      const panel = panelRefs.current[i];
+      if (!panel) return false;
+
+      return Boolean(
+        panel.querySelector(
+          '.Mui-error, [aria-invalid="true"], .MuiFormHelperText-root.Mui-error'
+        )
+      );
+    });
+
+    setTabHasError(next);
+  }, [categories, jsonforms?.core?.errors, jsonforms?.core?.data, path]);
+
   const getLabel = (cat, fallbackIndex) => {
     if (!cat) return `Tab ${fallbackIndex + 1}`;
     if (typeof cat.label === 'string') return cat.label;
@@ -48,15 +46,48 @@ const VerticalCategorization = ({ uischema, schema, path, visible }) => {
         onChange={(_, newVal) => setValue(newVal)}
         sx={{ borderRight: 1, borderColor: 'divider', minWidth: 160, flexShrink: 0 }}
       >
-        {categories.map((cat, i) => (
-          <Tab
-            key={i}
-            label={getLabel(cat, i)}
-            id={`vert-tab-${i}`}
-            aria-controls={`vert-tabpanel-${i}`}
-            sx={{ textTransform: 'none' }}
-          />
-        ))}
+        {categories.map((cat, i) => {
+          const hasError = !!tabHasError[i];
+
+          return (
+            <Tab
+              key={i}
+              label={
+                <Box
+                  component="span"
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
+                    color: hasError ? 'error.main' : 'inherit',
+                    fontWeight: hasError ? 700 : 400,
+                  }}
+                >
+                  <span>{getLabel(cat, i)}</span>
+                  {hasError && (
+                    <Box
+                      component="span"
+                      sx={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        bgcolor: 'error.main',
+                        flexShrink: 0,
+                      }}
+                    />
+                  )}
+                </Box>
+              }
+              id={`vert-tab-${i}`}
+              aria-controls={`vert-tabpanel-${i}`}
+              sx={{
+                textTransform: 'none',
+                alignItems: 'flex-start',
+                opacity: 1,
+              }}
+            />
+          );
+        })}
       </Tabs>
 
       <Box sx={{ flex: 1, p: 2, minWidth: 0 }}>
@@ -67,18 +98,18 @@ const VerticalCategorization = ({ uischema, schema, path, visible }) => {
             id={`vert-tabpanel-${i}`}
             aria-labelledby={`vert-tab-${i}`}
             key={i}
+            ref={(el) => {
+              panelRefs.current[i] = el;
+            }}
             style={{ width: '100%' }}
           >
             {value === i && (
-              // If the Category has elements (array), render each element directly.
-              // JsonFormsDispatch will pick the correct renderer for Control / Group / Layout / etc.
               <>
                 {Array.isArray(cat.elements) && cat.elements.length > 0 ? (
                   cat.elements.map((child, idx) => (
                     <JsonFormsDispatch key={idx} uischema={child} schema={schema} path={path} />
                   ))
                 ) : (
-                  // fallback: render the category itself (some UISchema shapes keep controls directly)
                   <JsonFormsDispatch uischema={cat} schema={schema} path={path} />
                 )}
               </>

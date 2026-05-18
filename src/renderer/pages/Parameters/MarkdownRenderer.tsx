@@ -30,6 +30,8 @@ export default function MarkdownRenderer({ content, basePath }) {
       remarkPlugins={[remarkGfm, remarkDirective, remarkAdmonitions]}
       rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
       components={{
+
+        // Image
         img({ src = '', alt, ...props }) {
           const isExternal =
             src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:');
@@ -43,6 +45,7 @@ export default function MarkdownRenderer({ content, basePath }) {
           return <img {...props} src={resolvedSrc} alt={alt ?? ''} style={{ maxWidth: '100%' }} />;
         },
 
+        // Link
         a({ href = '', children, ...props }) {
           const handleClick = (e) => {
             if (href.startsWith('#')) return;
@@ -53,7 +56,7 @@ export default function MarkdownRenderer({ content, basePath }) {
               const url = href.startsWith('http')
                 ? href
                 : href.startsWith('/')
-                  ? `${basePath}${href}`
+                  ? `${basePath}/${href}`
                   : `${basePath}/${href}`;
 
               API.openWebPage(url);
@@ -65,6 +68,7 @@ export default function MarkdownRenderer({ content, basePath }) {
               {children}
             </a>
           );
+
         }
       }}
     >
