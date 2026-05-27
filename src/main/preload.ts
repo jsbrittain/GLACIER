@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron'); // must be CommonJS for electron
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  init: () => ipcRenderer.invoke('init'),
   createWorkflowInstance: (workflow_id: string, version: string) =>
     ipcRenderer.invoke('create-workflow-instance', workflow_id, version),
   runWorkflow: (instance: any, params: any, opts: any) =>

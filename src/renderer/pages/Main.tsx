@@ -67,6 +67,10 @@ export default function MainPage({ darkMode, setDarkMode }) {
       API.settingsGet(SettingsKey.PermitAddRepos).then((result) => {
         setPermitAddRepos(result);
       });
+      const r = await API.init();
+      if (!r.ok) {
+        alert(t('error.parsing-catalogue') + ': ' + r.error.message);
+      }
       const path = await API.getCollectionsPath();
       setCollectionsPath(path);
       refreshInstancesList();
