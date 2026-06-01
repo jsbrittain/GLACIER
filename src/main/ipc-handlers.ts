@@ -19,6 +19,7 @@ async function call(fcn: any, ...args: any[]): Promise<Result<any>> {
 
 export function registerIpcHandlers() {
   const redirect = {
+    init: collection.init.bind(collection),
     'run-workflow': collection.runWorkflow.bind(collection),
     'get-catalogues': collection.getCatalogues.bind(collection),
     'add-catalogue': collection.addCatalogue.bind(collection),

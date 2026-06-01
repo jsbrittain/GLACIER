@@ -187,7 +187,6 @@ export class Collection {
   // private constructor to prevent direct instantiation
   private constructor() {
     this.root_path = getCollectionsPath();
-    this.startup();
   }
 
   // Method to get the singleton instance
@@ -225,7 +224,7 @@ export class Collection {
 
   // --- Logic -------------------------------------------------------------------------
 
-  async startup() {
+  async init() {
     const is_electron = process.versions?.electron !== undefined;
     if (is_electron && !fs.existsSync(this.catalogues_path)) {
       // Import manifest if one exists
@@ -239,7 +238,7 @@ export class Collection {
         await this.importManifest(manifestPath);
       }
     }
-    this.parseCollection();
+    await this.parseCollection();
     this.starting_up = false;
   }
 
@@ -1004,7 +1003,12 @@ export class Collection {
         // Read catalogue.json
         const cat_file = path.join(repoPath, 'catalogue.json');
         const cat_contents = fs.readFileSync(cat_file, 'utf-8');
-        const js = JSON.parse(cat_contents);
+        let js = JSON.parse('{}');
+        try {
+          js = JSON.parse(cat_contents);
+        } catch (err) {
+          throw new Error(`Failed to parse catalogue.json for ${owner}/${repo}: ${err}`);
+        }
         js['source'] = `${owner}/${repo}`;
         js['base_dir'] = repoPath;
         // Add to catalogues

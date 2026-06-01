@@ -243,16 +243,10 @@ function SectionCard({
     <Paper
       elevation={2}
       sx={{
-        color:
-          section?.scheme?.['section-fg'] ?? scheme['section-fg'] ?? 'text.primary',
-        background:
-          section?.scheme?.['section-bg'] ??
-          scheme['section-bg'] ??
-          'background.paper',
-        fontFamily:
-          section?.scheme?.['font-family'] ?? scheme['font-family'] ?? 'inherit',
-        fontSize:
-          section?.scheme?.['font-size'] ?? scheme['font-size'] ?? 'inherit'
+        color: section?.scheme?.['section-fg'] ?? scheme['section-fg'] ?? 'text.primary',
+        background: section?.scheme?.['section-bg'] ?? scheme['section-bg'] ?? 'background.paper',
+        fontFamily: section?.scheme?.['font-family'] ?? scheme['font-family'] ?? 'inherit',
+        fontSize: section?.scheme?.['font-size'] ?? scheme['font-size'] ?? 'inherit'
       }}
     >
       <Box
@@ -260,21 +254,13 @@ function SectionCard({
           display: 'flex',
           alignItems: 'center',
           my: 1,
-          color: section?.scheme?.['section-title-fg'] ??
-            scheme['section-title-fg'] ??
-            'text.primary',
+          color:
+            section?.scheme?.['section-title-fg'] ?? scheme['section-title-fg'] ?? 'text.primary',
           background:
-            section?.scheme?.['section-title-bg'] ??
-            scheme['section-title-bg'] ??
-            'transparent',
+            section?.scheme?.['section-title-bg'] ?? scheme['section-title-bg'] ?? 'transparent',
           fontFamily:
-            section?.scheme?.['title-font-family'] ??
-            scheme['title-font-family'] ??
-            'inherit',
-          fontSize:
-            section?.scheme?.['title-font-size'] ??
-            scheme['title-font-size'] ??
-            'inherit'
+            section?.scheme?.['title-font-family'] ?? scheme['title-font-family'] ?? 'inherit',
+          fontSize: section?.scheme?.['title-font-size'] ?? scheme['title-font-size'] ?? 'inherit'
         }}
       >
         {section?.icon && (
@@ -296,7 +282,7 @@ function SectionCard({
             variant="h6"
             sx={{
               px: 1,
-              py: 0.2,
+              py: 0.2
             }}
           >
             {section.name}

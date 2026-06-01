@@ -1,6 +1,9 @@
 {
   "glacier": "GLACIER",
   "container-started": "Conteneur construit et démarré avec l'ID",
+  "error": {
+    "parsing-catalogue": "Erreur lors de l'analyse du catalogue"
+  },
   "common": {
     "okay": "OK",
     "cancel": "Annuler"

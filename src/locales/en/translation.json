@@ -1,6 +1,9 @@
 {
   "glacier": "GLACIER",
   "container-started": "Container built and started with ID",
+  "error": {
+    "parsing-catalogue": "Error parsing catalogue"
+  },
   "common": {
     "okay": "Okay",
     "cancel": "Cancel"

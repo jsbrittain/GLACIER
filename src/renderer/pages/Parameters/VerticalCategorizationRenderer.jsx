@@ -20,9 +20,7 @@ const VerticalCategorization = ({ uischema, schema, path, visible }) => {
       if (!panel) return false;
 
       return Boolean(
-        panel.querySelector(
-          '.Mui-error, [aria-invalid="true"], .MuiFormHelperText-root.Mui-error'
-        )
+        panel.querySelector('.Mui-error, [aria-invalid="true"], .MuiFormHelperText-root.Mui-error')
       );
     });
 
@@ -60,7 +58,7 @@ const VerticalCategorization = ({ uischema, schema, path, visible }) => {
                     alignItems: 'center',
                     gap: 1,
                     color: hasError ? 'error.main' : 'inherit',
-                    fontWeight: hasError ? 700 : 400,
+                    fontWeight: hasError ? 700 : 400
                   }}
                 >
                   <span>{getLabel(cat, i)}</span>
@@ -72,7 +70,7 @@ const VerticalCategorization = ({ uischema, schema, path, visible }) => {
                         height: 8,
                         borderRadius: '50%',
                         bgcolor: 'error.main',
-                        flexShrink: 0,
+                        flexShrink: 0
                       }}
                     />
                   )}
@@ -83,7 +81,7 @@ const VerticalCategorization = ({ uischema, schema, path, visible }) => {
               sx={{
                 textTransform: 'none',
                 alignItems: 'flex-start',
-                opacity: 1,
+                opacity: 1
               }}
             />
           );

@@ -37,6 +37,10 @@ async function call(fcn, ...args) {
   }
 }
 
+app.post('/api/init', async (req, res) =>
+  post_response(res, call(collection.init.bind(collection), req.body.config))
+);
+
 app.post('/api/create-workflow-instance', async (req, res) =>
   post_response(res, collection.createWorkflowInstance(req.body.workflow_id, req.body.version))
 );

@@ -30,7 +30,6 @@ export default function MarkdownRenderer({ content, basePath }) {
       remarkPlugins={[remarkGfm, remarkDirective, remarkAdmonitions]}
       rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
       components={{
-
         // Image
         img({ src = '', alt, ...props }) {
           const isExternal =
@@ -68,7 +67,6 @@ export default function MarkdownRenderer({ content, basePath }) {
               {children}
             </a>
           );
-
         }
       }}
     >

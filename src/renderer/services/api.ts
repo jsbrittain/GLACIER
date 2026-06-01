@@ -2,6 +2,7 @@ const isElectron = Boolean(window?.electronAPI);
 
 const electronAPI = isElectron
   ? {
+      init: () => window.electronAPI.init(),
       createWorkflowInstance: (workflow_id, version) =>
         window.electronAPI.createWorkflowInstance(workflow_id, version),
       runWorkflow: (instance, params, opts) =>
@@ -85,6 +86,7 @@ const httpDispatch = async (endpoint, method = 'GET', body = null) => {
 };
 
 const httpAPI = {
+  init: async () => httpDispatch('/api/init', 'POST', {}),
   createWorkflowInstance: async (workflow_id, version) =>
     httpDispatch('/api/create-workflow-instance', 'POST', { workflow_id, version }),
   runWorkflow: async (instance, params, opts) =>
