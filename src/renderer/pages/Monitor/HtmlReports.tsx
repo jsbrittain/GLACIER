@@ -13,9 +13,11 @@ export default function HtmlReports({ instance }) {
   const [selected, setSelected] = React.useState(null);
   const [reportsList, setReportsList] = React.useState<Record<string, string>[]>([]);
 
-  API.getInstanceReportsList(instance).then((reports) => {
-    setReportsList(reports || []);
-  });
+  useEffect(() => {
+    API.getInstanceReportsList(instance).then((reports) => {
+      setReportsList(reports || []);
+    });
+  }, [instance]);
 
   useEffect(() => {
     if (selected?.path) setLoading(true);
@@ -78,7 +80,7 @@ export default function HtmlReports({ instance }) {
         <PanelResizeHandle />
 
         {/* Render HTML report (right side) */}
-        <Panel style={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
+        <Panel defaultSize={75} style={{ display: 'flex', flex: 1, flexDirection: 'column', minHeight: 0 }}>
           {/* Loading spinner overlay */}
           {loading && (
             <Box
@@ -96,7 +98,7 @@ export default function HtmlReports({ instance }) {
           {/* Iframe to display the selected report */}
           <iframe
             title="preview"
-            src={selected?.path || ''}
+            src={selected?.path || null}
             onLoad={() => setLoading(false)}
             style={{ width: '100%', height: '100%', border: 'none' }}
             hidden={!selected?.path || loading}

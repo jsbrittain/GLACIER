@@ -32,6 +32,8 @@ jobs:
         run: npm ci
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
+      - name: Ensure Electron binary
+        run: npm rebuild electron
       - name: Platform specific CI setup
         run: ./tests/e2e/ci-setup.sh
       - name: Build GLACIER

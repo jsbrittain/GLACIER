@@ -33,10 +33,6 @@ const STATUS_ICONS = {
   stopped: <CancelIcon style={{ color: 'gray' }} />
 };
 
-let itemId;
-let current_locale;
-let is_workflow_running;
-
 const is_finished = (status: ProcessStatus) => {
   return (
     status === ProcessStatus.Completed ||
@@ -51,7 +47,7 @@ type LogIDContextType = {
 };
 
 const LogIDContext = React.createContext<LogIDContextType>(null);
-const GetInstanceContext = React.createContext(null);
+const GetInstanceContext = React.createContext<{ instance: any; isWorkflowRunning: boolean } | null>(null);
 
 // X-Tree-View customisation: https://mui.com/x/react-tree-view/tree-item-customization/
 type TreeItemWithLabel = {
@@ -91,7 +87,10 @@ function CustomLabel({
   const [anchorEl, setAnchorEl] = useState(null);
   const [logType, setLogType] = useState(log_types[0]);
   const { logID, setLogID } = React.useContext(LogIDContext);
-  const instance = React.useContext(GetInstanceContext);
+  const ctx = React.useContext(GetInstanceContext);
+  const instance = ctx?.instance;
+  const is_workflow_running = ctx?.isWorkflowRunning ?? false;
+  const current_locale = getDateLocale();
   const menuIsOpen = Boolean(anchorEl);
   let logInterval;
 
@@ -271,7 +270,7 @@ const CustomTreeItem = React.forwardRef(function CustomTreeItem(
   );
 });
 
-const FormatWorkflowStatus = ({ workflowStatus }: { workflowStatus: WorkflowStatus }) => {
+const FormatWorkflowStatus = ({ workflowStatus, isWorkflowRunning }: { workflowStatus: WorkflowStatus; isWorkflowRunning: boolean }) => {
   const { t } = useTranslation();
 
   let color_palette = 'info';
@@ -283,7 +282,7 @@ const FormatWorkflowStatus = ({ workflowStatus }: { workflowStatus: WorkflowStat
   return (
     <Typography variant="h6" color={color_palette} gutterBottom>
       {workflowStatus === WorkflowStatus.Undefined
-        ? is_workflow_running
+        ? isWorkflowRunning
           ? t('monitor.progress.running')
           : t('monitor.progress.loading')
         : t('monitor.progress.' + workflowStatus)}
@@ -291,9 +290,9 @@ const FormatWorkflowStatus = ({ workflowStatus }: { workflowStatus: WorkflowStat
   );
 };
 
-const addGroup = (parent, group) => {
+const addGroup = (parent, group, itemIdRef) => {
   parent.push({
-    id: String(itemId++),
+    id: String(itemIdRef.current++),
     label: group.name,
     children: [],
     last_update: group?.last_update,
@@ -305,7 +304,7 @@ const addGroup = (parent, group) => {
   const item = parent[parent.length - 1];
   // Sub-groups
   group?.group.forEach((subgroup) => {
-    addGroup(item.children, subgroup);
+    addGroup(item.children, subgroup, itemIdRef);
   });
   // Extract last process state
   if (group?.process.length > 0) {
@@ -333,19 +332,19 @@ const descendStatus = (child, status) => {
   });
 };
 
-const ascendStatus = (child) => {
+const ascendStatus = (child, isWorkflowRunning) => {
   if (is_finished(child.status)) {
     descendStatus(child, child.status);
   }
   if (child?.children.length > 0) {
-    const status_list = child.children.map((grand_child) => ascendStatus(grand_child));
+    const status_list = child.children.map((grand_child) => ascendStatus(grand_child, isWorkflowRunning));
     if (status_list.every((status) => status === ProcessStatus.Completed)) {
       child.status = ProcessStatus.Completed;
     } else if (status_list.includes(ProcessStatus.Error)) {
       child.status = ProcessStatus.Error;
     } else if (status_list.includes(ProcessStatus.Submitted)) {
       child.status = ProcessStatus.Submitted;
-    } else if (!is_workflow_running) {
+    } else if (!isWorkflowRunning) {
       // Workflow is no longer active
       child.status = ProcessStatus.Stopped;
     } else {
@@ -355,7 +354,7 @@ const ascendStatus = (child) => {
       (100 * status_list.filter((status) => status === ProcessStatus.Completed).length) /
       status_list.length;
   }
-  if (!is_finished(child.status) && !is_workflow_running) {
+  if (!is_finished(child.status) && !isWorkflowRunning) {
     // Workflow is no longer active
     child.status = ProcessStatus.Stopped;
   }
@@ -370,8 +369,10 @@ export default function ProgressTracker({ instance }) {
   );
   const [items, setItems] = React.useState<any[]>([]);
   const [logID, setLogID] = React.useState<string>('');
+  const itemIdRef = React.useRef(0);
 
-  current_locale = getDateLocale();
+  const isWorkflowRunning =
+    workflowStatus !== WorkflowStatus.Completed && workflowStatus !== WorkflowStatus.Failed;
 
   useEffect(() => {
     const fetchAll = () => {
@@ -380,16 +381,17 @@ export default function ProgressTracker({ instance }) {
         const workflow_status =
           (report?.workflow[report.workflow.length - 1]?.status as WorkflowStatus) ||
           WorkflowStatus.Undefined;
-        is_workflow_running =
-          workflow_status !== WorkflowStatus.Completed && workflow_status !== WorkflowStatus.Failed;
         setWorkflowStatus(workflow_status);
 
+        const isRunning =
+          workflow_status !== WorkflowStatus.Completed && workflow_status !== WorkflowStatus.Failed;
+
         // Parse report into custom TreeView structure (groups and processes)
-        itemId = 0;
+        itemIdRef.current = 0;
         const items = [];
-        report?.group.forEach((group) => addGroup(items, group));
+        report?.group.forEach((group) => addGroup(items, group, itemIdRef));
         // Ascend leaf status to parent groups, and calculate progress
-        items.forEach((group) => ascendStatus(group));
+        items.forEach((group) => ascendStatus(group, isRunning));
         setItems(items);
       });
     };
@@ -403,12 +405,12 @@ export default function ProgressTracker({ instance }) {
     <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <Box>
-          <FormatWorkflowStatus workflowStatus={workflowStatus} />
+          <FormatWorkflowStatus workflowStatus={workflowStatus} isWorkflowRunning={isWorkflowRunning} />
         </Box>
         <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
           {items?.length > 0 ? (
             <LogIDContext.Provider value={{ logID, setLogID }}>
-              <GetInstanceContext.Provider value={instance}>
+              <GetInstanceContext.Provider value={{ instance, isWorkflowRunning }}>
                 <RichTreeView items={items} slots={{ item: CustomTreeItem }} />
               </GetInstanceContext.Provider>
             </LogIDContext.Provider>

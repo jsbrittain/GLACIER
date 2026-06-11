@@ -21,7 +21,7 @@ export interface ICloneRepo {
   path: string;
 }
 
-function parseRepoUrl(repoUrl: string): { owner: string; repo: string; url: string } {
+export function parseRepoUrl(repoUrl: string): { owner: string; repo: string; url: string } {
   // Interpret repository reference as short-form or full URL
   let owner: string = '';
   let repo: string = '';
@@ -38,7 +38,7 @@ function parseRepoUrl(repoUrl: string): { owner: string; repo: string; url: stri
     if (!repoUrl.includes('/') || repoUrl.split('/').length !== 2) {
       throw new Error('Invalid repo format. Use either "owner/repo" or full GitHub URL.');
     }
-    [owner, repo] = repoUrl.replace(/\\.git$/, '').split('/');
+    [owner, repo] = repoUrl.replace(/\.git$/, '').split('/');
   }
   const url = `https://github.com/${owner}/${repo}.git`;
   return { owner, repo, url };

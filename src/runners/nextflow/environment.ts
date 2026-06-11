@@ -3,9 +3,6 @@ import { mkdirSync, chmodSync, createWriteStream } from 'fs';
 import { execFileSync, spawn } from 'child_process';
 import path from 'path';
 
-import pkg from 'electron';
-const { shell } = pkg;
-
 const is_windows = process.platform === 'win32';
 const is_electron = process.versions?.electron !== undefined;
 const nextflowPath = path.join(process.env.HOME || '', 'GLACIER', 'bin', 'nextflow');
@@ -292,8 +289,22 @@ function installWSL2distro() {
   });
 }
 
-function installDocker() {
+let _shell: any;
+async function getShell() {
+  if (!_shell) {
+    try {
+      const pkg = await import('electron');
+      _shell = pkg.shell;
+    } catch {
+      _shell = { openExternal: () => Promise.resolve() };
+    }
+  }
+  return _shell;
+}
+
+async function installDocker() {
   // open Docker download page
-  shell.openExternal('https://www.docker.com/products/docker-desktop/');
+  const s = await getShell();
+  await s.openExternal('https://www.docker.com/products/docker-desktop/');
   return { ok: true };
 }
