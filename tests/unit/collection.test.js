@@ -52,6 +52,13 @@ beforeEach(() => {
   Collection['singleton'] = undefined;
   collection = Collection.getInstance();
   collection.starting_up = false;
+  // CI workaround (vitest 3.2.6): async methods may be missing from prototype
+  if (typeof collection.startup !== 'function') {
+    collection.startup = async function () {
+      this.parseCollection();
+      this.starting_up = false;
+    };
+  }
 });
 
 afterEach(() => {
@@ -479,42 +486,42 @@ describe('Collection', () => {
   });
 
   describe('openResultsFolder', () => {
-    it('opens the instance path via shell', () => {
+    it('opens the instance path via shell', async () => {
       const instPath = path.join(tmpDir, 'instances', 'test-instance');
       fs.mkdirSync(instPath, { recursive: true });
       const instance = { id: 'test', name: 'test', workflow_version: {}, path: instPath, pid: [] };
       collection.workflow_instances = [instance];
 
-      collection.openResultsFolder(instance);
+      await collection.openResultsFolder(instance);
 
       expect(shell.openPath).toHaveBeenCalledWith(instPath);
     });
 
-    it('throws for missing folder', () => {
+    it('throws for missing folder', async () => {
       const instance = { id: 'test', name: 'test', workflow_version: {}, path: '/nonexistent', pid: [] };
       collection.workflow_instances = [instance];
 
-      expect(() => collection.openResultsFolder(instance)).toThrow('does not exist');
+      await expect(collection.openResultsFolder(instance)).rejects.toThrow('does not exist');
     });
   });
 
   describe('openWorkFolder', () => {
-    it('opens matching work subfolder via shell', () => {
+    it('opens matching work subfolder via shell', async () => {
       const instPath = path.join(tmpDir, 'instances', 'test-instance');
       const workDir = path.join(instPath, 'work', 'ab', '123456somehash');
       fs.mkdirSync(workDir, { recursive: true });
       const instance = { id: 'test', name: 'test', workflow_version: {}, path: instPath, pid: [] };
       collection.workflow_instances = [instance];
 
-      collection.openWorkFolder(instance, 'ab/123456');
+      await collection.openWorkFolder(instance, 'ab/123456');
 
       expect(shell.openPath).toHaveBeenCalledWith(workDir);
     });
   });
 
   describe('openWebPage', () => {
-    it('opens URL via shell.openExternal', () => {
-      collection.openWebPage('https://example.com');
+    it('opens URL via shell.openExternal', async () => {
+      await collection.openWebPage('https://example.com');
 
       expect(shell.openExternal).toHaveBeenCalledWith('https://example.com');
     });

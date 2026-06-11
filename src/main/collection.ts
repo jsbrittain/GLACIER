@@ -1,7 +1,5 @@
 // Main Collection store for workflows and instances
 
-import pkg from 'electron';
-const { shell } = pkg;
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
@@ -19,6 +17,19 @@ import { settings, StoreSchema } from './settings.js';
 import { getAvailableProfiles } from '../runners/nextflow/nextflow.js';
 import { parseNextflowLog } from '../runners/nextflow/nf-parse.js';
 //
+
+let _shell: any;
+async function getShell(): Promise<any> {
+  if (!_shell) {
+    try {
+      const pkg = await import('electron');
+      _shell = pkg.shell;
+    } catch {
+      _shell = { openPath: () => Promise.resolve(), openExternal: () => Promise.resolve() };
+    }
+  }
+  return _shell;
+}
 
 const instance_database_file = 'instances.json';
 
@@ -648,20 +659,21 @@ export class Collection {
     }
   }
 
-  openResultsFolder(instance: IWorkflowInstance) {
+  async openResultsFolder(instance: IWorkflowInstance) {
     const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
     if (!local_instance) {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
     const folderPath = local_instance.path;
     if (fs.existsSync(folderPath)) {
-      shell.openPath(folderPath);
+      const s = await getShell();
+      return s.openPath(folderPath);
     } else {
       throw new Error(`Results folder ${folderPath} does not exist.`);
     }
   }
 
-  openWorkFolder(instance: IWorkflowInstance, word_id: string) {
+  async openWorkFolder(instance: IWorkflowInstance, word_id: string) {
     const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
     if (!local_instance) {
       throw new Error(`Instance ${instance.id} not found in collection.`);
@@ -685,7 +697,8 @@ export class Collection {
       console.warn(`Multiple work folders found matching ID: ${word_id}, opening first match.`);
     }
     const folderPath = path.join(workFolder, candidates[0]);
-    shell.openPath(folderPath);
+    const s = await getShell();
+    return s.openPath(folderPath);
   }
 
   getWorkLog(instance: IWorkflowInstance, workID: string, log_type: string): string {
@@ -966,7 +979,7 @@ export class Collection {
     }
   }
 
-  settingsGet<K extends keyof StoreSchema>(key: K): StoreSchema[K] {
+  settingsGet<K extends keyof StoreSchema>(key: K): StoreSchema[K] | undefined {
     return settings.get(key);
   }
 
@@ -974,8 +987,9 @@ export class Collection {
     settings.set(key, value);
   }
 
-  openWebPage(url: string) {
-    shell.openExternal(url);
+  async openWebPage(url: string) {
+    const s = await getShell();
+    return s.openExternal(url);
   }
 
   async getEnvironmentStatus(key: string) {

@@ -1,4 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+function hasElectron(): boolean {
+  const pathFile = path.join(__dirname, 'node_modules', 'electron', 'path.txt');
+  if (!fs.existsSync(pathFile)) return false;
+  const binName = fs.readFileSync(pathFile, 'utf-8').trim();
+  const binPath = path.join(__dirname, 'node_modules', 'electron', 'dist', binName);
+  return fs.existsSync(binPath);
+}
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -39,13 +52,17 @@ export default defineConfig({
         ...devices['Desktop Safari']
       }
     },
-    {
-      name: 'Electron',
-      use: {
-        browserName: 'chromium',
-        ...devices['Desktop Chrome']
-      }
-    }
+    ...(hasElectron()
+      ? [
+          {
+            name: 'Electron',
+            use: {
+              browserName: 'chromium',
+              ...devices['Desktop Chrome']
+            }
+          }
+        ]
+      : [])
   ],
   webServer: {
     command: 'npm run server',
