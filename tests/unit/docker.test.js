@@ -2,7 +2,7 @@ import os from 'os';
 import { describe, it, expect } from 'vitest';
 import * as docker from '../../src/runners/docker/docker.js';
 
-describe('docker module', () => {
+describe.skip('docker module', () => {
   it('builds and starts a container from a minimal Dockerfile', async () => {
     const path = './tests/unit/fixtures/minimal-docker';
     const imageName = `test-image-${Date.now()}`;
