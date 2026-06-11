@@ -12,7 +12,8 @@ export default {
           name: 'backend',
           globals: true,
           environment: 'node',
-          include: ['tests/unit/**/*.test.js']
+          include: ['tests/unit/**/*.test.js'],
+          setupFiles: ['tests/unit/backend/setup.js']
         }
       },
       {

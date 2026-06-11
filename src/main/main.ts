@@ -6,7 +6,19 @@ import { registerIpcHandlers } from './ipc-handlers.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-let win: BrowserWindow;
+let win: BrowserWindow | null = null;
+
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
+    }
+  });
+}
 
 function createWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -42,7 +54,7 @@ app.on('window-all-closed', () => {
 });
 
 ipcMain.handle('pick-file', async (_evt, opts?: { filters?: Electron.FileFilter[] }) => {
-  const res = await dialog.showOpenDialog(win, {
+  const res = await dialog.showOpenDialog(win!, {
     properties: ['openFile'],
     filters: opts?.filters
   });
@@ -50,7 +62,7 @@ ipcMain.handle('pick-file', async (_evt, opts?: { filters?: Electron.FileFilter[
 });
 
 ipcMain.handle('pick-directory', async () => {
-  const res = await dialog.showOpenDialog(win, {
+  const res = await dialog.showOpenDialog(win!, {
     properties: ['openDirectory']
   });
   return res.canceled ? null : (res.filePaths[0] ?? null);
