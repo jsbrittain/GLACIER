@@ -13,9 +13,11 @@ export default function HtmlReports({ instance }) {
   const [selected, setSelected] = React.useState(null);
   const [reportsList, setReportsList] = React.useState<Record<string, string>[]>([]);
 
-  API.getInstanceReportsList(instance).then((reports) => {
-    setReportsList(reports || []);
-  });
+  useEffect(() => {
+    API.getInstanceReportsList(instance).then((reports) => {
+      setReportsList(reports || []);
+    });
+  }, [instance]);
 
   useEffect(() => {
     if (selected?.path) setLoading(true);

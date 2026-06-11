@@ -19,7 +19,9 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-const ShowLog = (instance, log_type) => {
+const SECOND = 1000;
+
+const ShowLog = ({ instance, log_type }: { instance: any; log_type: string }) => {
   const [log, setLog] = React.useState('');
 
   useEffect(() => {
@@ -40,9 +42,7 @@ const ShowLog = (instance, log_type) => {
   return <AnsiLog text={log} />;
 };
 
-const SECOND = 1000;
-
-export default function LogsPage(instance) {
+export default function LogsPage({ instance }: { instance: any }) {
   const { t } = useTranslation();
   const [tabSelected, setTabSelected] = React.useState(0);
 
