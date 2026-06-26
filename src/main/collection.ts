@@ -1037,6 +1037,7 @@ export class Collection {
   }
 
   async refreshCatalogues() {
+    this.parseWorkflows();
     return await this.parseCatalogues();
   }
 

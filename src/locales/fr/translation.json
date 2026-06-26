@@ -6,7 +6,8 @@
   },
   "common": {
     "okay": "OK",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "close": "Fermer"
   },
   "sidebar": {
     "library": "Bibliothèque",
@@ -83,6 +84,11 @@
       "missing-deps": "Dépendances manquantes",
       "required-deps": "Les programmes suivants n'ont pas été détectés : ",
       "go-to-settings": "Configurer"
+    },
+    "import-shard-dialog": {
+      "title": "Importer un shard",
+      "description": "Entrez le chemin du fichier shard à importer :",
+      "file-picker": "Sélectionner le fichier shard"
     }
   },
   "instances": {

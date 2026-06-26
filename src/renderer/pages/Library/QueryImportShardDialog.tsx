@@ -116,6 +116,7 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
             id="import-shard-dialog-close-button"
             variant="contained"
             onClick={onClose}
+            disabled={importing}
           >
             {t('common.close')}
           </Button>
