@@ -18,6 +18,7 @@
     "local-repositories": "Local Repositories",
     "install": "Install",
     "run": "Run",
+    "source": "Source",
     "sync": "Sync",
     "repo-sync-success": "Repository synced successfully",
     "repo-sync-failed": "Repository sync failed",
