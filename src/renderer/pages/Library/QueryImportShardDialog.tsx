@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
 import {
   Alert,
+  Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -16,24 +18,14 @@ import { useTranslation } from 'react-i18next';
 export default function QueryImportShardDialog({ open, refresh, onClose, logMessage }) {
   const { t } = useTranslation();
 
-  const default_version = 'latest';
-  const default_section = 'My Workflows';
-
-  const [name, setName] = React.useState('');
-  const [repo, setRepo] = React.useState('');
-  const [version, setVersion] = React.useState(default_version);
-  const [section, setSection] = React.useState(default_section);
-
-  const [loading, setLoading] = React.useState(false);
   const [logs, setLogs] = React.useState([]);
+  const [importing, setImporting] = React.useState(false);
+  const [selectedFile, setSelectedFile] = React.useState('');
 
   useEffect(() => {
-    // Reset state when dialog is opened
-    setName('');
-    setRepo('');
-    setVersion(default_version);
-    setSection(default_section);
     setLogs([]);
+    setImporting(false);
+    setSelectedFile('');
   }, [open]);
 
   const handleImportShard = () => {
@@ -51,6 +43,9 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
         extensions: ['*']
       }
     ]).then((filePath) => {
+      if (!filePath) return;
+      setSelectedFile(filePath);
+      setImporting(true);
       API.importShard(filePath).then((result) => {
         const shardId = result.data;
         const intervalId = setInterval(() => {
@@ -59,6 +54,7 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
             setLogs(status.data?.logs || []);
             if (status.data.status === 'completed' || status.data.status === 'failed' || status.data.status === 'unknown') {
               clearInterval(intervalId);
+              setImporting(false);
               if (status.data.status === 'failed') {
                 setLogs([`Import failed: ${status.data.message}`, ...(status.data?.logs || [])]);
               }
@@ -69,9 +65,11 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
           }).catch((error) => {
             logMessage(`Error querying shard status: ${error.message}`);
             clearInterval(intervalId);
+            setImporting(false);
           });
         }, 1000);
       }).catch((error) => {
+        setImporting(false);
         alert(`Error importing shard: ${error.message}`);
       });
     });
@@ -90,10 +88,16 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
           </Typography>
 
           <FormControl sx={{ mt: 2, width: '100%' }}>
-            <Button
-              variant="outlined"
-              onClick={handleImportShard}
-            >{t('library.import-shard-dialog.file-picker')}</Button>
+            {importing ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={20} />
+                <Typography variant="body2">{selectedFile.split('/').pop()}</Typography>
+              </Box>
+            ) : (
+              <Button variant="outlined" onClick={handleImportShard}>
+                {t('library.import-shard-dialog.file-picker')}
+              </Button>
+            )}
           </FormControl>
         </DialogContent>
 

@@ -63,7 +63,6 @@ export default function ActionMenu({
         throw new Error(result.error.message);
       }
     });
-    handleDialogClose();
   };
   
   const display = permitAddCatalogues || permitAddRepos;

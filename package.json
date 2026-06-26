@@ -114,6 +114,7 @@
     "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "slash": "^5.1.0",
+    "tar": "^7.5.17",
     "typescript": "^5.9.3",
     "unique-names-generator": "^4.7.1",
     "unist-util-visit": "^5.0.0",

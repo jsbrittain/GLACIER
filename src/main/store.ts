@@ -8,6 +8,7 @@ export interface StoreSchema {
   darkMode: boolean;
   permitAddCatalogues: boolean;
   permitCatalogueModifications: boolean;
+  permitImportShards: boolean;
   permitAddRepos: boolean;
   disableSchemaValidation: boolean;
 }
@@ -24,6 +25,7 @@ function getInstance() {
           darkMode: { type: 'boolean', default: false },
           permitAddCatalogues: { type: 'boolean', default: true },
           permitCatalogueModifications: { type: 'boolean', default: true },
+          permitImportShards: { type: 'boolean', default: true },
           permitAddRepos: { type: 'boolean', default: true },
           disableSchemaValidation: { type: 'boolean', default: false }
         },

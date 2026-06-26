@@ -3,12 +3,8 @@ import os from 'os';
 import path from 'path';
 import * as tar from 'tar';
 import { spawn } from 'child_process';
+import crypto from 'crypto';
 import { ShardStatus, ShardStatusValue, shardStatusMessage } from '../types/shard.js';
-
-const hostPlatform =
-  process.platform === 'linux'
-    ? `linux/${process.arch === 'x64' ? 'amd64' : process.arch}`
-    : `${process.platform}/${process.arch}`;
 
 export const queryShardStatus = async (shardId: string) => {
   const shard = shardRepository[shardId];
@@ -19,7 +15,7 @@ export const queryShardStatus = async (shardId: string) => {
   return {
     "status": status,
     "message": shardStatusMessage[status],
-    "logs": shard.log.logs || []
+    "logs": shard?.log?.logs || []
   }
 }
 
@@ -274,23 +270,22 @@ class ImportShard {
     for (const container of containers_list) {
       const imageRef = container.image;
       const imageTag = imageRef.split('@')[0];
-      for (const container of this.manifest.containers) {
-        for (const info of Object.values(container.platforms) as PlatformInfo[]) {
-          /* const info = container.platforms[hostPlatform];
-          if (!info) {
-            this.log.error(`Container ${imageRef} does not support host platform ${hostPlatform}, skipping install.`);
-            continue;
-          }*/
-          const filePath = info.path;
-          const sha256 = info.sha256;
-          // Move container to GLACIER path
-          const srcPath = path.join(this.shardPath, filePath);
-          const destPath = path.join(containersPath, path.basename(filePath));
-          console.log(`Moving container ${filePath} from ${srcPath} to ${destPath}`);
-          fs.renameSync(srcPath, destPath);
-          console.log(`Loading container ${filePath} into Docker`);
-          await this.loadDockerImage(destPath, imageTag);
-        }
+      for (const info of Object.values(container.platforms) as PlatformInfo[]) {
+        /* const info = container.platforms[hostPlatform];
+        if (!info) {
+          this.log.error(`Container ${imageRef} does not support host platform ${hostPlatform}, skipping install.`);
+          continue;
+        }*/
+        const filePath = info.path;
+        const sha256 = info.sha256;
+        // Move container to GLACIER path
+        const srcPath = path.join(this.shardPath, filePath);
+        const destPath = path.join(containersPath, path.basename(filePath));
+        console.log(`Moving container ${filePath} from ${srcPath} to ${destPath}`);
+        fs.renameSync(srcPath, destPath);
+        await this.verifyFileIntegrity(destPath, sha256);
+        console.log(`Loading container ${filePath} into Docker`);
+        await this.loadDockerImage(destPath, imageTag);
       }
     }
   }
@@ -330,6 +325,22 @@ class ImportShard {
         });
       });
     });
+  }
+
+  async verifyFileIntegrity(filePath: string, expectedSha256: string): Promise<void> {
+    console.log(`Verifying SHA256 of ${path.basename(filePath)}`);
+    const hash = crypto.createHash('sha256');
+    const stream = fs.createReadStream(filePath);
+    for await (const chunk of stream) {
+      hash.update(chunk);
+    }
+    const fileSha256 = hash.digest('hex');
+    if (fileSha256 !== expectedSha256) {
+      throw new Error(
+        `SHA256 mismatch for ${path.basename(filePath)}: expected ${expectedSha256}, got ${fileSha256}`
+      );
+    }
+    console.log(`SHA256 verified for ${path.basename(filePath)}`);
   }
 
   async importAssets(assetsPath: string) {
