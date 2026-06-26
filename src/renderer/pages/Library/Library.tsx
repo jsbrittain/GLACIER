@@ -126,6 +126,7 @@ function WorkflowCard({
 
   return (
     <Paper
+      id={`card-${workflow.name}`}
       variant="outlined"
       onClick={isRepoInstalled ? (e) => {
         if (menuIsOpen) return;
