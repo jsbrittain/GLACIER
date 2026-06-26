@@ -80,6 +80,10 @@ export function registerIpcHandlers() {
     return collection.cancelWorkflowInstance(instance);
   });
 
+  ipcMain.handle('reset-workflow-instance-status', async (event, instance: any) => {
+    return collection.resetWorkflowInstanceStatus(instance);
+  });
+
   ipcMain.handle('kill-workflow-instance', async (event, instance: any) => {
     return collection.killWorkflowInstance(instance);
   });

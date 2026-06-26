@@ -612,6 +612,15 @@ export class Collection {
     local_instance.pid = [];
   }
 
+  async resetWorkflowInstanceStatus(instance: IWorkflowInstance): Promise<void> {
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    local_instance.status = WorkflowStatus.Created;
+    local_instance.pid = [];
+  }
+
   async killWorkflowInstance(instance: IWorkflowInstance): Promise<void> {
     // Find instance
     console.log(`Cancelling instance ${instance.id}`);

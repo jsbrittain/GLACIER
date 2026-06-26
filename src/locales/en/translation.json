@@ -121,6 +121,9 @@
       "title": "Parameters",
       "no-parameters": "No parameters available"
     },
+    "params-menu": "Params",
+    "save-params": "Save",
+    "load-params": "Load",
     "test-launch-dropdown": "Test",
     "test-launch-title": "Test Options",
     "test-launch-instructions": "Select additional profiles to launch the test workflow with (default `docker` if present).",

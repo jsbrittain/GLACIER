@@ -75,3 +75,18 @@ ipcMain.handle('pick-file-or-directory', async (_, options) => {
   });
   return result.canceled ? null : (result.filePaths[0] ?? null);
 });
+
+ipcMain.handle('show-save-dialog', async (_evt, opts) => {
+  const res = await dialog.showSaveDialog(win, opts);
+  return res.canceled ? null : res.filePath;
+});
+
+ipcMain.handle('write-text-file', async (_evt, filePath: string, content: string) => {
+  const fs = await import('fs');
+  fs.writeFileSync(filePath, content, 'utf-8');
+});
+
+ipcMain.handle('read-text-file', async (_evt, filePath: string) => {
+  const fs = await import('fs');
+  return fs.readFileSync(filePath, 'utf-8');
+});

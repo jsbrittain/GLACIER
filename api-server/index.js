@@ -72,6 +72,10 @@ app.post('/api/cancel-workflow-instance', async (req, res) =>
   post_response(res, collection.cancelWorkflowInstance(req.body.instance))
 );
 
+app.post('/api/reset-workflow-instance-status', async (req, res) =>
+  post_response(res, collection.resetWorkflowInstanceStatus(req.body.instance))
+);
+
 app.post('/api/kill-workflow-instance', async (req, res) =>
   post_response(res, collection.killWorkflowInstance(req.body.instance))
 );
@@ -285,6 +289,21 @@ app.post('/api/get-system-resources', async (req, res) =>
 app.post('/api/file-pick', async (req, res) =>
   post_response(res, collection.filePick(req.body.filters))
 );
+
+app.post('/api/show-save-dialog', async (req, res) => {
+  const { dialog } = await import('electron');
+  post_response(res, dialog.showSaveDialog(req.body.opts));
+});
+
+app.post('/api/write-text-file', async (req, res) => {
+  const fs = await import('fs');
+  post_response(res, fs.writeFileSync(req.body.filePath, req.body.content, 'utf-8'));
+});
+
+app.post('/api/read-text-file', async (req, res) => {
+  const fs = await import('fs');
+  post_response(res, fs.readFileSync(req.body.filePath, 'utf-8'));
+});
 
 app.post('/api/import-shard', async (req, res) =>
   post_response(res, collection.importShard(req.body.filePath))

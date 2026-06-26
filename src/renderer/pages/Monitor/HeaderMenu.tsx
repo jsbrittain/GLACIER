@@ -6,7 +6,7 @@ import MenuItem from '@mui/material/MenuItem';
 import { API } from '../../services/api.js';
 import { useTranslation } from 'react-i18next';
 
-export default function HeaderMenu({ instance, logMessage }) {
+export default function HeaderMenu({ instance, logMessage, onRestart }) {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
 
@@ -42,12 +42,12 @@ export default function HeaderMenu({ instance, logMessage }) {
     logMessage(`${t('monitor.execution.restarting')}: ${instance.id}.`);
     API.cancelWorkflowInstance(instance)
       .then(() => {
-        return API.runWorkflow(instance, {}, { restart: true });
+        if (onRestart) onRestart(instance.id);
       })
       .catch((error) => {
         // Workflow may not be running, so just log the error and continue
         console.log('Error cancelling workflow (may not be running): ', error);
-        return API.runWorkflow(instance, {}, { restart: true });
+        if (onRestart) onRestart(instance.id);
       });
   };
 
