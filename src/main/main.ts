@@ -77,7 +77,7 @@ ipcMain.handle('pick-file-or-directory', async (_, options) => {
 });
 
 ipcMain.handle('show-save-dialog', async (_evt, opts) => {
-  const res = await dialog.showSaveDialog(win, opts);
+  const res = await dialog.showSaveDialog(win!, opts);
   return res.canceled ? null : res.filePath;
 });
 
