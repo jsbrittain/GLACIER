@@ -14,6 +14,7 @@ vi.mock('slash', () => ({
 }));
 
 vi.mock('../../src/main/paths.js', () => ({
+  getConfigPath: vi.fn(() => '/tmp/collections'),
   getCollectionsPath: vi.fn(() => '/tmp/collections')
 }));
 

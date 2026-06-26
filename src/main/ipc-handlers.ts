@@ -126,6 +126,26 @@ export function registerIpcHandlers() {
     return collection.setCollectionsPath(path);
   });
 
+  ipcMain.handle('get-config-path', () => {
+    return collection.getConfigPath();
+  });
+
+  ipcMain.handle('set-config-path', (event, path) => {
+    return collection.setConfigPath(path);
+  });
+
+  ipcMain.handle('get-documents-path', () => {
+    return collection.getDocumentsPath();
+  });
+
+  ipcMain.handle('set-documents-path', (event, path) => {
+    return collection.setDocumentsPath(path);
+  });
+
+  ipcMain.handle('get-missing-paths', () => {
+    return collection.getMissingPaths();
+  });
+
   ipcMain.handle('get-collection-repos', async () => {
     return collection.getCollectionRepos();
   });

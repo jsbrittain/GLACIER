@@ -5,8 +5,24 @@ import path from 'path';
 
 const is_windows = process.platform === 'win32';
 const is_electron = process.versions?.electron !== undefined;
-const nextflowPath = path.join(process.env.HOME || '', 'GLACIER', 'bin', 'nextflow');
-const distroPath = path.join(process.env.HOME || '', 'GLACIER', 'wsl', 'ubuntu-22.04.tar.xz');
+
+function getGlacierDir(): string {
+  try {
+    const { getConfigPath } = require('../../main/paths.js');
+    return getConfigPath();
+  } catch {
+    // Fallback for when paths module is not available
+    return path.join(process.env.HOME || process.env.USERPROFILE || '', 'GLACIER');
+  }
+}
+
+function getNextflowPath(): string {
+  return path.join(getGlacierDir(), 'bin', 'nextflow');
+}
+
+function getDistroPath(): string {
+  return path.join(getGlacierDir(), 'wsl', 'ubuntu-22.04.tar.xz');
+}
 
 export async function nextflowStatus() {
   if (is_windows) {
@@ -163,15 +179,15 @@ function callExecutable(filePath: string, args: string[] = []) {
 
 function installNextflow() {
   return new Promise((resolve, reject) => {
-    mkdirSync(path.dirname(nextflowPath), { recursive: true });
+    mkdirSync(path.dirname(getNextflowPath()), { recursive: true });
     https
       .get('https://get.nextflow.io', (res) => {
         if (res.statusCode !== 200) return reject({ ok: false });
-        const file = createWriteStream(nextflowPath);
+        const file = createWriteStream(getNextflowPath());
         res.pipe(file);
         file.on('finish', () => {
-          chmodSync(nextflowPath, 0o755);
-          const p = spawn(nextflowPath, ['-version'], { stdio: 'ignore' });
+          chmodSync(getNextflowPath(), 0o755);
+          const p = spawn(getNextflowPath(), ['-version'], { stdio: 'ignore' });
           p.on('close', (code) => {
             code === 0 ? resolve({ ok: true }) : reject({ ok: false });
           });
@@ -190,17 +206,17 @@ function installWSL2distro() {
   callExecutable('wsl', ['--unregister', 'glacier']);
   // Download base distribution tarball
   return new Promise((resolve, reject) => {
-    mkdirSync(path.dirname(distroPath), { recursive: true });
+    mkdirSync(path.dirname(getDistroPath()), { recursive: true });
     https
       .get(
         'https://cloud-images.ubuntu.com/releases/jammy/release/ubuntu-22.04-server-cloudimg-amd64-root.tar.xz',
         (res) => {
           if (res.statusCode !== 200) return reject({ ok: false });
-          const file = createWriteStream(distroPath);
+          const file = createWriteStream(getDistroPath());
           res.pipe(file);
           file.on('finish', () => {
             // Import distribution into WSL
-            callExecutable('wsl', ['--import', 'glacier', path.dirname(distroPath), distroPath]);
+            callExecutable('wsl', ['--import', 'glacier', path.dirname(getDistroPath()), getDistroPath()]);
             // Configure user account
             callExecutable('wsl', [
               '-d',

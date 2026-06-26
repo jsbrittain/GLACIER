@@ -237,6 +237,32 @@ app.post('/api/set-collections-path', async (req, res) =>
   post_response(res, collection.setCollectionsPath(req.body.path))
 );
 
+app.post('/api/get-config-path', async (req, res) =>
+  post_response(res, collection.getConfigPath())
+);
+
+app.post('/api/set-config-path', async (req, res) =>
+  post_response(res, collection.setConfigPath(req.body.path))
+);
+
+app.post('/api/get-documents-path', async (req, res) =>
+  post_response(res, collection.getDocumentsPath())
+);
+
+app.post('/api/set-documents-path', async (req, res) =>
+  post_response(res, collection.setDocumentsPath(req.body.path))
+);
+
+app.post('/api/get-missing-paths', async (req, res) =>
+  post_response(res, collection.getMissingPaths())
+);
+
+app.post('/api/pick-directory', async (req, res) => {
+  const { dialog } = await import('electron');
+  const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
+  post_response(res, result.canceled ? null : (result.filePaths[0] ?? null));
+});
+
 app.post('/api/get-container-logs', async (req, res) =>
   post_response(res, collection.getContainerLogs(req.body.containerId))
 );

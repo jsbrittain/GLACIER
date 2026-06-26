@@ -1,6 +1,7 @@
 // Keep in sync with main/store.js
 export const SettingsKey = {
-  CollectionsPath: 'collectionsPath',
+  ConfigPath: 'configPath',
+  DocumentsPath: 'documentsPath',
   DarkMode: 'darkMode',
   PermitAddCatalogues: 'permitAddCatalogues',
   PermitCatalogueModifications: 'permitCatalogueModifications',

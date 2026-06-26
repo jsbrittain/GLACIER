@@ -1,32 +1,57 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getDefaultCollectionsDir, getCollectionsPath, locateReports } from '../../src/main/paths.js';
+import { getDefaultCollectionsDir, getDefaultConfigDir, getCollectionsPath, getConfigPath, getDocumentsPath, getDefaultDocumentsDir, locateReports } from '../../src/main/paths.js';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-describe('getDefaultCollectionsDir', () => {
+describe('getDefaultConfigDir', () => {
   it('returns a string path', () => {
-    const result = getDefaultCollectionsDir();
+    const result = getDefaultConfigDir();
     expect(typeof result).toBe('string');
   });
 
   it('ends with GLACIER', () => {
-    const result = getDefaultCollectionsDir();
+    const result = getDefaultConfigDir();
     expect(result).toMatch(/GLACIER$/);
-  });
-
-  it('can be created if missing', () => {
-    const dir = getDefaultCollectionsDir();
-    fs.mkdirSync(dir, { recursive: true });
-    const stat = fs.statSync(dir);
-    expect(stat.isDirectory()).toBe(true);
   });
 });
 
-describe('getCollectionsPath', () => {
-  it('returns a string', () => {
-    const result = getCollectionsPath();
+describe('getDefaultDocumentsDir', () => {
+  it('returns a string path', () => {
+    const result = getDefaultDocumentsDir();
     expect(typeof result).toBe('string');
+  });
+
+  it('ends with GLACIER', () => {
+    const result = getDefaultDocumentsDir();
+    expect(result).toMatch(/GLACIER$/);
+  });
+});
+
+describe('getConfigPath', () => {
+  it('returns a string', () => {
+    const result = getConfigPath();
+    expect(typeof result).toBe('string');
+  });
+});
+
+describe('getDocumentsPath', () => {
+  it('returns a string', () => {
+    const result = getDocumentsPath();
+    expect(typeof result).toBe('string');
+  });
+});
+
+// Backward compat aliases
+describe('getDefaultCollectionsDir (alias)', () => {
+  it('returns same as getDefaultConfigDir', () => {
+    expect(getDefaultCollectionsDir()).toBe(getDefaultConfigDir());
+  });
+});
+
+describe('getCollectionsPath (alias)', () => {
+  it('returns same as getConfigPath', () => {
+    expect(getCollectionsPath()).toBe(getConfigPath());
   });
 });
 

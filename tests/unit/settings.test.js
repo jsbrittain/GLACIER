@@ -18,8 +18,8 @@ describe('settings', () => {
 
   it('get delegates to store.get', () => {
     mockStore.get.mockReturnValue('some-path');
-    const result = settings.get('collectionsPath');
-    expect(mockStore.get).toHaveBeenCalledWith('collectionsPath');
+    const result = settings.get('configPath');
+    expect(mockStore.get).toHaveBeenCalledWith('configPath');
     expect(result).toBe('some-path');
   });
 

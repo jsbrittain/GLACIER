@@ -8,7 +8,13 @@ import {
   Typography,
   Snackbar,
   Paper,
-  Alert
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button
 } from '@mui/material';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import LibraryIcon from '@mui/icons-material/Apps';
@@ -31,6 +37,10 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const { t } = useTranslation();
 
   const [collectionsPath, setCollectionsPath] = useState('');
+  const [documentsPath, setDocumentsPath] = useState('');
+  const [showPathDialog, setShowPathDialog] = useState(false);
+  const [pendingConfigPath, setPendingConfigPath] = useState('');
+  const [pendingDocumentsPath, setPendingDocumentsPath] = useState('');
   const [permitAddCatalogues, setPermitAddCatalogues] = useState(true);
   const [permitCatalogueModifications, setPermitCatalogueModifications] = useState(true);
   const [permitImportShards, setPermitImportShards] = useState(true);
@@ -77,6 +87,17 @@ export default function MainPage({ darkMode, setDarkMode }) {
       }
       const path = await API.getCollectionsPath();
       setCollectionsPath(path);
+
+      const dPath = await API.getDocumentsPath();
+      setDocumentsPath(dPath);
+
+      const missing = r.data || {};
+      if (missing.config || missing.documents) {
+        setPendingConfigPath(path);
+        setPendingDocumentsPath(dPath);
+        setShowPathDialog(true);
+      }
+
       refreshInstancesList();
     })();
   }, []);
@@ -96,6 +117,31 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const navigateToSettingsEnv = () => {
     setView('settings');
     setNavigateToSettingsPage('environment');
+  };
+
+  const handlePickConfigDir = async () => {
+    const dir = await API.pickDirectory();
+    if (dir) setPendingConfigPath(dir);
+  };
+
+  const handlePickDocumentsDir = async () => {
+    const dir = await API.pickDirectory();
+    if (dir) setPendingDocumentsPath(dir);
+  };
+
+  const handleConfirmPaths = async () => {
+    await API.setConfigPath(pendingConfigPath);
+    await API.setDocumentsPath(pendingDocumentsPath);
+    setCollectionsPath(pendingConfigPath);
+    setDocumentsPath(pendingDocumentsPath);
+    setShowPathDialog(false);
+    const r = await API.init();
+    if (!r.ok) {
+      alert(t('error.parsing-catalogue') + ': ' + r.error.message);
+    }
+    const path = await API.getCollectionsPath();
+    setCollectionsPath(path);
+    refreshInstancesList();
   };
 
   const logMessage = (text, level: severityLevels = 'info') => {
@@ -211,6 +257,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 setDarkMode={setDarkMode}
                 collectionsPath={collectionsPath}
                 setCollectionsPath={setCollectionsPath}
+                documentsPath={documentsPath}
+                setDocumentsPath={setDocumentsPath}
                 permitAddCatalogues={permitAddCatalogues}
                 setPermitAddCatalogues={setPermitAddCatalogues}
                 permitCatalogueModifications={permitCatalogueModifications}
@@ -254,6 +302,47 @@ export default function MainPage({ darkMode, setDarkMode }) {
           </Paper>
         </Panel>
       </PanelGroup>
+
+      <Dialog open={showPathDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('setup.title', 'Welcome to GLACIER')}</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2 }}>
+            {t('setup.description', 'Choose where to store your files.')}
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <TextField
+              label={t('setup.config-folder', 'Config folder')}
+              value={pendingConfigPath}
+              onChange={(e) => setPendingConfigPath(e.target.value)}
+              fullWidth
+              size="small"
+            />
+            <Button variant="outlined" onClick={handlePickConfigDir}>
+              {t('setup.browse', 'Browse')}
+            </Button>
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+            <TextField
+              label={t('setup.documents-folder', 'Documents folder')}
+              value={pendingDocumentsPath}
+              onChange={(e) => setPendingDocumentsPath(e.target.value)}
+              fullWidth
+              size="small"
+            />
+            <Button variant="outlined" onClick={handlePickDocumentsDir}>
+              {t('setup.browse', 'Browse')}
+            </Button>
+          </Box>
+          <Typography variant="caption" color="text.secondary">
+            {t('setup.instances-note', 'Workflow instances go here')}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" onClick={handleConfirmPaths}>
+            {t('setup.continue', 'Continue')}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar open={open} autoHideDuration={3000} onClose={() => setOpen(false)}>
         <Alert onClose={() => setOpen(false)} severity={severity} sx={{ width: '100%' }}>
