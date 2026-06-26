@@ -4,7 +4,14 @@ import path from 'path';
 import * as tar from 'tar';
 import { spawn } from 'child_process';
 import crypto from 'crypto';
+import slash from 'slash';
 import { ShardStatus, ShardStatusValue, shardStatusMessage } from '../types/shard.js';
+
+const is_windows = process.platform === 'win32';
+
+const toPosixPath = (base: string) => {
+  return slash(base.replace(/^([A-Za-z]):\\/, (_, drive) => `/mnt/${drive.toLowerCase()}/`));
+};
 
 export const queryShardStatus = async (shardId: string) => {
   const shard = shardRepository[shardId];
@@ -293,7 +300,49 @@ class ImportShard {
   async loadDockerImage(imagePath: string, tag: string): Promise<void> {
     return new Promise((resolve, reject) => {
       let stdout = '';
-      const docker = spawn('docker', ['load', '-i', imagePath]);
+
+      const spawnOpts = is_windows
+        ? { windowsHide: true, detached: true }
+        : {};
+
+      if (is_windows) {
+        const posixPath = toPosixPath(imagePath);
+        const cmd = `docker load -i ${posixPath}`;
+        const docker = spawn('wsl.exe', ['-d', 'glacier', '-e', 'bash', '-lc', cmd], spawnOpts);
+        docker.stdout.on('data', (data) => {
+          stdout += data.toString();
+          process.stdout.write(data);
+        });
+        docker.stderr.on('data', (data) => {
+          process.stderr.write(data);
+        });
+        docker.on('error', reject);
+        docker.on('close', (code) => {
+          if (code !== 0) {
+            reject(new Error(`docker load failed with code ${code}`));
+            return;
+          }
+          const match = stdout.match(/(sha256:[a-f0-9]+)/i);
+          if (!match) {
+            reject(new Error('Could not determine loaded image ID'));
+            return;
+          }
+          const imageId = match[1];
+          const tagCmd = `docker tag ${imageId} ${tag}`;
+          const tagProc = spawn('wsl.exe', ['-d', 'glacier', '-e', 'bash', '-lc', tagCmd], spawnOpts);
+          tagProc.on('error', reject);
+          tagProc.on('close', (tagCode) => {
+            if (tagCode === 0) {
+              resolve();
+            } else {
+              reject(new Error(`docker tag failed with code ${tagCode}`));
+            }
+          });
+        });
+        return;
+      }
+
+      const docker = spawn('docker', ['load', '-i', imagePath], spawnOpts);
       docker.stdout.on('data', (data) => {
         stdout += data.toString();
         process.stdout.write(data);
@@ -307,7 +356,6 @@ class ImportShard {
           reject(new Error(`docker load failed with code ${code}`));
           return;
         }
-        // Get sha256 digest from docker load output
         const match = stdout.match(/(sha256:[a-f0-9]+)/i);
         if (!match) {
           reject(new Error('Could not determine loaded image ID'));

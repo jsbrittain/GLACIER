@@ -259,6 +259,29 @@ function installWSL2distro() {
               'openjdk-17-jre-headless'
             ]);
             callExecutable('wsl', ['-d', 'glacier', '-u', 'root', '--', 'java', '-version']);
+            // Install Docker
+            callExecutable('wsl', [
+              '-d',
+              'glacier',
+              '-u',
+              'root',
+              '--',
+              'apt',
+              'install',
+              '-y',
+              'docker.io'
+            ]);
+            callExecutable('wsl', [
+              '-d',
+              'glacier',
+              '-u',
+              'root',
+              '--',
+              'usermod',
+              '-aG',
+              'docker',
+              'user'
+            ]);
             // Install nextflow
             callExecutable('wsl', [
               '-d',
