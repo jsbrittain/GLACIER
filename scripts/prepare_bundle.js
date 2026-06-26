@@ -7,8 +7,9 @@
  * - Uses jdeps to determine required Java modules and jlink to create a minimal JRE
  * - Runs a smoke test: jre/bin/java -jar nextflow.jar info
  *
- * Note: This script shells out to `jdeps`, `jlink`, and `java`. Ensure a JDK that
- * includes jdeps/jlink is installed and available in PATH on non-Windows systems.
+ * Requires a Temurin JDK for jlink (OpenJDK jlink uses incompatible flags).
+ * On first run, Temurin is auto-downloaded to .temurin/ if a system Temurin is
+ * not detected. On subsequent runs, the cached .temurin/ install is reused.
  */
 
 import fs from 'fs';
@@ -110,6 +111,63 @@ function detectJavaHome(javaCmd = 'java') {
   return null;
 }
 
+function getTemurinDownloadUrl(version) {
+  const osMap = {
+    Darwin: 'mac',
+    Linux: 'linux',
+    Windows_NT: 'windows'
+  };
+  const archMap = {
+    x64: 'x64',
+    arm64: 'aarch64'
+  };
+  const os = osMap[os.type()];
+  const arch = archMap[process.arch];
+  if (!os || !arch) return null;
+  return `https://api.adoptium.net/v3/binary/latest/${version}/ga/${os}/${arch}/jdk/hotspot/normal/eclipse`;
+}
+
+async function ensureJdk(version, jdkDir) {
+  try {
+    const jlinkPath = execSync('which jlink', { encoding: 'utf8' }).toString().trim();
+    if (jlinkPath) {
+      const jdkBin = path.dirname(jlinkPath);
+      const javaVer = execSync(`"${path.join(jdkBin, 'java')}" -version 2>&1`, { encoding: 'utf8' }).toString();
+      if (javaVer.includes('Temurin')) {
+        log('System jlink is from Temurin -- using system JDK.');
+        return null;
+      }
+    }
+  } catch {}
+
+  if (fileExists(path.join(jdkDir, 'bin', 'jlink'))) {
+    log(`Using cached Temurin JDK from ${jdkDir}`);
+    return jdkDir;
+  }
+
+  log('jlink not found or not Temurin. Downloading Temurin JDK...');
+  const url = getTemurinDownloadUrl(version);
+  if (!url) {
+    throw new Error(
+      `Unsupported platform: ${os.type()} ${process.arch}. ` +
+      'Please install Temurin JDK 21+ manually and ensure it is on PATH.'
+    );
+  }
+
+  fs.mkdirSync(path.dirname(jdkDir), { recursive: true });
+  const archive = path.join(path.dirname(jdkDir), `temurin-jdk${version}.tar.gz`);
+  await downloadFile(url, archive);
+
+  log('Extracting Temurin JDK...');
+  fs.mkdirSync(jdkDir, { recursive: true });
+  run(`tar xzf "${archive}" --strip-components=1 -C "${jdkDir}"`);
+
+  try { fs.unlinkSync(archive); } catch {}
+
+  log(`Temurin JDK ${version} installed at ${jdkDir}`);
+  return jdkDir;
+}
+
 async function main() {
   try {
     // SCRIPT_DIR logic: assume script is at scripts/prepare_bundle.js
@@ -163,9 +221,6 @@ async function main() {
     } else {
       log('Nextflow jar already exists. Skipping download.');
     }
-
-    const s = runOutput('which java'); // log java version
-    console.log('Using java at:', s.trim());
 
     // Prepare Java runtime
     const jreDir = path.join(bundleDir, 'jre');
@@ -248,14 +303,11 @@ async function main() {
 
         log('Preparing minimal Java runtime...');
 
-        // Ensure jdeps exists
-        try {
-          execSync('jdeps --version', { stdio: 'ignore' });
-        } catch (e) {
-          throw new Error(
-            'jdeps not found in PATH. Please install a JDK that includes jdeps and jlink.'
-          );
+        const jdkDir = await ensureJdk(JAVA_VERSION, path.join(repoRoot, '.temurin', `jdk${JAVA_VERSION}`));
+        if (jdkDir) {
+          process.env.PATH = `${path.join(jdkDir, 'bin')}:${process.env.PATH}`;
         }
+        console.log('Using java at:', runOutput('which java').trim());
 
         log('Determining Java dependencies (jdeps)...');
 
@@ -289,13 +341,6 @@ async function main() {
         }
         const MODULES = uniqueModules.length > 0 ? uniqueModules.join(',') : 'java.base';
         log('Required modules:', MODULES);
-
-        // Ensure jlink exists
-        try {
-          execSync('jlink --version', { stdio: 'ignore' });
-        } catch (e) {
-          throw new Error('jlink not found in PATH. Please install a JDK that includes jlink.');
-        }
 
         log('Creating minimal Java runtime (jlink)...');
         // Build jlink command: jlink --add-modules "$MODULES" --strip-debug --compress zip-6 --no-header-files --no-man-pages --output ./jre

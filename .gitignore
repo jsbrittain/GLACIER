@@ -1,4 +1,5 @@
 bundle
+.temurin
 tests/test-data/instances*
 
 # Logs
