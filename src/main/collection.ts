@@ -397,7 +397,26 @@ export class Collection {
     for (const run of db.runs) {
       const instance = this.workflow_instances.find((inst) => inst.id === run.id);
       if (!instance) {
-        console.log(`Instance ${run.id} found in database but not in filesystem, skipping.`);
+        const latest_run = run.runs?.length > 0 ? run.runs[run.runs.length - 1] : null;
+        let has_running_pid = false;
+        if (latest_run?.pids?.length > 0) {
+          for (const pid of latest_run.pids) {
+            try {
+              process.kill(pid, 0);
+              has_running_pid = true;
+              break;
+            } catch {
+              // PID not running
+            }
+          }
+        }
+        if (!has_running_pid) {
+          console.log(`Instance ${run.id} found in database but not in filesystem, removing.`);
+          db.runs = db.runs.filter((r: any) => r.id !== run.id);
+          db_updated = true;
+        } else {
+          console.log(`Instance ${run.id} found in database but not in filesystem, process still running, keeping.`);
+        }
         continue;
       }
       // Get latest run
