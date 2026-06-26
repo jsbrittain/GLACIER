@@ -354,7 +354,8 @@ function CatalogueCard({
   refresh,
   setRefresh,
   installAllWorkflows,
-  logMessage
+  logMessage,
+  getCatalogues
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -396,7 +397,48 @@ function CatalogueCard({
   };
 
   const checkForUpdates = async () => {
-    await API.syncRepo(catalogue?.['base_dir']);
+    logMessage(t('library.checking-for-updates-catalogue', { name: catalogue.name }), 'info');
+    const result = await API.checkCatalogueWorkflowUpdates(catalogue.name);
+    if (result.ok) {
+      const { errors, updated, errorDetails } = result.data;
+      for (const detail of errorDetails || []) {
+        logMessage(detail, 'error');
+      }
+      if (updated > 0 && errors > 0) {
+        logMessage(
+          t('library.catalogue-workflows-check-errors', {
+            updated,
+            errors,
+            name: catalogue.name
+          }),
+          'warning'
+        );
+      } else if (updated > 0) {
+        logMessage(
+          t('library.catalogue-workflows-updated', {
+            count: updated,
+            name: catalogue.name
+          }),
+          'success'
+        );
+      } else if (errors > 0) {
+        logMessage(
+          t('library.catalogue-workflows-check-failure', { name: catalogue.name, error: `All ${errors} workflow(s) failed to sync` }),
+          'error'
+        );
+      } else {
+        logMessage(
+          t('library.catalogue-workflows-up-to-date', { name: catalogue.name }),
+          'success'
+        );
+      }
+      getCatalogues();
+    } else {
+      logMessage(
+        t('library.catalogue-workflows-check-failure', { name: catalogue.name, error: result.error?.message ?? 'Unknown error' }),
+        'error'
+      );
+    }
     handleMenuClose();
   };
 
@@ -589,13 +631,20 @@ export default function LibraryPage({
   };
 
   const updateWorkflow = (catalogue, section, workflow) => {
+    logMessage(t('library.checking-for-updates', { name: workflow.name }), 'info');
     API.updateCatalogueWorkflow(catalogue.name, section.name, workflow.name).then((result) => {
       if (result.ok) {
-        logMessage(t('library.workflow-updated-success', { name: workflow.name }), 'success');
+        if (result.data?.updated) {
+          logMessage(t('library.workflow-updated-success', { name: workflow.name }), 'success');
+        } else {
+          logMessage(t('library.workflow-up-to-date', { name: workflow.name }), 'success');
+        }
         getCatalogues();
       } else {
         logMessage(t('library.workflow-updated-failure', { name: workflow.name }), 'error');
       }
+    }).catch((err) => {
+      logMessage(t('library.workflow-update-error', { name: workflow.name, error: err.message }), 'error');
     });
   };
 
@@ -694,6 +743,7 @@ export default function LibraryPage({
             setRefresh={setRefresh}
             installAllWorkflows={installAllWorkflows}
             logMessage={logMessage}
+            getCatalogues={getCatalogues}
           />
         ))}
       </Stack>

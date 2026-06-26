@@ -170,10 +170,21 @@ app.post('/api/remove-catalogue-workflow', async (req, res) =>
 app.post('/api/update-catalogue-workflow', async (req, res) =>
   post_response(
     res,
-    collection.updateCatalogueWorkflow(
+    call(
+      collection.updateCatalogueWorkflow.bind(collection),
       req.body.catalogue_name,
       req.body.section_name,
       req.body.workflow_name
+    )
+  )
+);
+
+app.post('/api/check-catalogue-workflow-updates', async (req, res) =>
+  post_response(
+    res,
+    call(
+      collection.checkCatalogueWorkflowUpdates.bind(collection),
+      req.body.catalogue_name
     )
   )
 );

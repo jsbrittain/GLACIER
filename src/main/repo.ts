@@ -109,10 +109,14 @@ async function getDefaultBranch(url: string) {
 
 export async function syncRepo(path: string) {
   try {
+    const branch = await git.currentBranch({ fs, dir: path, fullname: false });
+    if (!branch) return { status: 'ok', updated: false };
+    const headBefore = await git.resolveRef({ fs, dir: path, ref: branch });
     await git.pull({
       fs,
       http,
       dir: path,
+      ref: branch,
       singleBranch: true,
       fastForwardOnly: true,
       author: {
@@ -120,7 +124,8 @@ export async function syncRepo(path: string) {
         email: 'noreply@localhost'
       }
     });
-    return { status: 'ok' };
+    const headAfter = await git.resolveRef({ fs, dir: path, ref: branch });
+    return { status: 'ok', updated: headBefore !== headAfter };
   } catch (err: unknown) {
     if (err instanceof Error) {
       return { status: 'error', message: err.message };

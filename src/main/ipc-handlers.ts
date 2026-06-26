@@ -33,6 +33,7 @@ export function registerIpcHandlers() {
     'show-catalogue-section-workflows': collection.showCatalogueSectionWorkflows.bind(collection),
     'show-catalogue-workflows': collection.showCatalogueWorkflows.bind(collection),
     'show-catalogue-sections': collection.showCatalogueSections.bind(collection),
+    'check-catalogue-workflow-updates': collection.checkCatalogueWorkflowUpdates.bind(collection),
     'add-user-workflow': collection.addUserWorkflow.bind(collection),
     'clone-repo': collection.cloneRepo.bind(collection),
     'is-repo-installed': collection.isRepoInstalled.bind(collection),

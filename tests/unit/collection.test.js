@@ -717,12 +717,12 @@ describe('Collection', () => {
 
   describe('syncRepo', () => {
     it('delegates to repo module', () => {
-      vi.mocked(repo.syncRepo).mockReturnValue({ status: 'ok' });
+      vi.mocked(repo.syncRepo).mockReturnValue({ status: 'ok', updated: true });
 
       const result = collection.syncRepo('/some/path');
 
       expect(repo.syncRepo).toHaveBeenCalledWith('/some/path');
-      expect(result).toEqual({ status: 'ok' });
+      expect(result).toEqual({ status: 'ok', updated: true });
     });
   });
 
