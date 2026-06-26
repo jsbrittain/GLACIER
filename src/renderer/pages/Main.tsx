@@ -341,7 +341,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" onClick={handleConfirmPaths}>
+          <Button variant="contained" onClick={handleConfirmPaths} id="setup-continue-button">
             {t('setup.continue', 'Continue')}
           </Button>
         </DialogActions>
