@@ -128,7 +128,8 @@
     "test-launch-title": "Test Options",
     "test-launch-instructions": "Select additional profiles to launch the test workflow with (default `docker` if present).",
     "additional-test-profiles": "Additional Test Profiles",
-    "test-launch-workflow": "Run"
+    "test-launch-workflow": "Run",
+    "no-valid-workflow": "No workflow files found in repository"
   },
   "monitor": {
     "logs": {

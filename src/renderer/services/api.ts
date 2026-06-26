@@ -30,6 +30,7 @@ const electronAPI = isElectron
       getAvailableProfiles: (instance) => window.electronAPI.getAvailableProfiles(instance),
       cloneRepo: (repoUrl, ver) => window.electronAPI.cloneRepo(repoUrl, ver),
       isRepoInstalled: (repoUrl, ver) => window.electronAPI.isRepoInstalled(repoUrl, ver),
+      isValidWorkflowRepo: (repoPath) => window.electronAPI.isValidWorkflowRepo(repoPath),
       syncRepo: (repo) => window.electronAPI.syncRepo(repo),
       addCatalogue: (repoUrl, ver) => window.electronAPI.addCatalogue(repoUrl, ver),
       removeCatalogue: (catalogue_name) => window.electronAPI.removeCatalogue(catalogue_name),
@@ -132,6 +133,8 @@ const httpAPI = {
   cloneRepo: async (repoUrl, ver) => httpDispatch('/api/clone-repo', 'POST', { repoUrl, ver }),
   isRepoInstalled: async (repoUrl, ver) =>
     httpDispatch('/api/is-repo-installed', 'POST', { repoUrl, ver }),
+  isValidWorkflowRepo: async (repoPath) =>
+    httpDispatch('/api/is-valid-workflow-repo', 'POST', { repoPath }),
   syncRepo: async (repo) => httpDispatch('/api/sync-repo', 'POST', { repo }),
   addCatalogue: async (repoUrl, ver) =>
     httpDispatch('/api/add-catalogue', 'POST', { repoUrl, ver }),

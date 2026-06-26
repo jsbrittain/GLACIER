@@ -9,7 +9,7 @@ import { cloneRepo, ICloneRepo, getRepoTags, getRepoBranches } from './repo.js';
 import { runWorkflow } from './runner.js';
 import { getEnvironmentStatus, performEnvironmentAction } from '../runners/environment.js';
 import { WorkflowStatus } from '../types/types.js';
-import { syncRepo, getWorkflowParams, getWorkflowSchema } from './repo.js';
+import { syncRepo, getWorkflowParams, getWorkflowSchema, isValidWorkflowRepo as checkIsValidWorkflowRepo } from './repo.js';
 import { getCollectionsPath, locateReports } from './paths.js';
 import { settings, StoreSchema } from './settings.js';
 import { importShard, queryShardStatus } from './shard.js';
@@ -897,6 +897,10 @@ export class Collection {
 
   getWorkflowSchema(repoPath: string): Promise<Record<string, unknown>> {
     return getWorkflowSchema(repoPath);
+  }
+
+  async isValidWorkflowRepo(repoPath: string): Promise<boolean> {
+    return checkIsValidWorkflowRepo(repoPath);
   }
 
   getWorkflowInstanceLogs(instance: IWorkflowInstance, log_type: string): string {

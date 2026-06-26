@@ -115,6 +115,10 @@ app.post('/api/is-repo-installed', async (req, res) =>
   )
 );
 
+app.post('/api/is-valid-workflow-repo', async (req, res) =>
+  post_response(res, call(collection.isValidWorkflowRepo.bind(collection), req.body.repoPath))
+);
+
 app.post('/api/sync-repo', async (req, res) =>
   post_response(res, collection.syncRepo(req.body.repo))
 );

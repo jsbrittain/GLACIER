@@ -36,6 +36,7 @@ export function registerIpcHandlers() {
     'add-user-workflow': collection.addUserWorkflow.bind(collection),
     'clone-repo': collection.cloneRepo.bind(collection),
     'is-repo-installed': collection.isRepoInstalled.bind(collection),
+    'is-valid-workflow-repo': collection.isValidWorkflowRepo.bind(collection),
     'get-system-resources': collection.getSystemResources.bind(collection),
     'get-workflow-readme': collection.getWorkflowReadme.bind(collection),
     'get-workflow-license': collection.getWorkflowLicense.bind(collection),

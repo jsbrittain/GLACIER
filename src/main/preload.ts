@@ -36,6 +36,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cloneRepo: (repoUrl: string, ver: string) => ipcRenderer.invoke('clone-repo', repoUrl, ver),
   isRepoInstalled: (repoUrl: string, ver: string) =>
     ipcRenderer.invoke('is-repo-installed', repoUrl, ver),
+  isValidWorkflowRepo: (repoPath: string) =>
+    ipcRenderer.invoke('is-valid-workflow-repo', repoPath),
   getCollectionsPath: () => ipcRenderer.invoke('get-collections-path'),
   setCollectionsPath: (path: string) => ipcRenderer.invoke('set-collections-path', path),
   getCollectionRepos: () => ipcRenderer.invoke('get-collection-repos'),

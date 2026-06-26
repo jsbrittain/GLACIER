@@ -207,6 +207,22 @@ export async function getWorkflowSchema(repoPath: string) {
   }
 }
 
+export async function isValidWorkflowRepo(repoPath: string) {
+  const nextflowSchemaPath = path.join(repoPath, 'nextflow_schema.json');
+  const dockerfilePath = path.join(repoPath, 'Dockerfile');
+
+  const nextflowExists = await fs.promises
+    .stat(nextflowSchemaPath)
+    .then(() => true)
+    .catch(() => false);
+  const dockerExists = await fs.promises
+    .stat(dockerfilePath)
+    .then(() => true)
+    .catch(() => false);
+
+  return nextflowExists || dockerExists;
+}
+
 export function generateUniqueName(existingNames: string[]) {
   const existingNamesSet = new Set(existingNames);
   let newName = '';
