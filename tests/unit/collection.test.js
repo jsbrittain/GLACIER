@@ -5,15 +5,19 @@ import os from 'os';
 
 import { shell } from 'electron';
 
-vi.mock('../../src/main/repo.js', () => ({
-  generateUniqueName: vi.fn(),
-  cloneRepo: vi.fn(),
-  getRepoTags: vi.fn(),
-  getRepoBranches: vi.fn(),
-  syncRepo: vi.fn(),
-  getWorkflowParams: vi.fn(),
-  getWorkflowSchema: vi.fn()
-}));
+vi.mock('../../src/main/repo.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    generateUniqueName: vi.fn(),
+    cloneRepo: vi.fn(),
+    getRepoTags: vi.fn(),
+    getRepoBranches: vi.fn(),
+    syncRepo: vi.fn(),
+    getWorkflowParams: vi.fn(),
+    getWorkflowSchema: vi.fn()
+  };
+});
 
 vi.mock('../../src/main/runner.js', () => ({
   runWorkflow: vi.fn(),

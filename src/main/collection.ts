@@ -5,7 +5,7 @@ import os from 'os';
 import fs from 'fs';
 import { IRepo, IRepoVersions } from './types.js';
 import { generateUniqueName } from './repo.js';
-import { cloneRepo, ICloneRepo, getRepoTags, getRepoBranches } from './repo.js';
+import { cloneRepo, ICloneRepo, getRepoTags, getRepoBranches, parseRepoUrl } from './repo.js';
 import { runWorkflow } from './runner.js';
 import { getEnvironmentStatus, performEnvironmentAction } from '../runners/environment.js';
 import { WorkflowStatus } from '../types/types.js';
@@ -455,7 +455,8 @@ export class Collection {
   }
 
   createWorkflowInstance(workflow_id: string, version: string): IWorkflowInstance {
-    const workflow = this.workflows.find((wf) => wf.id === workflow_id);
+    const { owner, repo } = parseRepoUrl(workflow_id);
+    const workflow = this.workflows.find((wf) => wf.id === `${owner}/${repo}`);
     if (!workflow) {
       throw new Error(`Workflow ${workflow_id} not found.`);
     }
@@ -469,7 +470,6 @@ export class Collection {
     } else {
       workflow_version = workflow.versions.filter((v: any) => v.version === version)[0];
     }
-    const owner = workflow.owner;
     const repo_and_version = `${workflow.repo}@${workflow_version.version}`;
     const existing_ids = this.workflow_instances.map((inst) => inst.id);
     const instance_name = generateUniqueName(existing_ids);
@@ -918,7 +918,7 @@ export class Collection {
   }
 
   async addInstallableRepo(url: string) {
-    const name = url.split('/')[1];
+    const { repo: name } = parseRepoUrl(url);
     let versions = await getRepoTags(url);
     if (versions.length === 0) {
       versions = await getRepoBranches(url);
@@ -1284,8 +1284,9 @@ export class Collection {
   }
 
   async addUserWorkflow(name: string, url: string, version: string, section: string) {
+    const { owner, repo } = parseRepoUrl(url);
     if (!name) {
-      name = url.split('/').slice(-1)[0]; // repo name
+      name = repo;
     }
     if (!section) {
       section = 'My Workflows';
@@ -1338,7 +1339,7 @@ export class Collection {
     }
     user_section.workflows.push({
       name: name,
-      repo: url,
+      repo: `${owner}/${repo}`,
       version: version
     });
     // Save to catalogues path
@@ -1361,8 +1362,7 @@ export class Collection {
   }
 
   async isRepoInstalled(url: string, version: string): Promise<string> {
-    const owner = url.split('/')[0];
-    const repo = url.split('/')[1];
+    const { owner, repo } = parseRepoUrl(url);
     const wf = this.workflows.find((wf) => wf.id === `${owner}/${repo}`);
     if (!wf) {
       return '';
