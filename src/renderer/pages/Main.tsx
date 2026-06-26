@@ -69,6 +69,9 @@ export default function MainPage({ darkMode, setDarkMode }) {
 
   useEffect(() => {
     (async () => {
+      API.settingsGet(SettingsKey.DarkMode).then((result) => {
+        setDarkMode(result);
+      });
       API.settingsGet(SettingsKey.PermitAddCatalogues).then((result) => {
         setPermitAddCatalogues(result);
       });

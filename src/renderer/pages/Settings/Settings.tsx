@@ -134,9 +134,6 @@ export default function SettingsPage({
   };
 
   useEffect(() => {
-    API.settingsGet(SettingsKey.DarkMode).then((value) => {
-      setDarkMode(value);
-    });
     API.settingsGet(SettingsKey.PermitAddCatalogues).then((value) => {
       setPermitAddCatalogues(value);
     });
@@ -152,6 +149,9 @@ export default function SettingsPage({
     API.settingsGet(SettingsKey.DisableSchemaValidation).then((value) => {
       setDisableSchemaValidation(value);
     });
+  }, []);
+
+  useEffect(() => {
     if (pathRef.current && document.activeElement !== pathRef.current) {
       pathRef.current.value = collectionsPath ?? '';
     }
