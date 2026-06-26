@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Paper, Stack, Tabs, Tab, Typography, Button, Menu, MenuItem } from '@mui/material';
+import { Box, Paper, Stack, Tabs, Tab, Typography, Button, Menu, MenuItem, Tooltip } from '@mui/material';
 import { JsonForms } from '@jsonforms/react';
 import Ajv, { ErrorObject } from 'ajv'; // ajv is also used by jsonforms
 import { buildUISchema } from './buildUISchema';
@@ -54,6 +54,7 @@ export default function ParametersPage({
   const [readme, setReadme] = useState<string>('');
   const [paramsMenuAnchor, setParamsMenuAnchor] = useState<null | HTMLElement>(null);
   const [license, setLicense] = useState<string>('');
+  const [isValidWorkflow, setIsValidWorkflow] = useState<boolean>(true);
 
   const paramsFilter = 'JSON';
   const paramsFileFilters = [{ name: paramsFilter, extensions: ['json'] }];
@@ -161,6 +162,12 @@ export default function ParametersPage({
         setLicense(result.data || '');
       }
     };
+    const checkValidWorkflow = async () => {
+      const result = await API.isValidWorkflowRepo(instance.workflow_version.path);
+      if (result.ok) {
+        setIsValidWorkflow(result.data);
+      }
+    };
 
     get_available_profiles().then((profiles) => {
       getSettings();
@@ -168,6 +175,7 @@ export default function ParametersPage({
       get_params();
       fetchReadme();
       fetchLicense();
+      checkValidWorkflow();
     });
   }, [instance]);
 
@@ -255,13 +263,20 @@ export default function ParametersPage({
               {t('parameters.save-params')}
             </MenuItem>
           </Menu>
-          <Button
-            disabled={schemaErrors !== null}
-            variant="contained"
-            onClick={() => onLaunch(instance, params)}
+          <Tooltip
+            title={!isValidWorkflow ? t('parameters.no-valid-workflow') : ''}
+            disableHoverListener={isValidWorkflow}
           >
-            {t('parameters.launch-workflow')}
-          </Button>
+            <span>
+              <Button
+                disabled={schemaErrors !== null || !isValidWorkflow}
+                variant="contained"
+                onClick={() => onLaunch(instance, params)}
+              >
+                {t('parameters.launch-workflow')}
+              </Button>
+            </span>
+          </Tooltip>
           {allProfiles.includes('test') && (
             <TestRunDialog allProfiles={allProfiles} onLaunch={onTestLaunchWorkflow} />
           )}

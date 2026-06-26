@@ -115,6 +115,10 @@ app.post('/api/is-repo-installed', async (req, res) =>
   )
 );
 
+app.post('/api/is-valid-workflow-repo', async (req, res) =>
+  post_response(res, call(collection.isValidWorkflowRepo.bind(collection), req.body.repoPath))
+);
+
 app.post('/api/sync-repo', async (req, res) =>
   post_response(res, collection.syncRepo(req.body.repo))
 );
@@ -166,10 +170,21 @@ app.post('/api/remove-catalogue-workflow', async (req, res) =>
 app.post('/api/update-catalogue-workflow', async (req, res) =>
   post_response(
     res,
-    collection.updateCatalogueWorkflow(
+    call(
+      collection.updateCatalogueWorkflow.bind(collection),
       req.body.catalogue_name,
       req.body.section_name,
       req.body.workflow_name
+    )
+  )
+);
+
+app.post('/api/check-catalogue-workflow-updates', async (req, res) =>
+  post_response(
+    res,
+    call(
+      collection.checkCatalogueWorkflowUpdates.bind(collection),
+      req.body.catalogue_name
     )
   )
 );

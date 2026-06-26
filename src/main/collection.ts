@@ -9,7 +9,7 @@ import { cloneRepo, ICloneRepo, getRepoTags, getRepoBranches } from './repo.js';
 import { runWorkflow } from './runner.js';
 import { getEnvironmentStatus, performEnvironmentAction } from '../runners/environment.js';
 import { WorkflowStatus } from '../types/types.js';
-import { syncRepo, getWorkflowParams, getWorkflowSchema } from './repo.js';
+import { syncRepo, getWorkflowParams, getWorkflowSchema, isValidWorkflowRepo as checkIsValidWorkflowRepo } from './repo.js';
 import { getCollectionsPath, locateReports } from './paths.js';
 import { settings, StoreSchema } from './settings.js';
 import { importShard, queryShardStatus } from './shard.js';
@@ -39,6 +39,7 @@ export interface Catalogue {
   source: string;
   description?: string;
   icon?: string;
+  base_dir?: string;
   scheme?: Record<string, string>;
   sections: CatalogueSection[];
 }
@@ -899,6 +900,10 @@ export class Collection {
     return getWorkflowSchema(repoPath);
   }
 
+  async isValidWorkflowRepo(repoPath: string): Promise<boolean> {
+    return checkIsValidWorkflowRepo(repoPath);
+  }
+
   getWorkflowInstanceLogs(instance: IWorkflowInstance, log_type: string): string {
     const logFile = path.join(instance.path, `${log_type}.log`);
     if (fs.existsSync(logFile)) {
@@ -1204,17 +1209,98 @@ export class Collection {
     if (all_versions.length === 0) {
       throw new Error(`No tags or branches found for repository: ${workflow.repo}`);
     }
-    // Update version if current version not found
-    if (workflow.version !== 'latest' && !all_versions.includes(workflow.version || '')) {
+    let updated = false;
+    if (workflow.version === 'latest') {
+      const wf = this.workflows.find((w) => w.id === workflow.repo);
+      if (wf && wf.versions.length > 0) {
+        const installedPath = wf.versions[0].path;
+        if (installedPath) {
+          const timeoutMs = 15000;
+          const timeout = new Promise<{ status: 'ok'; updated: false }>((resolve) =>
+            setTimeout(() => resolve({ status: 'ok', updated: false }), timeoutMs)
+          );
+          const result = await Promise.race([syncRepo(installedPath), timeout]);
+          if (result.status === 'ok') {
+            updated = result.updated ?? false;
+          }
+        }
+      }
+    } else if (!all_versions.includes(workflow.version || '')) {
       workflow.version = all_versions[0];
+      updated = true;
     }
     // Save to catalogues path
-    const owner = cat.source.split('/')[0];
-    const repo = cat.source.split('/')[1];
-    const cat_path = path.join(this.catalogues_path, owner, repo, 'catalogue.json');
+    const cat_owner = cat.source.split('/')[0];
+    const cat_repo = cat.source.split('/')[1];
+    const cat_path = path.join(this.catalogues_path, cat_owner, cat_repo, 'catalogue.json');
     fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
     // Refresh catalogues
     this.parseCatalogues();
+    return { updated };
+  }
+
+  async checkCatalogueWorkflowUpdates(catalogue_name: string) {
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    // Sync the catalogue repo itself first
+    if (cat.base_dir) {
+      await syncRepo(cat.base_dir);
+    }
+    this.parseCatalogues();
+    // Check each workflow
+    const results: { name: string; updated: boolean; error?: string }[] = [];
+    const catRef = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!catRef) {
+      throw new Error(`Catalogue ${catalogue_name} not found after refresh.`);
+    }
+    for (const section of catRef.sections || []) {
+      for (const workflow of section.workflows || []) {
+        if (workflow.version === 'latest') {
+          const wf = this.workflows.find((w) => w.id === workflow.repo);
+          if (wf && wf.versions.length > 0) {
+            const installedPath = wf.versions[0].path;
+            if (installedPath && fs.existsSync(installedPath)) {
+              try {
+                const timeoutMs = 20000;
+                const timeout = new Promise<{ status: 'ok'; updated: false }>((resolve) =>
+                  setTimeout(() => resolve({ status: 'ok', updated: false }), timeoutMs)
+                );
+                const syncResult: any = await Promise.race([syncRepo(installedPath), timeout]);
+                if (syncResult.status === 'ok') {
+                  results.push({
+                    name: workflow.name,
+                    updated: syncResult.updated ?? false
+                  });
+                } else {
+                  results.push({
+                    name: workflow.name,
+                    updated: false,
+                    error: syncResult.message
+                  });
+                }
+              } catch (err: unknown) {
+                results.push({
+                  name: workflow.name,
+                  updated: false,
+                  error: String(err)
+                });
+              }
+            }
+          }
+        } else {
+          results.push({ name: workflow.name, updated: false });
+        }
+      }
+    }
+    return {
+      total: results.length,
+      updated: results.filter((r) => r.updated).length,
+      upToDate: results.filter((r) => !r.updated && !r.error).length,
+      errors: results.filter((r) => r.error).length,
+      errorDetails: results.filter((r) => r.error).map((r) => `${r.name}: ${r.error}`)
+    };
   }
 
   async showCatalogueSectionWorkflows(catalogue_name: string, section_name: string) {

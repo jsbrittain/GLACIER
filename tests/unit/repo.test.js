@@ -7,15 +7,21 @@ vi.mock('isomorphic-git', () => {
   const mockClone = vi.fn();
   const mockGetRemoteInfo = vi.fn();
   const mockPull = vi.fn();
+  const mockCurrentBranch = vi.fn();
+  const mockResolveRef = vi.fn();
   return {
     default: {
       clone: mockClone,
       getRemoteInfo: mockGetRemoteInfo,
-      pull: mockPull
+      pull: mockPull,
+      currentBranch: mockCurrentBranch,
+      resolveRef: mockResolveRef
     },
     clone: mockClone,
     getRemoteInfo: mockGetRemoteInfo,
-    pull: mockPull
+    pull: mockPull,
+    currentBranch: mockCurrentBranch,
+    resolveRef: mockResolveRef
   };
 });
 
@@ -158,13 +164,29 @@ describe('cloneRepo', () => {
 });
 
 describe('syncRepo', () => {
-  it('returns ok on successful pull', async () => {
+  it('returns ok and updated=true when HEAD changes', async () => {
+    git.currentBranch.mockResolvedValue('main');
+    git.resolveRef
+      .mockResolvedValueOnce('abc123')
+      .mockResolvedValueOnce('def456');
     git.pull.mockResolvedValue(undefined);
 
     const result = await repo.syncRepo('/some/path');
 
     expect(git.pull).toHaveBeenCalled();
-    expect(result).toEqual({ status: 'ok' });
+    expect(result).toEqual({ status: 'ok', updated: true });
+  });
+
+  it('returns ok and updated=false when HEAD did not change', async () => {
+    git.currentBranch.mockResolvedValue('main');
+    git.resolveRef
+      .mockResolvedValueOnce('abc123')
+      .mockResolvedValueOnce('abc123');
+    git.pull.mockResolvedValue(undefined);
+
+    const result = await repo.syncRepo('/some/path');
+
+    expect(result).toEqual({ status: 'ok', updated: false });
   });
 
   it('returns error message on pull failure', async () => {

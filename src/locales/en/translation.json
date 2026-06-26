@@ -56,8 +56,16 @@
     "confirm-remove-workflow": "Are you sure you want to remove this workflow from the section?",
     "workflow-removed-success": "Workflow removed successfully",
     "workflow-removed-failure": "Failed to remove workflow",
+    "checking-for-updates": "Checking for updates for {{name}}...",
     "workflow-updated-success": "Workflow updated successfully",
     "workflow-updated-failure": "Failed to update workflow",
+    "workflow-update-error": "Update check failed for {{name}}: {{error}}",
+    "workflow-up-to-date": "Workflow is up to date — no update needed",
+    "checking-for-updates-catalogue": "Checking for updates in {{name}}...",
+    "catalogue-workflows-updated": "{{count}} workflow(s) updated in {{name}}",
+    "catalogue-workflows-up-to-date": "All workflows in {{name}} are up to date",
+    "catalogue-workflows-check-errors": "{{updated}} workflow(s) updated, {{errors}} error(s) in {{name}}",
+    "catalogue-workflows-check-failure": "Failed to check for updates in {{name}}: {{error}}",
     "workflows-shown-success": "Workflows shown successfully",
     "workflows-shown-failure": "Failed to show workflows",
     "installing-workflows": "Installing workflows...",
@@ -128,7 +136,8 @@
     "test-launch-title": "Test Options",
     "test-launch-instructions": "Select additional profiles to launch the test workflow with (default `docker` if present).",
     "additional-test-profiles": "Additional Test Profiles",
-    "test-launch-workflow": "Run"
+    "test-launch-workflow": "Run",
+    "no-valid-workflow": "No workflow files found in repository"
   },
   "monitor": {
     "logs": {

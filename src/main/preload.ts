@@ -36,6 +36,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   cloneRepo: (repoUrl: string, ver: string) => ipcRenderer.invoke('clone-repo', repoUrl, ver),
   isRepoInstalled: (repoUrl: string, ver: string) =>
     ipcRenderer.invoke('is-repo-installed', repoUrl, ver),
+  isValidWorkflowRepo: (repoPath: string) =>
+    ipcRenderer.invoke('is-valid-workflow-repo', repoPath),
   getCollectionsPath: () => ipcRenderer.invoke('get-collections-path'),
   setCollectionsPath: (path: string) => ipcRenderer.invoke('set-collections-path', path),
   getCollectionRepos: () => ipcRenderer.invoke('get-collection-repos'),
@@ -53,6 +55,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('remove-catalogue-workflow', catalogue_name, section_name, workflow_name),
   updateCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string) =>
     ipcRenderer.invoke('update-catalogue-workflow', catalogue_name, section_name, workflow_name),
+  checkCatalogueWorkflowUpdates: (catalogue_name: string) =>
+    ipcRenderer.invoke('check-catalogue-workflow-updates', catalogue_name),
   showCatalogueSectionWorkflows: (catalogue_name: string, section_name: string) =>
     ipcRenderer.invoke('show-catalogue-section-workflows', catalogue_name, section_name),
   showCatalogueWorkflows: (catalogue_name: string) =>

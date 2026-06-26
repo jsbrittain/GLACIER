@@ -30,6 +30,7 @@ const electronAPI = isElectron
       getAvailableProfiles: (instance) => window.electronAPI.getAvailableProfiles(instance),
       cloneRepo: (repoUrl, ver) => window.electronAPI.cloneRepo(repoUrl, ver),
       isRepoInstalled: (repoUrl, ver) => window.electronAPI.isRepoInstalled(repoUrl, ver),
+      isValidWorkflowRepo: (repoPath) => window.electronAPI.isValidWorkflowRepo(repoPath),
       syncRepo: (repo) => window.electronAPI.syncRepo(repo),
       addCatalogue: (repoUrl, ver) => window.electronAPI.addCatalogue(repoUrl, ver),
       removeCatalogue: (catalogue_name) => window.electronAPI.removeCatalogue(catalogue_name),
@@ -43,6 +44,8 @@ const electronAPI = isElectron
         window.electronAPI.removeCatalogueWorkflow(catalogue_name, section_name, workflow_name),
       updateCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
         window.electronAPI.updateCatalogueWorkflow(catalogue_name, section_name, workflow_name),
+      checkCatalogueWorkflowUpdates: (catalogue_name) =>
+        window.electronAPI.checkCatalogueWorkflowUpdates(catalogue_name),
       showCatalogueSectionWorkflows: (catalogue_name, section_name) =>
         window.electronAPI.showCatalogueSectionWorkflows(catalogue_name, section_name),
       showCatalogueWorkflows: (catalogue_name) =>
@@ -132,6 +135,8 @@ const httpAPI = {
   cloneRepo: async (repoUrl, ver) => httpDispatch('/api/clone-repo', 'POST', { repoUrl, ver }),
   isRepoInstalled: async (repoUrl, ver) =>
     httpDispatch('/api/is-repo-installed', 'POST', { repoUrl, ver }),
+  isValidWorkflowRepo: async (repoPath) =>
+    httpDispatch('/api/is-valid-workflow-repo', 'POST', { repoPath }),
   syncRepo: async (repo) => httpDispatch('/api/sync-repo', 'POST', { repo }),
   addCatalogue: async (repoUrl, ver) =>
     httpDispatch('/api/add-catalogue', 'POST', { repoUrl, ver }),
@@ -159,6 +164,8 @@ const httpAPI = {
       section_name,
       workflow_name
     }),
+  checkCatalogueWorkflowUpdates: async (catalogue_name) =>
+    httpDispatch('/api/check-catalogue-workflow-updates', 'POST', { catalogue_name }),
   showCatalogueSectionWorkflows: async (catalogue_name, section_name) =>
     httpDispatch('/api/show-catalogue-section-workflows', 'POST', { catalogue_name, section_name }),
   showCatalogueWorkflows: async (catalogue_name) =>
