@@ -22,6 +22,7 @@ export function registerIpcHandlers() {
     init: collection.init.bind(collection),
     'run-workflow': collection.runWorkflow.bind(collection),
     'get-catalogues': collection.getCatalogues.bind(collection),
+    'refresh-catalogues': collection.refreshCatalogues.bind(collection),
     'add-catalogue': collection.addCatalogue.bind(collection),
     'remove-catalogue': collection.removeCatalogue.bind(collection),
     'remove-catalogue-section': collection.removeCatalogueSection.bind(collection),
@@ -37,7 +38,9 @@ export function registerIpcHandlers() {
     'is-repo-installed': collection.isRepoInstalled.bind(collection),
     'get-system-resources': collection.getSystemResources.bind(collection),
     'get-workflow-readme': collection.getWorkflowReadme.bind(collection),
-    'get-workflow-license': collection.getWorkflowLicense.bind(collection)
+    'get-workflow-license': collection.getWorkflowLicense.bind(collection),
+    'import-shard': collection.importShard.bind(collection),
+    'query-shard-status': collection.queryShardStatus.bind(collection),
   };
 
   for (const [channel, fcn] of Object.entries(redirect)) {

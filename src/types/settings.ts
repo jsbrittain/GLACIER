@@ -4,6 +4,7 @@ export const SettingsKey = {
   DarkMode: 'darkMode',
   PermitAddCatalogues: 'permitAddCatalogues',
   PermitCatalogueModifications: 'permitCatalogueModifications',
+  PermitImportShards: 'permitImportShards',
   PermitAddRepos: 'permitAddRepos',
   DisableSchemaValidation: 'disableSchemaValidation'
 } as const;

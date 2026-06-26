@@ -27,6 +27,8 @@ export default function SettingsPage({
   setPermitAddCatalogues,
   permitCatalogueModifications,
   setPermitCatalogueModifications,
+  permitImportShards,
+  setPermitImportShards,
   permitAddRepos,
   setPermitAddRepos,
   showHiddenParams,
@@ -74,6 +76,11 @@ export default function SettingsPage({
     API.settingsSet(SettingsKey.PermitCatalogueModifications, value);
   };
 
+  const handlePermitImportShards = (value) => {
+    setPermitImportShards(value);
+    API.settingsSet(SettingsKey.PermitImportShards, value);
+  };
+
   const handlePermitAddRepos = (value) => {
     setPermitAddRepos(value);
     API.settingsSet(SettingsKey.PermitAddRepos, value);
@@ -98,6 +105,9 @@ export default function SettingsPage({
     });
     API.settingsGet(SettingsKey.PermitCatalogueModifications).then((value) => {
       setPermitCatalogueModifications(value);
+    });
+    API.settingsGet(SettingsKey.PermitImportShards).then((value) => {
+      setPermitImportShards(value);
     });
     API.settingsGet(SettingsKey.PermitAddRepos).then((value) => {
       setPermitAddRepos(value);
@@ -190,6 +200,16 @@ export default function SettingsPage({
             />
           }
           label={t('settings.permit-catalogue-modifications')}
+        />
+        <FormControlLabel
+          control={
+            <Switch
+              id="settings-permit-import-shards"
+              checked={permitImportShards}
+              onChange={() => handlePermitImportShards(!permitImportShards)}
+            />
+          }
+          label={t('settings.permit-import-shards')}
         />
         <FormControlLabel
           control={

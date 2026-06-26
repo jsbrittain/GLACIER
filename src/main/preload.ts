@@ -28,6 +28,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-work-log', instance, workID, logType),
   getAvailableProfiles: (instance: any) => ipcRenderer.invoke('get-available-profiles', instance),
   getSystemResources: () => ipcRenderer.invoke('get-system-resources'),
+  importShard: (filePath: string) => ipcRenderer.invoke('import-shard', filePath),
+  queryShardStatus: (shardId: string) => ipcRenderer.invoke('query-shard-status', shardId),
 
   cloneRepo: (repoUrl: string, ver: string) => ipcRenderer.invoke('clone-repo', repoUrl, ver),
   isRepoInstalled: (repoUrl: string, ver: string) =>
@@ -56,6 +58,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showCatalogueSections: (catalogue_name: string) =>
     ipcRenderer.invoke('show-catalogue-sections', catalogue_name),
   getCatalogues: () => ipcRenderer.invoke('get-catalogues'),
+  refreshCatalogues: () => ipcRenderer.invoke('refresh-catalogues'),
   addUserWorkflow: (name: string, repoUrl: string, version: string, section: string) =>
     ipcRenderer.invoke('add-user-workflow', name, repoUrl, version, section),
   syncRepo: (repo: string) => ipcRenderer.invoke('sync-repo', repo),

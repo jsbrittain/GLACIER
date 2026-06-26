@@ -6,7 +6,8 @@
   },
   "common": {
     "okay": "Okay",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "close": "Close"
   },
   "sidebar": {
     "library": "Library",
@@ -26,6 +27,7 @@
     "actions": "Actions",
     "add-catalogue": "Add Catalogue",
     "remove-catalogue": "Remove Catalogue",
+    "import-shard": "Import Shard",
     "add-section": "Add Section",
     "hide-section": "Hide Section",
     "remove-section": "Remove Section",
@@ -82,6 +84,11 @@
       "missing-deps": "Missing dependencies",
       "required-deps": "The following programs were not detected: ",
       "go-to-settings": "Configure"
+    },
+    "import-shard-dialog": {
+      "title": "Import Shard",
+      "description": "Enter the path to the shard file to import:",
+      "file-picker": "Select Shard File"
     }
   },
   "instances": {
@@ -171,6 +178,7 @@
     "dark-mode": "Dark Mode",
     "collections-path": "Library path",
     "permit-add-catalogues": "Allow adding catalogues",
+    "permit-import-shards": "Allow importing shards",
     "permit-catalogue-modifications": "Allow modifying catalogues",
     "permit-add-repos": "Allow adding repositories",
     "language-select": "Language",

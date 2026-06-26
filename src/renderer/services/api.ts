@@ -48,6 +48,7 @@ const electronAPI = isElectron
       showCatalogueSections: (catalogue_name) =>
         window.electronAPI.showCatalogueSections(catalogue_name),
       getCatalogues: () => window.electronAPI.getCatalogues(),
+      refreshCatalogues: () => window.electronAPI.refreshCatalogues(),
       addUserWorkflow: (name, repoUrl, ver, section) =>
         window.electronAPI.addUserWorkflow(name, repoUrl, ver, section),
       getCollectionRepos: () => window.electronAPI.getCollectionRepos(),
@@ -69,7 +70,10 @@ const electronAPI = isElectron
       getEnvironmentStatus: (key) => window.electronAPI.getEnvironmentStatus(key),
       performEnvironmentAction: (key, action) =>
         window.electronAPI.performEnvironmentAction(key, action),
-      getSystemResources: () => window.electronAPI.getSystemResources()
+      getSystemResources: () => window.electronAPI.getSystemResources(),
+      pickFile: (filters) => window.electronAPI.pickFile(filters),
+      importShard: (filePath) => window.electronAPI.importShard(filePath),
+      queryShardStatus: (shardId) => window.electronAPI.queryShardStatus(shardId)
     }
   : null;
 
@@ -155,6 +159,7 @@ const httpAPI = {
   showCatalogueSections: async (catalogue_name) =>
     httpDispatch('/api/show-catalogue-sections', 'POST', { catalogue_name }),
   getCatalogues: async () => httpDispatch('/api/get-catalogues', 'POST', {}),
+  refreshCatalogues: async () => httpDispatch('/api/refresh-catalogues', 'POST', {}),
   addUserWorkflow: async (name, repoUrl, ver, section) =>
     httpDispatch('/api/add-user-workflow', 'POST', { name, repoUrl, ver, section }),
   getCollectionRepos: async () => httpDispatch('/api/get-collection-repos', 'POST', {}),
@@ -184,7 +189,10 @@ const httpAPI = {
   getEnvironmentStatus: async (key) => httpDispatch('/api/get-environment-status', 'POST', { key }),
   performEnvironmentAction: async (key, action) =>
     httpDispatch('/api/perform-environment-action', 'POST', { key, action }),
-  getSystemResources: async () => httpDispatch('/api/get-system-resources', 'POST', {})
+  getSystemResources: async () => httpDispatch('/api/get-system-resources', 'POST', {}),
+  pickFile: async (filters) => httpDispatch('/api/pick-file', 'POST', { filters }),
+  importShard: async (filePath) => httpDispatch('/api/import-shard', 'POST', { filePath }),
+  queryShardStatus: async (shardId) => httpDispatch('/api/query-shard-status', 'POST', { shardId })
 };
 
 export const API = isElectron ? electronAPI : httpAPI;

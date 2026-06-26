@@ -189,6 +189,10 @@ app.post('/api/get-catalogues', async (req, res) =>
   post_response(res, call(collection.getCatalogues.bind(collection)))
 );
 
+app.post('/api/refresh-catalogues', async (req, res) =>
+  post_response(res, collection.refreshCatalogues())
+);
+
 app.post('/api/add-user-workflow', async (req, res) =>
   post_response(
     res,
@@ -276,6 +280,18 @@ app.post('/api/perform-environment-action', async (req, res) =>
 
 app.post('/api/get-system-resources', async (req, res) =>
   post_response(res, collection.getSystemResources())
+);
+
+app.post('/api/file-pick', async (req, res) =>
+  post_response(res, collection.filePick(req.body.filters))
+);
+
+app.post('/api/import-shard', async (req, res) =>
+  post_response(res, collection.importShard(req.body.filePath))
+);
+
+app.post('/api/query-shard-status', async (req, res) =>
+  post_response(res, collection.queryShardStatus(req.body.shardId))
 );
 
 const PORT = process.env.PORT || 3030;

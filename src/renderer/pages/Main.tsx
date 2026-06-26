@@ -33,6 +33,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [collectionsPath, setCollectionsPath] = useState('');
   const [permitAddCatalogues, setPermitAddCatalogues] = useState(true);
   const [permitCatalogueModifications, setPermitCatalogueModifications] = useState(true);
+  const [permitImportShards, setPermitImportShards] = useState(true);
   const [permitAddRepos, setPermitAddRepos] = useState(true);
   const [drawerOpen] = useState(true);
   const [view, setView] = useState<navbar_page>('library');
@@ -63,6 +64,9 @@ export default function MainPage({ darkMode, setDarkMode }) {
       });
       API.settingsGet(SettingsKey.PermitCatalogueModifications).then((result) => {
         setPermitCatalogueModifications(result);
+      });
+      API.settingsGet(SettingsKey.PermitImportShards).then((result) => {
+        setPermitImportShards(result);
       });
       API.settingsGet(SettingsKey.PermitAddRepos).then((result) => {
         setPermitAddRepos(result);
@@ -187,6 +191,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 createWorkflowInstance={createWorkflowInstance}
                 permitAddCatalogues={permitAddCatalogues}
                 permitCatalogueModifications={permitCatalogueModifications}
+                permitImportShards={permitImportShards}
                 permitAddRepos={permitAddRepos}
                 navigateToSettingsEnv={navigateToSettingsEnv}
                 logMessage={logMessage}
@@ -210,6 +215,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 setPermitAddCatalogues={setPermitAddCatalogues}
                 permitCatalogueModifications={permitCatalogueModifications}
                 setPermitCatalogueModifications={setPermitCatalogueModifications}
+                permitImportShards={permitImportShards}
+                setPermitImportShards={setPermitImportShards}
                 permitAddRepos={permitAddRepos}
                 setPermitAddRepos={setPermitAddRepos}
                 showHiddenParams={showHiddenParams}
