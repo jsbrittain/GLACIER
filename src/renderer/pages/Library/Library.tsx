@@ -31,6 +31,13 @@ const resolveHttpUrl = (path, source) => {
   return path;
 };
 
+const repoUrl = (repo) => {
+  if (repo.startsWith('http://') || repo.startsWith('https://')) {
+    return repo.replace(/\.git$/, '');
+  }
+  return `https://github.com/${repo}`;
+};
+
 function WorkflowCard({
   workflow,
   hideWorkflow,
@@ -112,15 +119,34 @@ function WorkflowCard({
     handleMenuClose();
   };
 
+  const handleSourceClick = (e) => {
+    e.stopPropagation();
+    API.openWebPage(repoUrl(workflow.repo));
+  };
+
   return (
     <Paper
+      id={`card-${workflow.name}`}
       variant="outlined"
+      onClick={isRepoInstalled ? (e) => {
+        if (menuIsOpen) return;
+        runWorkflow();
+      } : undefined}
       sx={{
         p: 1,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        cursor: isRepoInstalled ? 'pointer' : 'default',
         color: scheme['workflow-fg'] ?? 'text.primary',
         background: scheme['workflow-bg'] ?? 'background.paper',
         fontFamily: scheme['font-family'] ?? 'inherit',
-        fontSize: scheme['font-size'] ?? 'inherit'
+        fontSize: scheme['font-size'] ?? 'inherit',
+        filter: !isRepoInstalled ? 'grayscale(60%)' : 'none',
+        transition: 'filter 0.2s, background-color 0.2s',
+        '&:hover': isRepoInstalled
+          ? { backgroundColor: 'action.hover' }
+          : {}
       }}
     >
       <Box
@@ -132,7 +158,7 @@ function WorkflowCard({
       >
         <Typography variant="h6">{workflow.name}</Typography>
         <Box sx={{ ml: 'auto' }}>
-          <IconButton color="inherit" onClick={handleMenuOpen}>
+          <IconButton color="inherit" onClick={(e) => { e.stopPropagation(); handleMenuOpen(e); }}>
             <MoreVertIcon />
           </IconButton>
         </Box>
@@ -148,24 +174,9 @@ function WorkflowCard({
         {workflow.version}{' '}
         {isRepoInstalled && workflow.version === 'latest' && `(${versionInstalled})`}
       </Typography>
-      <Box sx={{ height: 8 }} />
-      <Stack direction="row" spacing={1}>
-        {isRepoInstalled ? (
-          <Button
-            id={`run-${workflow.name}`}
-            size="small"
-            variant="contained"
-            sx={{
-              color: scheme['control-fg'] ?? undefined,
-              background: scheme['control-bg'] ?? undefined,
-              fontFamily: scheme['font-family'] ?? 'inherit',
-              fontSize: scheme['font-size'] ?? 'inherit'
-            }}
-            onClick={runWorkflow}
-          >
-            {t('library.run')}
-          </Button>
-        ) : (
+      <Box sx={{ flex: 1 }} />
+      {!isRepoInstalled && (
+        <Stack direction="row" spacing={1}>
           <Button
             id={`install-${workflow.name}`}
             size="small"
@@ -176,13 +187,21 @@ function WorkflowCard({
               fontFamily: scheme['font-family'] ?? 'inherit',
               fontSize: scheme['font-size'] ?? 'inherit'
             }}
-            onClick={cloneRepo}
+            onClick={(e) => { e.stopPropagation(); cloneRepo(); }}
             loading={loading}
           >
             {t('library.install')}
           </Button>
-        )}
-      </Stack>
+          <Button
+            id={`source-${workflow.name}`}
+            size="small"
+            variant="outlined"
+            onClick={handleSourceClick}
+          >
+            {t('library.source')}
+          </Button>
+        </Stack>
+      )}
     </Paper>
   );
 }

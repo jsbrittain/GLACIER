@@ -18,6 +18,7 @@
     "local-repositories": "Dépôts locaux",
     "install": "Installer",
     "run": "Exécuter",
+    "source": "Source",
     "sync": "Synchroniser",
     "repo-sync-success": "Dépôt synchronisé avec succès",
     "repo-sync-failed": "La synchronisation du dépôt a échoué",

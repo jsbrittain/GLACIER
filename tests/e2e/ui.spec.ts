@@ -74,8 +74,11 @@ test('clone a repository', async ({ page }) => {
   // Click Install (clone the repository)
   await page.click(`#install-${cssEscape(repo_name)}`);
 
+  // Wait for clone to complete before attempting to run
+  await waitForLogLine(page, /Cloned/, TIMEOUT_60s);
+
   // Create an instance of the workflow (redirects to Parameters page)
-  await page.click(`#run-${cssEscape(repo_name)}`);
+  await page.click(`#card-${cssEscape(repo_name)}`);
   // 'Launch Workflow' button should now be visible
   await expect(page.getByRole('button', { name: 'Launch Workflow' })).toBeVisible({
     timeout: TIMEOUT_10s
@@ -98,7 +101,7 @@ test('launch local workflow', async ({ page }) => {
   const repo_name = 'sleep';
 
   // Create an instance of the workflow (redirects to Parameters page)
-  await page.click(`#run-${cssEscape(repo_name)}`);
+  await page.click(`#card-${cssEscape(repo_name)}`);
 
   // Default display is Description, switch to Parameters tab
   await page.click('#parameters-params-tab');
