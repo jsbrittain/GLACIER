@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Paper, Stack, Tabs, Tab, Typography, Button } from '@mui/material';
+import { Box, Paper, Stack, Tabs, Tab, Typography, Button, Menu, MenuItem } from '@mui/material';
 import { JsonForms } from '@jsonforms/react';
 import Ajv, { ErrorObject } from 'ajv'; // ajv is also used by jsonforms
 import { buildUISchema } from './buildUISchema';
@@ -38,7 +38,9 @@ export default function ParametersPage({
   instance,
   refreshInstancesList,
   showHiddenParams,
-  logMessage
+  logMessage,
+  onEditComplete,
+  startOnParamsTab
 }) {
   const { t } = useTranslation();
   const default_profile = 'standard';
@@ -48,9 +50,13 @@ export default function ParametersPage({
   const [params, setParams] = useState<Record<string, unknown>>({});
   const [schema, setSchema] = useState<Record<string, unknown> | null>({});
   const [allProfiles, setAllProfiles] = useState<string[]>([]);
-  const [tabSelected, setTabSelected] = React.useState(0);
+  const [tabSelected, setTabSelected] = React.useState(startOnParamsTab ? 2 : 0);
   const [readme, setReadme] = useState<string>('');
+  const [paramsMenuAnchor, setParamsMenuAnchor] = useState<null | HTMLElement>(null);
   const [license, setLicense] = useState<string>('');
+
+  const paramsFilter = 'JSON';
+  const paramsFileFilters = [{ name: paramsFilter, extensions: ['json'] }];
 
   const onLaunch = async (instance, params) => {
     // Strip out profile from params before sending to backend
@@ -65,6 +71,32 @@ export default function ParametersPage({
     }
     logMessage(`Launched workflow ${instance.name}`);
     refreshInstancesList();
+    if (onEditComplete) onEditComplete();
+  };
+
+  const onSaveParams = async () => {
+    const filePath = await API.showSaveDialog({ filters: paramsFileFilters });
+    if (!filePath) return;
+    await API.writeTextFile(filePath, JSON.stringify(params, null, 2));
+    logMessage(`Parameters saved to ${filePath}`);
+  };
+
+  const onLoadParams = async () => {
+    const filePath = await API.pickFile(paramsFileFilters);
+    if (!filePath) return;
+    const content = await API.readTextFile(filePath);
+    try {
+      const loaded = JSON.parse(content);
+      if (typeof loaded !== 'object' || loaded === null || Array.isArray(loaded)) {
+        logMessage('Invalid parameters file: must be a JSON object.', 'error');
+        return;
+      }
+      setParams(loaded);
+      setTabSelected(2);
+      logMessage(`Parameters loaded from ${filePath}`);
+    } catch {
+      logMessage('Invalid parameters file: could not parse JSON.', 'error');
+    }
   };
 
   const onTestLaunchWorkflow = async (testProfiles) => {
@@ -112,6 +144,9 @@ export default function ParametersPage({
       const data = await API.getWorkflowInstanceParams(instance);
       if (data) {
         setParams(data);
+        if (Object.keys(data).length > 0) {
+          setTabSelected(2);
+        }
       }
     };
     const fetchReadme = async () => {
@@ -172,6 +207,14 @@ export default function ParametersPage({
     setTabSelected(newValue);
   };
 
+  const handleParamsMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setParamsMenuAnchor(event.currentTarget);
+  };
+
+  const handleParamsMenuClose = () => {
+    setParamsMenuAnchor(null);
+  };
+
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -179,6 +222,39 @@ export default function ParametersPage({
           [{instance.name}] {instance.workflow_version.name}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Button
+            id="params-file-menu-button"
+            aria-controls={paramsMenuAnchor ? 'params-file-menu' : undefined}
+            aria-haspopup="true"
+            aria-expanded={paramsMenuAnchor ? 'true' : undefined}
+            onClick={handleParamsMenuOpen}
+            variant="outlined"
+          >
+            {t('parameters.params-menu')}
+          </Button>
+          <Menu
+            id="params-file-menu"
+            anchorEl={paramsMenuAnchor}
+            open={Boolean(paramsMenuAnchor)}
+            onClose={handleParamsMenuClose}
+          >
+            <MenuItem
+              onClick={() => {
+                handleParamsMenuClose();
+                onLoadParams();
+              }}
+            >
+              {t('parameters.load-params')}
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                handleParamsMenuClose();
+                onSaveParams();
+              }}
+            >
+              {t('parameters.save-params')}
+            </MenuItem>
+          </Menu>
           <Button
             disabled={schemaErrors !== null}
             variant="contained"

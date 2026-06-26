@@ -494,6 +494,7 @@ export default function LibraryPage({
   createWorkflowInstance,
   permitAddCatalogues,
   permitCatalogueModifications,
+  permitImportShards,
   permitAddRepos,
   navigateToSettingsEnv,
   logMessage
@@ -663,7 +664,9 @@ export default function LibraryPage({
           <ActionMenu
             setCatalogues={setCatalogues}
             permitAddCatalogues={permitAddCatalogues}
+            permitImportShards={permitImportShards}
             permitAddRepos={permitAddRepos}
+            logMessage={logMessage}
           />
         </Box>
       </Box>

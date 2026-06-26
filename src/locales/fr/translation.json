@@ -6,7 +6,8 @@
   },
   "common": {
     "okay": "OK",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "close": "Fermer"
   },
   "sidebar": {
     "library": "Bibliothèque",
@@ -26,6 +27,7 @@
     "actions": "Actions",
     "add-catalogue": "Ajouter un catalogue",
     "remove-catalogue": "Supprimer le catalogue",
+    "import-shard": "Importer un shard",
     "add-section": "Ajouter une section",
     "hide-section": "Masquer la section",
     "remove-section": "Supprimer la section",
@@ -82,6 +84,11 @@
       "missing-deps": "Dépendances manquantes",
       "required-deps": "Les programmes suivants n'ont pas été détectés : ",
       "go-to-settings": "Configurer"
+    },
+    "import-shard-dialog": {
+      "title": "Importer un shard",
+      "description": "Entrez le chemin du fichier shard à importer :",
+      "file-picker": "Sélectionner le fichier shard"
     }
   },
   "instances": {
@@ -171,6 +178,7 @@
     "dark-mode": "Mode sombre",
     "collections-path": "Chemin de la bibliothèque",
     "permit-add-catalogues": "Autoriser l'ajout de catalogues",
+    "permit-import-shards": "Autoriser l'importation de shards",
     "permit-catalogue-modifications": "Autoriser les modifications de catalogues",
     "permit-add-repos": "Autoriser l'ajout de dépôts",
     "language-select": "Langue",

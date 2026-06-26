@@ -14,6 +14,8 @@ const electronAPI = isElectron
       getWorkflowInstanceParams: (instance) =>
         window.electronAPI.getWorkflowInstanceParams(instance),
       cancelWorkflowInstance: (instance) => window.electronAPI.cancelWorkflowInstance(instance),
+      resetWorkflowInstanceStatus: (instance) =>
+        window.electronAPI.resetWorkflowInstanceStatus(instance),
       killWorkflowInstance: (instance) => window.electronAPI.killWorkflowInstance(instance),
       deleteWorkflowInstance: (instance) => window.electronAPI.deleteWorkflowInstance(instance),
       openResultsFolder: (instance) => window.electronAPI.openResultsFolder(instance),
@@ -48,6 +50,7 @@ const electronAPI = isElectron
       showCatalogueSections: (catalogue_name) =>
         window.electronAPI.showCatalogueSections(catalogue_name),
       getCatalogues: () => window.electronAPI.getCatalogues(),
+      refreshCatalogues: () => window.electronAPI.refreshCatalogues(),
       addUserWorkflow: (name, repoUrl, ver, section) =>
         window.electronAPI.addUserWorkflow(name, repoUrl, ver, section),
       getCollectionRepos: () => window.electronAPI.getCollectionRepos(),
@@ -69,7 +72,13 @@ const electronAPI = isElectron
       getEnvironmentStatus: (key) => window.electronAPI.getEnvironmentStatus(key),
       performEnvironmentAction: (key, action) =>
         window.electronAPI.performEnvironmentAction(key, action),
-      getSystemResources: () => window.electronAPI.getSystemResources()
+      getSystemResources: () => window.electronAPI.getSystemResources(),
+      pickFile: (filters) => window.electronAPI.pickFile(filters),
+      showSaveDialog: (opts) => window.electronAPI.showSaveDialog(opts),
+      writeTextFile: (filePath, content) => window.electronAPI.writeTextFile(filePath, content),
+      readTextFile: (filePath) => window.electronAPI.readTextFile(filePath),
+      importShard: (filePath) => window.electronAPI.importShard(filePath),
+      queryShardStatus: (shardId) => window.electronAPI.queryShardStatus(shardId)
     }
   : null;
 
@@ -100,6 +109,8 @@ const httpAPI = {
     httpDispatch('/api/get-workflow-instance-params', 'POST', { instance }),
   cancelWorkflowInstance: async (instance) =>
     httpDispatch('/api/cancel-workflow-instance', 'POST', { instance }),
+  resetWorkflowInstanceStatus: async (instance) =>
+    httpDispatch('/api/reset-workflow-instance-status', 'POST', { instance }),
   killWorkflowInstance: async (instance) =>
     httpDispatch('/api/kill-workflow-instance', 'POST', { instance }),
   deleteWorkflowInstance: async (instance) =>
@@ -155,6 +166,7 @@ const httpAPI = {
   showCatalogueSections: async (catalogue_name) =>
     httpDispatch('/api/show-catalogue-sections', 'POST', { catalogue_name }),
   getCatalogues: async () => httpDispatch('/api/get-catalogues', 'POST', {}),
+  refreshCatalogues: async () => httpDispatch('/api/refresh-catalogues', 'POST', {}),
   addUserWorkflow: async (name, repoUrl, ver, section) =>
     httpDispatch('/api/add-user-workflow', 'POST', { name, repoUrl, ver, section }),
   getCollectionRepos: async () => httpDispatch('/api/get-collection-repos', 'POST', {}),
@@ -184,7 +196,14 @@ const httpAPI = {
   getEnvironmentStatus: async (key) => httpDispatch('/api/get-environment-status', 'POST', { key }),
   performEnvironmentAction: async (key, action) =>
     httpDispatch('/api/perform-environment-action', 'POST', { key, action }),
-  getSystemResources: async () => httpDispatch('/api/get-system-resources', 'POST', {})
+  getSystemResources: async () => httpDispatch('/api/get-system-resources', 'POST', {}),
+  pickFile: async (filters) => httpDispatch('/api/pick-file', 'POST', { filters }),
+  showSaveDialog: async (opts) => httpDispatch('/api/show-save-dialog', 'POST', { opts }),
+  writeTextFile: async (filePath, content) =>
+    httpDispatch('/api/write-text-file', 'POST', { filePath, content }),
+  readTextFile: async (filePath) => httpDispatch('/api/read-text-file', 'POST', { filePath }),
+  importShard: async (filePath) => httpDispatch('/api/import-shard', 'POST', { filePath }),
+  queryShardStatus: async (shardId) => httpDispatch('/api/query-shard-status', 'POST', { shardId })
 };
 
 export const API = isElectron ? electronAPI : httpAPI;

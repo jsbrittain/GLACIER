@@ -124,6 +124,11 @@ export default function InstancesPage({
   const { t } = useTranslation();
 
   const [rows, setRows] = useState([]);
+  const [editingInstance, setEditingInstance] = useState<string | null>(null);
+
+  const onEditComplete = () => {
+    setEditingInstance(null);
+  };
 
   useEffect(() => {
     setRows(
@@ -137,6 +142,16 @@ export default function InstancesPage({
       )
     );
   }, [instancesList]);
+
+  const onRestart = (instanceId: string) => {
+    setEditingInstance(instanceId);
+    setItem(instanceId);
+    const entry = instancesList.find(({ name }) => name === instanceId);
+    if (entry) {
+      API.resetWorkflowInstanceStatus(entry.instance).catch(() => {});
+    }
+    refreshInstancesList();
+  };
 
   const createData = (status: string, id: string, name: string, workflow: string) => {
     return { status, id, name, workflow };
@@ -158,23 +173,31 @@ export default function InstancesPage({
           .filter(({ name }) => name === item)
           .map(({ name, instance }) => {
             const status = rows.find((r) => r.name === name)?.status;
-            return status == WorkflowStatus.Created ? (
+            return status == WorkflowStatus.Created || editingInstance === name ? (
               /* Parameters view to launch a selected workflow */
               <ParametersPage
+                key={instance.id}
                 instance={instance}
                 refreshInstancesList={refreshInstancesList}
                 showHiddenParams={showHiddenParams}
                 logMessage={logMessage}
+                onEditComplete={onEditComplete}
+                startOnParamsTab={editingInstance === name}
               />
             ) : (
               /* Monitoring view after launching a workflow */
-              <MonitorPage instance={instance} logMessage={logMessage} />
+              <MonitorPage
+                key={instance.id}
+                instance={instance}
+                logMessage={logMessage}
+                onRestart={onRestart}
+              />
             );
           })
       )}
       {instancesList.length === 0 && (
         <Container>
-          <Typography variant="h6" sx={{ mt: 2 }}>
+          <Typography variant="h6" sx={{ mt: 1 }}>
             {t('instances.no-instances')}
           </Typography>
         </Container>

@@ -12,6 +12,7 @@ import { WorkflowStatus } from '../types/types.js';
 import { syncRepo, getWorkflowParams, getWorkflowSchema } from './repo.js';
 import { getCollectionsPath, locateReports } from './paths.js';
 import { settings, StoreSchema } from './settings.js';
+import { importShard, queryShardStatus } from './shard.js';
 
 // Should remove imports from specific runners
 import { getAvailableProfiles } from '../runners/nextflow/nextflow.js';
@@ -223,6 +224,10 @@ export class Collection {
 
   get workflow_path(): string {
     return path.join(this.root_path, 'workflows');
+  }
+
+  get containers_path(): string {
+    return path.join(this.root_path, 'containers');
   }
 
   get instances_path(): string {
@@ -604,6 +609,15 @@ export class Collection {
         console.error(`Failed to stop process ${pid} for instance ${instance.id}: ${err}`);
       }
     }
+    local_instance.pid = [];
+  }
+
+  async resetWorkflowInstanceStatus(instance: IWorkflowInstance): Promise<void> {
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    local_instance.status = WorkflowStatus.Created;
     local_instance.pid = [];
   }
 
@@ -1031,6 +1045,11 @@ export class Collection {
     }
   }
 
+  async refreshCatalogues() {
+    this.parseWorkflows();
+    return await this.parseCatalogues();
+  }
+
   async addCatalogue(url: string, version: string) {
     // Clone catalogue repository and refresh catalogues list
     console.log(`Cloning catalogue repository ${url} version ${version}`);
@@ -1393,5 +1412,13 @@ export class Collection {
     } else {
       console.error('Invalid manifest format: "catalogues" array is missing.');
     }
+  }
+
+  async importShard(filePath: string) {
+    return importShard(filePath, this.root_path);
+  }
+
+  async queryShardStatus(shardId: string) {
+    return queryShardStatus(shardId);
   }
 }

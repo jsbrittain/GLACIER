@@ -3,11 +3,19 @@ import { Button, Box, Menu, MenuItem } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import QueryAddCatalogueDialog from './QueryAddCatalogueDialog';
 import QueryAddWorkflowDialog from './QueryAddWorkflowDialog';
+import QueryImportShardDialog from './QueryImportShardDialog';
 import { API } from '../../services/api.js';
 
-export default function ActionMenu({ setCatalogues, permitAddCatalogues, permitAddRepos }) {
+export default function ActionMenu({
+  setCatalogues,
+  permitAddCatalogues,
+  permitImportShards,
+  permitAddRepos,
+  logMessage
+}) {
   const { t } = useTranslation();
   const [showQueryCatalogueDialog, setShowQueryCatalogueDialog] = useState(false);
+  const [showQueryImportShardDialog, setShowQueryImportShardDialog] = useState(false);
   const [showQueryRepositoryDialog, setShowQueryRepositoryDialog] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const menuIsOpen = Boolean(anchorEl);
@@ -22,20 +30,25 @@ export default function ActionMenu({ setCatalogues, permitAddCatalogues, permitA
 
   const handleDialogClose = () => {
     setShowQueryCatalogueDialog(false);
+    setShowQueryImportShardDialog(false);
     setShowQueryRepositoryDialog(false);
     handleMenuClose();
   };
 
+  const getCatalogues = async () => {
+    return API.getCatalogues().then((result) => {
+      if (result.ok) {
+        setCatalogues(result.data);
+      } else {
+        throw new Error(result.error.message);
+      }
+    });
+  }
+
   const addCatalogue = async (repo, version) => {
     return API.addCatalogue(repo, version).then((result) => {
       if (result.ok) {
-        return API.getCatalogues().then((result) => {
-          if (result.ok) {
-            setCatalogues(result.data);
-          } else {
-            throw new Error(result.error.message);
-          }
-        });
+        return getCatalogues();
       } else {
         throw new Error(result.error.message);
       }
@@ -45,20 +58,13 @@ export default function ActionMenu({ setCatalogues, permitAddCatalogues, permitA
   const addUserWorkflow = async (name, url, version, section) => {
     return API.addUserWorkflow(name, url, version, section).then((result) => {
       if (result.ok) {
-        return API.getCatalogues().then((result) => {
-          if (result.ok) {
-            setCatalogues(result.data);
-          } else {
-            throw new Error(result.error.message);
-          }
-        });
+        return getCatalogues();
       } else {
         throw new Error(result.error.message);
       }
     });
-    handleDialogClose();
   };
-
+  
   const display = permitAddCatalogues || permitAddRepos;
   return (
     <Box
@@ -82,6 +88,15 @@ export default function ActionMenu({ setCatalogues, permitAddCatalogues, permitA
                 {t('library.add-catalogue')}
               </MenuItem>
             )}
+            {permitImportShards && (
+              <MenuItem
+                id="library-actions-menu-import-shard"
+                onClick={() => setShowQueryImportShardDialog(true)}
+                disabled={!permitImportShards}
+              >
+                {t('library.import-shard')}
+              </MenuItem>
+            )}
             {permitAddRepos && (
               <MenuItem
                 id="library-actions-menu-add-repo"
@@ -96,6 +111,12 @@ export default function ActionMenu({ setCatalogues, permitAddCatalogues, permitA
             open={showQueryCatalogueDialog}
             action={addCatalogue}
             onClose={handleDialogClose}
+          />
+          <QueryImportShardDialog
+            open={showQueryImportShardDialog}
+            onClose={handleDialogClose}
+            refresh={getCatalogues}
+            logMessage={logMessage}
           />
           <QueryAddWorkflowDialog
             open={showQueryRepositoryDialog}

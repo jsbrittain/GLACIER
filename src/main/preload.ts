@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-workflow-instance-params', instance),
   cancelWorkflowInstance: (instance: any) =>
     ipcRenderer.invoke('cancel-workflow-instance', instance),
+  resetWorkflowInstanceStatus: (instance: any) =>
+    ipcRenderer.invoke('reset-workflow-instance-status', instance),
   killWorkflowInstance: (instance: any) => ipcRenderer.invoke('kill-workflow-instance', instance),
   deleteWorkflowInstance: (instance: any) =>
     ipcRenderer.invoke('delete-workflow-instance', instance),
@@ -28,6 +30,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-work-log', instance, workID, logType),
   getAvailableProfiles: (instance: any) => ipcRenderer.invoke('get-available-profiles', instance),
   getSystemResources: () => ipcRenderer.invoke('get-system-resources'),
+  importShard: (filePath: string) => ipcRenderer.invoke('import-shard', filePath),
+  queryShardStatus: (shardId: string) => ipcRenderer.invoke('query-shard-status', shardId),
 
   cloneRepo: (repoUrl: string, ver: string) => ipcRenderer.invoke('clone-repo', repoUrl, ver),
   isRepoInstalled: (repoUrl: string, ver: string) =>
@@ -56,6 +60,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showCatalogueSections: (catalogue_name: string) =>
     ipcRenderer.invoke('show-catalogue-sections', catalogue_name),
   getCatalogues: () => ipcRenderer.invoke('get-catalogues'),
+  refreshCatalogues: () => ipcRenderer.invoke('refresh-catalogues'),
   addUserWorkflow: (name: string, repoUrl: string, version: string, section: string) =>
     ipcRenderer.invoke('add-user-workflow', name, repoUrl, version, section),
   syncRepo: (repo: string) => ipcRenderer.invoke('sync-repo', repo),
@@ -71,6 +76,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-workflow-information', instance),
   getWorkflowReadme: (instance: any) => ipcRenderer.invoke('get-workflow-readme', instance),
   getWorkflowLicense: (instance: any) => ipcRenderer.invoke('get-workflow-license', instance),
+  showSaveDialog: (opts: any) => ipcRenderer.invoke('show-save-dialog', opts),
+  writeTextFile: (filePath: string, content: string) =>
+    ipcRenderer.invoke('write-text-file', filePath, content),
+  readTextFile: (filePath: string) => ipcRenderer.invoke('read-text-file', filePath),
   settingsGet: (key: string) => ipcRenderer.invoke('settings-get', key),
   settingsSet: (key: string, value: any) => ipcRenderer.invoke('settings-set', key, value),
   openWebPage: (url: string) => ipcRenderer.invoke('open-web-page', url),

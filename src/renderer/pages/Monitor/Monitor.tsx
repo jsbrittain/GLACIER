@@ -41,7 +41,7 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-export default function MonitorPage({ instance, logMessage }) {
+export default function MonitorPage({ instance, logMessage, onRestart }) {
   const { t } = useTranslation();
   const [tabSelected, setTabSelected] = React.useState(0);
 
@@ -51,7 +51,7 @@ export default function MonitorPage({ instance, logMessage }) {
 
   return (
     <Paper sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <HeaderMenu instance={instance} logMessage={logMessage} />
+      <HeaderMenu instance={instance} logMessage={logMessage} onRestart={onRestart} />
       <Tabs value={tabSelected} onChange={handleTabChange}>
         <Tab label={t('monitor.progress.title')} />
         <Tab label={t('monitor.reports')} />
