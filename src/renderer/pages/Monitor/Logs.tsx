@@ -26,8 +26,8 @@ const ShowLog = ({ instance, log_type }: { instance: any; log_type: string }) =>
 
   useEffect(() => {
     const fetchLogs = () => {
-      API.getWorkflowInstanceLogs(instance, log_type).then((log) => {
-        setLog(log);
+      API.getWorkflowInstanceLogs(instance, log_type).then((result) => {
+        if (result.ok) setLog(result.data);
       });
     };
 

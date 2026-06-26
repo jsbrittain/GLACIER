@@ -42,35 +42,41 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
         name: 'All Files',
         extensions: ['*']
       }
-    ]).then((filePath) => {
-      if (!filePath) return;
+    ]).then((pickResult) => {
+      if (!pickResult.ok || !pickResult.data) return;
+      const filePath = pickResult.data;
       setSelectedFile(filePath);
       setImporting(true);
-      API.importShard(filePath).then((result) => {
-        const shardId = result.data;
+      API.importShard(filePath).then((importResult) => {
+        if (!importResult.ok) {
+          setImporting(false);
+          alert(`Error importing shard: ${importResult.error.message}`);
+          return;
+        }
+        const shardId = importResult.data;
         const intervalId = setInterval(() => {
-          API.queryShardStatus(shardId).then((status) => {
-            logMessage(`Shard status: ${status.data.status} (${status.data.message})`);
-            setLogs(status.data?.logs || []);
-            if (status.data.status === 'completed' || status.data.status === 'failed' || status.data.status === 'unknown') {
+          API.queryShardStatus(shardId).then((statusResult) => {
+            if (!statusResult.ok) {
+              logMessage(`Error querying shard status: ${statusResult.error.message}`);
               clearInterval(intervalId);
               setImporting(false);
-              if (status.data.status === 'failed') {
-                setLogs([`Import failed: ${status.data.message}`, ...(status.data?.logs || [])]);
+              return;
+            }
+            const status = statusResult.data;
+            logMessage(`Shard status: ${status.status} (${status.message})`);
+            setLogs(status?.logs || []);
+            if (status.status === 'completed' || status.status === 'failed' || status.status === 'unknown') {
+              clearInterval(intervalId);
+              setImporting(false);
+              if (status.status === 'failed') {
+                setLogs([`Import failed: ${status.message}`, ...(status?.logs || [])]);
               }
               return API.refreshCatalogues().then(() => {
                 return refresh();
               });
             }
-          }).catch((error) => {
-            logMessage(`Error querying shard status: ${error.message}`);
-            clearInterval(intervalId);
-            setImporting(false);
           });
         }, 1000);
-      }).catch((error) => {
-        setImporting(false);
-        alert(`Error importing shard: ${error.message}`);
       });
     });
   };

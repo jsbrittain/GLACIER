@@ -66,8 +66,8 @@ const InstanceList = ({ rows, setItem, instancesList, refreshInstancesList }) =>
     }
     const instance = instancesList.find((item) => item.name === name).instance;
     console.log('Instance to delete: ', instance.id);
-    API.deleteWorkflowInstance(instance).then(() => {
-      refreshInstancesList();
+    API.deleteWorkflowInstance(instance).then((result) => {
+      if (result.ok) refreshInstancesList();
     });
   };
 
@@ -148,7 +148,7 @@ export default function InstancesPage({
     setItem(instanceId);
     const entry = instancesList.find(({ name }) => name === instanceId);
     if (entry) {
-      API.resetWorkflowInstanceStatus(entry.instance).catch(() => {});
+      API.resetWorkflowInstanceStatus(entry.instance);
     }
     refreshInstancesList();
   };

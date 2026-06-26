@@ -21,7 +21,7 @@ const post_response = (res, maybe_promise) => {
     .then((data) => res.json(data))
     .catch((err) => {
       console.error(err);
-      return res.status(500).json({ error: err.message });
+      return res.json({ ok: false, error: { message: err.message } });
     });
 };
 
@@ -42,7 +42,7 @@ app.post('/api/init', async (req, res) =>
 );
 
 app.post('/api/create-workflow-instance', async (req, res) =>
-  post_response(res, collection.createWorkflowInstance(req.body.workflow_id, req.body.version))
+  post_response(res, call(collection.createWorkflowInstance.bind(collection), req.body.workflow_id, req.body.version))
 );
 
 app.post('/api/run-workflow', async (req, res) =>
@@ -53,55 +53,55 @@ app.post('/api/run-workflow', async (req, res) =>
 );
 
 app.post('/api/list-workflow-instances', async (req, res) =>
-  post_response(res, collection.listWorkflowInstances())
+  post_response(res, call(collection.listWorkflowInstances.bind(collection)))
 );
 
 app.post('/api/get-workflow-instance-logs', async (req, res) =>
-  post_response(res, collection.getWorkflowInstanceLogs(req.body.instance, req.body.logType))
+  post_response(res, call(collection.getWorkflowInstanceLogs.bind(collection), req.body.instance, req.body.logType))
 );
 
 app.post('/api/get-instance-progress', async (req, res) =>
-  post_response(res, collection.getInstanceProgress(req.body.instance))
+  post_response(res, call(collection.getInstanceProgress.bind(collection), req.body.instance))
 );
 
 app.post('/api/get-workflow-instance-params', async (req, res) =>
-  post_response(res, collection.getWorkflowInstanceParams(req.body.instance))
+  post_response(res, call(collection.getWorkflowInstanceParams.bind(collection), req.body.instance))
 );
 
 app.post('/api/cancel-workflow-instance', async (req, res) =>
-  post_response(res, collection.cancelWorkflowInstance(req.body.instance))
+  post_response(res, call(collection.cancelWorkflowInstance.bind(collection), req.body.instance))
 );
 
 app.post('/api/reset-workflow-instance-status', async (req, res) =>
-  post_response(res, collection.resetWorkflowInstanceStatus(req.body.instance))
+  post_response(res, call(collection.resetWorkflowInstanceStatus.bind(collection), req.body.instance))
 );
 
 app.post('/api/kill-workflow-instance', async (req, res) =>
-  post_response(res, collection.killWorkflowInstance(req.body.instance))
+  post_response(res, call(collection.killWorkflowInstance.bind(collection), req.body.instance))
 );
 
 app.post('/api/delete-workflow-instance', async (req, res) =>
-  post_response(res, collection.deleteWorkflowInstance(req.body.instance))
+  post_response(res, call(collection.deleteWorkflowInstance.bind(collection), req.body.instance))
 );
 
 app.post('/api/open-results-folder', async (req, res) =>
-  post_response(res, collection.openResultsFolder(req.body.instance))
+  post_response(res, call(collection.openResultsFolder.bind(collection), req.body.instance))
 );
 
 app.post('/api/update-workflow-instance-status', async (req, res) =>
-  post_response(res, collection.updateWorkflowInstanceStatus(req.body.instance))
+  post_response(res, call(collection.updateWorkflowInstanceStatus.bind(collection), req.body.instance))
 );
 
 app.post('/api/open-work-folder', async (req, res) =>
-  post_response(res, collection.openWorkFolder(req.body.instance, req.body.workID))
+  post_response(res, call(collection.openWorkFolder.bind(collection), req.body.instance, req.body.workID))
 );
 
 app.post('/api/get-work-log', async (req, res) =>
-  post_response(res, collection.getWorkLog(req.body.instance, req.body.workID, req.body.logType))
+  post_response(res, call(collection.getWorkLog.bind(collection), req.body.instance, req.body.workID, req.body.logType))
 );
 
 app.post('/api/get-available-profiles', async (req, res) =>
-  post_response(res, collection.getAvailableProfiles(req.body.instance))
+  post_response(res, call(collection.getAvailableProfiles.bind(collection), req.body.instance))
 );
 
 app.post('/api/clone-repo', async (req, res) =>
@@ -120,7 +120,7 @@ app.post('/api/is-valid-workflow-repo', async (req, res) =>
 );
 
 app.post('/api/sync-repo', async (req, res) =>
-  post_response(res, collection.syncRepo(req.body.repo))
+  post_response(res, call(collection.syncRepo.bind(collection), req.body.repo))
 );
 
 app.post('/api/add-catalogue', async (req, res) =>
@@ -128,20 +128,21 @@ app.post('/api/add-catalogue', async (req, res) =>
 );
 
 app.post('/api/remove-catalogue', async (req, res) =>
-  post_response(res, collection.removeCatalogue(req.body.catalogue_name))
+  post_response(res, call(collection.removeCatalogue.bind(collection), req.body.catalogue_name))
 );
 
 app.post('/api/remove-catalogue-section', async (req, res) =>
   post_response(
     res,
-    collection.removeCatalogueSection(req.body.catalogue_name, req.body.section_name)
+    call(collection.removeCatalogueSection.bind(collection), req.body.catalogue_name, req.body.section_name)
   )
 );
 
 app.post('/api/hide-catalogue-workflow', async (req, res) =>
   post_response(
     res,
-    collection.hideCatalogueWorkflow(
+    call(
+      collection.hideCatalogueWorkflow.bind(collection),
       req.body.catalogue_name,
       req.body.section_name,
       req.body.workflow_name
@@ -152,14 +153,15 @@ app.post('/api/hide-catalogue-workflow', async (req, res) =>
 app.post('/api/hide-catalogue-section', async (req, res) =>
   post_response(
     res,
-    collection.hideCatalogueSection(req.body.catalogue_name, req.body.section_name)
+    call(collection.hideCatalogueSection.bind(collection), req.body.catalogue_name, req.body.section_name)
   )
 );
 
 app.post('/api/remove-catalogue-workflow', async (req, res) =>
   post_response(
     res,
-    collection.removeCatalogueWorkflow(
+    call(
+      collection.removeCatalogueWorkflow.bind(collection),
       req.body.catalogue_name,
       req.body.section_name,
       req.body.workflow_name
@@ -192,16 +194,16 @@ app.post('/api/check-catalogue-workflow-updates', async (req, res) =>
 app.post('/api/show-catalogue-section-workflows', async (req, res) =>
   post_response(
     res,
-    collection.showCatalogueSectionWorkflows(req.body.catalogue_name, req.body.section_name)
+    call(collection.showCatalogueSectionWorkflows.bind(collection), req.body.catalogue_name, req.body.section_name)
   )
 );
 
 app.post('/api/show-catalogue-workflows', async (req, res) =>
-  post_response(res, collection.showCatalogueWorkflows(req.body.catalogue_name))
+  post_response(res, call(collection.showCatalogueWorkflows.bind(collection), req.body.catalogue_name))
 );
 
 app.post('/api/show-catalogue-sections', async (req, res) =>
-  post_response(res, collection.showCatalogueSections(req.body.catalogue_name))
+  post_response(res, call(collection.showCatalogueSections.bind(collection), req.body.catalogue_name))
 );
 
 app.post('/api/get-catalogues', async (req, res) =>
@@ -209,7 +211,7 @@ app.post('/api/get-catalogues', async (req, res) =>
 );
 
 app.post('/api/refresh-catalogues', async (req, res) =>
-  post_response(res, collection.refreshCatalogues())
+  post_response(res, call(collection.refreshCatalogues.bind(collection)))
 );
 
 app.post('/api/add-user-workflow', async (req, res) =>
@@ -226,132 +228,141 @@ app.post('/api/add-user-workflow', async (req, res) =>
 );
 
 app.post('/api/get-collection-repos', async (req, res) =>
-  post_response(res, collection.getCollectionRepos())
+  post_response(res, call(collection.getCollectionRepos.bind(collection)))
 );
 
 app.post('/api/get-collections-path', async (req, res) =>
-  post_response(res, collection.getCollectionsPath())
+  post_response(res, call(collection.getCollectionsPath.bind(collection)))
 );
 
 app.post('/api/set-collections-path', async (req, res) =>
-  post_response(res, collection.setCollectionsPath(req.body.path))
+  post_response(res, call(collection.setCollectionsPath.bind(collection), req.body.path))
 );
 
 app.post('/api/get-config-path', async (req, res) =>
-  post_response(res, collection.getConfigPath())
+  post_response(res, call(collection.getConfigPath.bind(collection)))
 );
 
 app.post('/api/set-config-path', async (req, res) =>
-  post_response(res, collection.setConfigPath(req.body.path))
+  post_response(res, call(collection.setConfigPath.bind(collection), req.body.path))
 );
 
 app.post('/api/get-documents-path', async (req, res) =>
-  post_response(res, collection.getDocumentsPath())
+  post_response(res, call(collection.getDocumentsPath.bind(collection)))
 );
 
 app.post('/api/set-documents-path', async (req, res) =>
-  post_response(res, collection.setDocumentsPath(req.body.path))
+  post_response(res, call(collection.setDocumentsPath.bind(collection), req.body.path))
 );
 
 app.post('/api/get-missing-paths', async (req, res) =>
-  post_response(res, collection.getMissingPaths())
+  post_response(res, call(collection.getMissingPaths.bind(collection)))
 );
 
 app.post('/api/pick-directory', async (req, res) => {
   const { dialog } = await import('electron');
-  const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
-  post_response(res, result.canceled ? null : (result.filePaths[0] ?? null));
+  post_response(res, call(async () => {
+    const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
+    return result.canceled ? null : (result.filePaths[0] ?? null);
+  }));
 });
 
 app.post('/api/get-container-logs', async (req, res) =>
-  post_response(res, collection.getContainerLogs(req.body.containerId))
+  post_response(res, call(collection.getContainerLogs.bind(collection), req.body.containerId))
 );
 
 app.post('/api/stop-container', async (req, res) =>
-  post_response(res, collection.stopContainer(req.body.containerId))
+  post_response(res, call(collection.stopContainer.bind(collection), req.body.containerId))
 );
 
 app.post('/api/delete-repo', async (req, res) =>
-  post_response(res, collection.deleteRepo(req.body.repoPath))
+  post_response(res, call(collection.deleteRepo.bind(collection), req.body.repoPath))
 );
 
 app.post('/api/get-workflow-params', async (req, res) =>
-  post_response(res, collection.getWorkflowParams(req.body.repoPath))
+  post_response(res, call(collection.getWorkflowParams.bind(collection), req.body.repoPath))
 );
 
 app.post('/api/get-workflow-schema', async (req, res) =>
-  post_response(res, collection.getWorkflowSchema(req.body.repoPath))
+  post_response(res, call(collection.getWorkflowSchema.bind(collection), req.body.repoPath))
 );
 
 app.post('/api/get-installable-repos-list', async (req, res) =>
-  post_response(res, collection.getInstallableReposList())
+  post_response(res, call(collection.getInstallableReposList.bind(collection)))
 );
 
 app.post('/api/add-installable-repo', async (req, res) =>
-  post_response(res, collection.addInstallableRepo(req.body.repoUrl))
+  post_response(res, call(collection.addInstallableRepo.bind(collection), req.body.repoUrl))
 );
 
 app.post('/api/get-workflow-readme', async (req, res) =>
-  post_response(res, collection.getWorkflowReadme(req.body.instance))
+  post_response(res, call(collection.getWorkflowReadme.bind(collection), req.body.instance))
 );
 
 app.post('/api/get-workflow-license', async (req, res) =>
-  post_response(res, collection.getWorkflowLicense(req.body.instance))
+  post_response(res, call(collection.getWorkflowLicense.bind(collection), req.body.instance))
 );
 
 app.post('/api/get-workflow-information', async (req, res) =>
-  post_response(res, collection.getWorkflowInformation(req.body.instance))
+  post_response(res, call(collection.getWorkflowInformation.bind(collection), req.body.instance))
 );
 
 app.post('/api/settings-get', async (req, res) =>
-  post_response(res, collection.settingsGet(req.body.key))
+  post_response(res, call(collection.settingsGet.bind(collection), req.body.key))
 );
 
 app.post('/api/settings-set', async (req, res) =>
-  post_response(res, collection.settingsSet(req.body.key, req.body.value))
+  post_response(res, call(collection.settingsSet.bind(collection), req.body.key, req.body.value))
 );
 
 app.post('/api/open-web-page', async (req, res) =>
-  post_response(res, collection.openWebPage(req.body.url))
+  post_response(res, call(collection.openWebPage.bind(collection), req.body.url))
 );
 
 app.post('/api/get-environment-status', async (req, res) =>
-  post_response(res, collection.getEnvironmentStatus(req.body.key))
+  post_response(res, call(collection.getEnvironmentStatus.bind(collection), req.body.key))
 );
 
 app.post('/api/perform-environment-action', async (req, res) =>
-  post_response(res, collection.performEnvironmentAction(req.body.key, req.body.action))
+  post_response(res, call(collection.performEnvironmentAction.bind(collection), req.body.key, req.body.action))
 );
 
 app.post('/api/get-system-resources', async (req, res) =>
-  post_response(res, collection.getSystemResources())
+  post_response(res, call(collection.getSystemResources.bind(collection)))
 );
 
 app.post('/api/file-pick', async (req, res) =>
-  post_response(res, collection.filePick(req.body.filters))
+  post_response(res, call(collection.filePick.bind(collection), req.body.filters))
 );
 
 app.post('/api/show-save-dialog', async (req, res) => {
   const { dialog } = await import('electron');
-  post_response(res, dialog.showSaveDialog(req.body.opts));
+  post_response(res, call(async () => {
+    const result = await dialog.showSaveDialog(req.body.opts);
+    return result.canceled ? null : result.filePath;
+  }));
 });
 
 app.post('/api/write-text-file', async (req, res) => {
   const fs = await import('fs');
-  post_response(res, fs.writeFileSync(req.body.filePath, req.body.content, 'utf-8'));
+  post_response(res, call(async () => {
+    fs.writeFileSync(req.body.filePath, req.body.content, 'utf-8');
+  }));
 });
 
 app.post('/api/read-text-file', async (req, res) => {
   const fs = await import('fs');
-  post_response(res, fs.readFileSync(req.body.filePath, 'utf-8'));
+  post_response(res, call(async () => {
+    return fs.readFileSync(req.body.filePath, 'utf-8');
+  }));
 });
 
 app.post('/api/import-shard', async (req, res) =>
-  post_response(res, collection.importShard(req.body.filePath))
+  post_response(res, call(collection.importShard.bind(collection), req.body.filePath))
 );
 
 app.post('/api/query-shard-status', async (req, res) =>
-  post_response(res, collection.queryShardStatus(req.body.shardId))
+  post_response(res, call(collection.queryShardStatus.bind(collection), req.body.shardId))
 );
 
 const PORT = process.env.PORT || 3030;

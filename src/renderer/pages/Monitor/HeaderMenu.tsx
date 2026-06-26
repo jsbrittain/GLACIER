@@ -20,9 +20,7 @@ export default function HeaderMenu({ instance, logMessage, onRestart }) {
       return;
     }
     logMessage(`${t('monitor.execution.cancelling')}: ${instance.id}.`);
-    API.cancelWorkflowInstance(instance).then(() => {
-      // instance cancelled - refresh running status
-    });
+    API.cancelWorkflowInstance(instance);
   };
 
   const handleExecutionResume = async () => {
@@ -30,7 +28,11 @@ export default function HeaderMenu({ instance, logMessage, onRestart }) {
     if (!window.confirm(t('monitor.execution.resume-confirm'))) {
       return;
     }
-    await API.runWorkflow(instance, {}, { resume: true });
+    const result = await API.runWorkflow(instance, {}, { resume: true });
+    if (!result.ok) {
+      logMessage(`Resume failed: ${result.error.message}`);
+      return;
+    }
     logMessage(`${t('monitor.execution.resuming')}: ${instance.id}.`);
   };
 
@@ -40,15 +42,12 @@ export default function HeaderMenu({ instance, logMessage, onRestart }) {
       return;
     }
     logMessage(`${t('monitor.execution.restarting')}: ${instance.id}.`);
-    API.cancelWorkflowInstance(instance)
-      .then(() => {
-        if (onRestart) onRestart(instance.id);
-      })
-      .catch((error) => {
-        // Workflow may not be running, so just log the error and continue
-        console.log('Error cancelling workflow (may not be running): ', error);
-        if (onRestart) onRestart(instance.id);
-      });
+    API.cancelWorkflowInstance(instance).then((result) => {
+      if (!result.ok) {
+        console.log('Error cancelling workflow (may not be running): ', result.error.message);
+      }
+      if (onRestart) onRestart(instance.id);
+    });
   };
 
   const handleExecutionKill = () => {
@@ -57,9 +56,7 @@ export default function HeaderMenu({ instance, logMessage, onRestart }) {
       return;
     }
     logMessage(`${t('monitor.execution.killing')}: ${instance.id}.`);
-    API.killWorkflowInstance(instance).then(() => {
-      // instance killed - refresh running status
-    });
+    API.killWorkflowInstance(instance);
   };
 
   const handleOpenResultsFolder = () => {

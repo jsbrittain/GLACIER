@@ -11,14 +11,14 @@ export default function EnvironmentPage() {
   const [systemResources, setSystemResources] = React.useState(null);
 
   const getEnvironmentStatus = async () => {
-    API.getEnvironmentStatus(EnvironmentKey.Nextflow).then((status) => {
-      setNextflowStatus(status);
+    API.getEnvironmentStatus(EnvironmentKey.Nextflow).then((result) => {
+      if (result.ok) setNextflowStatus(result.data);
     });
   };
 
   const getSystemResources = async () => {
-    API.getSystemResources().then((r) => {
-      setSystemResources(r?.data || null);
+    API.getSystemResources().then((result) => {
+      if (result?.ok) setSystemResources(result.data || null);
     });
   };
 
@@ -29,7 +29,8 @@ export default function EnvironmentPage() {
 
   const handlePerformAction = async (id: string) => {
     setPerformingAction(id);
-    API.performEnvironmentAction(EnvironmentKey.Nextflow, id).then(() => {
+    API.performEnvironmentAction(EnvironmentKey.Nextflow, id).then((result) => {
+      if (!result.ok) console.error(result.error.message);
       getEnvironmentStatus(); // refresh status after action
       setPerformingAction(null);
     });

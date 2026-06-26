@@ -57,9 +57,10 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [navigateToSettingsPage, setNavigateToSettingsPage] = useState('');
 
   const refreshInstancesList = async () => {
-    API.listWorkflowInstances().then((instances) => {
+    API.listWorkflowInstances().then((result) => {
+      if (!result.ok) return;
       setInstancesList(
-        instances.map((instance) => ({
+        result.data.map((instance) => ({
           instance: instance,
           name: instance.name
         }))
@@ -70,34 +71,34 @@ export default function MainPage({ darkMode, setDarkMode }) {
   useEffect(() => {
     (async () => {
       API.settingsGet(SettingsKey.DarkMode).then((result) => {
-        setDarkMode(result);
+        if (result.ok) setDarkMode(result.data);
       });
       API.settingsGet(SettingsKey.PermitAddCatalogues).then((result) => {
-        setPermitAddCatalogues(result);
+        if (result.ok) setPermitAddCatalogues(result.data);
       });
       API.settingsGet(SettingsKey.PermitCatalogueModifications).then((result) => {
-        setPermitCatalogueModifications(result);
+        if (result.ok) setPermitCatalogueModifications(result.data);
       });
       API.settingsGet(SettingsKey.PermitImportShards).then((result) => {
-        setPermitImportShards(result);
+        if (result.ok) setPermitImportShards(result.data);
       });
       API.settingsGet(SettingsKey.PermitAddRepos).then((result) => {
-        setPermitAddRepos(result);
+        if (result.ok) setPermitAddRepos(result.data);
       });
       const r = await API.init();
       if (!r.ok) {
         alert(t('error.parsing-catalogue') + ': ' + r.error.message);
       }
-      const path = await API.getCollectionsPath();
-      setCollectionsPath(path);
+      const pathResult = await API.getCollectionsPath();
+      if (pathResult.ok) setCollectionsPath(pathResult.data);
 
-      const dPath = await API.getDocumentsPath();
-      setDocumentsPath(dPath);
+      const dPathResult = await API.getDocumentsPath();
+      if (dPathResult.ok) setDocumentsPath(dPathResult.data);
 
       const missing = r.data || {};
       if (missing.config || missing.documents) {
-        setPendingConfigPath(path);
-        setPendingDocumentsPath(dPath);
+        setPendingConfigPath(pathResult.ok ? pathResult.data : '');
+        setPendingDocumentsPath(dPathResult.ok ? dPathResult.data : '');
         setShowPathDialog(true);
       }
 
@@ -107,11 +108,12 @@ export default function MainPage({ darkMode, setDarkMode }) {
 
   const createWorkflowInstance = async (repo) => {
     const workflow_id = repo.id;
-    API.createWorkflowInstance(workflow_id, repo.version).then((instance) => {
+    API.createWorkflowInstance(workflow_id, repo.version).then((result) => {
+      if (!result.ok) return;
       setInstancesList((prev) => {
-        const newQueue = [...prev, { instance: instance, name: instance.name }];
+        const newQueue = [...prev, { instance: result.data, name: result.data.name }];
         setView('instances');
-        setItem(instance.id);
+        setItem(result.data.id);
         return newQueue;
       });
     });
@@ -123,13 +125,13 @@ export default function MainPage({ darkMode, setDarkMode }) {
   };
 
   const handlePickConfigDir = async () => {
-    const dir = await API.pickDirectory();
-    if (dir) setPendingConfigPath(dir);
+    const result = await API.pickDirectory();
+    if (result.ok && result.data) setPendingConfigPath(result.data);
   };
 
   const handlePickDocumentsDir = async () => {
-    const dir = await API.pickDirectory();
-    if (dir) setPendingDocumentsPath(dir);
+    const result = await API.pickDirectory();
+    if (result.ok && result.data) setPendingDocumentsPath(result.data);
   };
 
   const handleConfirmPaths = async () => {
@@ -142,8 +144,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
     if (!r.ok) {
       alert(t('error.parsing-catalogue') + ': ' + r.error.message);
     }
-    const path = await API.getCollectionsPath();
-    setCollectionsPath(path);
+    const pathResult = await API.getCollectionsPath();
+    if (pathResult.ok) setCollectionsPath(pathResult.data);
     refreshInstancesList();
   };
 
