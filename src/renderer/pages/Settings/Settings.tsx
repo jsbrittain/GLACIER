@@ -10,7 +10,8 @@ import {
   MenuItem,
   Paper,
   Tab,
-  Tabs
+  Tabs,
+  Button
 } from '@mui/material';
 import EnvironmentPage from './Environment.js';
 import LicensesPage from './Licenses.js';
@@ -23,6 +24,8 @@ export default function SettingsPage({
   setDarkMode,
   collectionsPath,
   setCollectionsPath,
+  documentsPath,
+  setDocumentsPath,
   permitAddCatalogues,
   setPermitAddCatalogues,
   permitCatalogueModifications,
@@ -39,6 +42,7 @@ export default function SettingsPage({
   const { t, i18n } = useTranslation();
 
   const pathRef = React.useRef(null);
+  const docsPathRef = React.useRef(null);
   const [language, setLanguage] = React.useState(i18n.language || 'en');
   const [tabValue, setTabValue] = React.useState(0);
   const [disableSchemaValidation, setDisableSchemaValidation] = React.useState(false);
@@ -55,9 +59,42 @@ export default function SettingsPage({
     const newPath = pathRef.current?.value ?? '';
     if (newPath === collectionsPath) return;
     setCollectionsPath(newPath);
-    API.setCollectionsPath(newPath).then(() => {
+    API.setConfigPath(newPath).then(() => {
       console.log(`Collections path updated: ${newPath}`);
     });
+  };
+
+  const handleDocsPathKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleDocsPathBlur();
+      e.target.blur();
+    }
+  };
+
+  const handleDocsPathBlur = () => {
+    const newPath = docsPathRef.current?.value ?? '';
+    if (newPath === documentsPath) return;
+    setDocumentsPath(newPath);
+    API.setDocumentsPath(newPath).then(() => {
+      console.log(`Documents path updated: ${newPath}`);
+    });
+  };
+
+  const handlePickConfigDir = async () => {
+    const dir = await API.pickDirectory();
+    if (dir) {
+      setCollectionsPath(dir);
+      API.setConfigPath(dir);
+    }
+  };
+
+  const handlePickDocumentsDir = async () => {
+    const dir = await API.pickDirectory();
+    if (dir) {
+      setDocumentsPath(dir);
+      API.setDocumentsPath(dir);
+    }
   };
 
   const handleLanguageChange = (e) => {
@@ -97,9 +134,6 @@ export default function SettingsPage({
   };
 
   useEffect(() => {
-    API.settingsGet(SettingsKey.DarkMode).then((value) => {
-      setDarkMode(value);
-    });
     API.settingsGet(SettingsKey.PermitAddCatalogues).then((value) => {
       setPermitAddCatalogues(value);
     });
@@ -115,10 +149,16 @@ export default function SettingsPage({
     API.settingsGet(SettingsKey.DisableSchemaValidation).then((value) => {
       setDisableSchemaValidation(value);
     });
+  }, []);
+
+  useEffect(() => {
     if (pathRef.current && document.activeElement !== pathRef.current) {
       pathRef.current.value = collectionsPath ?? '';
     }
-  }, []);
+    if (docsPathRef.current && document.activeElement !== docsPathRef.current) {
+      docsPathRef.current.value = documentsPath ?? '';
+    }
+  }, [collectionsPath, documentsPath]);
 
   useEffect(() => {
     if (navigateToPage === 'environment') {
@@ -171,16 +211,37 @@ export default function SettingsPage({
       </Tabs>
 
       <TabPanel value={tabValue} index={0}>
-        <TextField
-          id="settings-collections-path"
-          inputRef={pathRef}
-          label={t('settings.collections-path')}
-          fullWidth
-          defaultValue={collectionsPath}
-          onKeyDown={handlePathKeyDown}
-          onBlur={handlePathBlur}
-          sx={{ mt: 2 }}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+          <TextField
+            id="settings-collections-path"
+            inputRef={pathRef}
+            label={t('settings.config-folder', 'Config folder')}
+            fullWidth
+            defaultValue={collectionsPath}
+            onKeyDown={handlePathKeyDown}
+            onBlur={handlePathBlur}
+          />
+          <Button variant="outlined" onClick={handlePickConfigDir}>
+            {t('settings.browse', 'Browse')}
+          </Button>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+          <TextField
+            id="settings-documents-path"
+            inputRef={docsPathRef}
+            label={t('settings.documents-folder', 'Documents folder')}
+            fullWidth
+            defaultValue={documentsPath}
+            onKeyDown={handleDocsPathKeyDown}
+            onBlur={handleDocsPathBlur}
+          />
+          <Button variant="outlined" onClick={handlePickDocumentsDir}>
+            {t('settings.browse', 'Browse')}
+          </Button>
+        </Box>
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1, display: 'block' }}>
+          {t('settings.instances-note', 'Workflow instances go here')}
+        </Typography>
         <FormControlLabel
           control={
             <Switch

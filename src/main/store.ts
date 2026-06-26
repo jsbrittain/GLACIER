@@ -4,7 +4,8 @@ const require = createRequire(import.meta.url);
 
 // Keep in sync with types/settings.js
 export interface StoreSchema {
-  collectionsPath: string;
+  configPath: string;
+  documentsPath: string;
   darkMode: boolean;
   permitAddCatalogues: boolean;
   permitCatalogueModifications: boolean;
@@ -21,7 +22,8 @@ function getInstance() {
       const { default: Store }: any = require('electron-store');
       _instance = new Store({
         schema: {
-          collectionsPath: { type: 'string', default: '' },
+          configPath: { type: 'string', default: '' },
+          documentsPath: { type: 'string', default: '' },
           darkMode: { type: 'boolean', default: false },
           permitAddCatalogues: { type: 'boolean', default: true },
           permitCatalogueModifications: { type: 'boolean', default: true },

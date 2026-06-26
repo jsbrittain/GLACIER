@@ -1,5 +1,14 @@
 import { test as base, Page, ElectronApplication, _electron as electron } from '@playwright/test';
 
+async function dismissStartupDialog(page: Page) {
+  await page.waitForLoadState();
+  const continueBtn = page.locator('#setup-continue-button');
+  if (await continueBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await continueBtn.click();
+    await page.waitForTimeout(500);
+  }
+}
+
 type Fixtures = {
   page: Page;
 };
@@ -30,10 +39,13 @@ export const test = base.extend<Fixtures>({
         win.setFullScreen(true);
       });
 
+      await dismissStartupDialog(win);
+
       await use(win);
       await electronApp.close();
     } else {
       await page.goto('/');
+      await dismissStartupDialog(page);
       await use(page);
     }
   }

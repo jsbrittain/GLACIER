@@ -6,7 +6,7 @@ import { promises as fs } from 'fs';
 
 // should not be linking directly to main from here
 import { IWorkflowInstance } from '../../main/collection.js';
-import { getCollectionsPath } from '../../main/paths.js';
+import { getConfigPath } from '../../main/paths.js';
 
 type paramsT = { [key: string]: any };
 
@@ -102,7 +102,7 @@ export async function runWorkflow(
   const workPath = resolvePath(instancePath, 'work');
   await fs.mkdir(workPath, { recursive: true });
   const projectPath = instance.workflow_version?.path || instancePath;
-  const collectionsPath = getCollectionsPath();
+  const collectionsPath = getConfigPath();
 
   if (is_windows) {
     // Convert all file and folder paths in params to posix and redirect

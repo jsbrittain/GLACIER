@@ -26,6 +26,8 @@ vi.mock('../../src/main/runner.js', () => ({
 }));
 
 vi.mock('../../src/main/paths.js', () => ({
+  getConfigPath: vi.fn(),
+  getDocumentsPath: vi.fn(() => '/tmp/documents/GLACIER'),
   getCollectionsPath: vi.fn(),
   locateReports: vi.fn(() => [])
 }));
@@ -50,6 +52,7 @@ let collection;
 
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'collection-test-'));
+  vi.mocked(paths.getConfigPath).mockReturnValue(tmpDir);
   vi.mocked(paths.getCollectionsPath).mockReturnValue(tmpDir);
   vi.clearAllMocks();
 
@@ -121,8 +124,12 @@ describe('Collection', () => {
       expect(Array.isArray(collection.catalogues)).toBe(true);
     });
 
-    it('sets root_path from getCollectionsPath', () => {
+    it('sets root_path from getConfigPath', () => {
       expect(collection.root_path).toBe(tmpDir);
+    });
+
+    it('sets documents_root_path from getDocumentsPath', () => {
+      expect(collection.documents_root_path).toBe('/tmp/documents/GLACIER');
     });
   });
 

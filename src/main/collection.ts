@@ -10,7 +10,7 @@ import { runWorkflow } from './runner.js';
 import { getEnvironmentStatus, performEnvironmentAction } from '../runners/environment.js';
 import { WorkflowStatus } from '../types/types.js';
 import { syncRepo, getWorkflowParams, getWorkflowSchema, isValidWorkflowRepo as checkIsValidWorkflowRepo } from './repo.js';
-import { getCollectionsPath, locateReports } from './paths.js';
+import { getConfigPath, getDocumentsPath, locateReports } from './paths.js';
 import { settings, StoreSchema } from './settings.js';
 import { importShard, queryShardStatus } from './shard.js';
 
@@ -199,7 +199,8 @@ export class Collection {
 
   // private constructor to prevent direct instantiation
   private constructor() {
-    this.root_path = getCollectionsPath();
+    this.root_path = getConfigPath();
+    this.documents_root_path = getDocumentsPath();
   }
 
   // Method to get the singleton instance
@@ -213,6 +214,7 @@ export class Collection {
   // --- Data --------------------------------------------------------------------------
 
   root_path: string = '';
+  documents_root_path: string = '';
   starting_up: boolean = true;
 
   catalogues: Catalogue[] = [];
@@ -232,7 +234,7 @@ export class Collection {
   }
 
   get instances_path(): string {
-    return path.join(this.root_path, 'instances');
+    return path.join(this.documents_root_path, 'instances');
   }
 
   get catalogues_path(): string {
@@ -241,7 +243,17 @@ export class Collection {
 
   // --- Logic -------------------------------------------------------------------------
 
-  async init() {
+  async init(): Promise<Record<string, boolean>> {
+    // Re-read paths from store in case they were changed
+    this.root_path = getConfigPath();
+    this.documents_root_path = getDocumentsPath();
+
+    // Check path existence BEFORE parseCollection (which auto-creates dirs)
+    const missing: Record<string, boolean> = {
+      config: !this.root_path || !fs.existsSync(this.root_path),
+      documents: !this.documents_root_path || !fs.existsSync(this.documents_root_path)
+    };
+
     const is_electron = process.versions?.electron !== undefined;
     if (is_electron && !fs.existsSync(this.catalogues_path)) {
       // Import manifest if one exists
@@ -257,6 +269,14 @@ export class Collection {
     }
     await this.parseCollection();
     this.starting_up = false;
+    return missing;
+  }
+
+  getMissingPaths(): Record<string, boolean> {
+    return {
+      config: !this.root_path || !fs.existsSync(this.root_path),
+      documents: !this.documents_root_path || !fs.existsSync(this.documents_root_path)
+    };
   }
 
   async parseCollection() {
@@ -377,7 +397,26 @@ export class Collection {
     for (const run of db.runs) {
       const instance = this.workflow_instances.find((inst) => inst.id === run.id);
       if (!instance) {
-        console.log(`Instance ${run.id} found in database but not in filesystem, skipping.`);
+        const latest_run = run.runs?.length > 0 ? run.runs[run.runs.length - 1] : null;
+        let has_running_pid = false;
+        if (latest_run?.pids?.length > 0) {
+          for (const pid of latest_run.pids) {
+            try {
+              process.kill(pid, 0);
+              has_running_pid = true;
+              break;
+            } catch {
+              // PID not running
+            }
+          }
+        }
+        if (!has_running_pid) {
+          console.log(`Instance ${run.id} found in database but not in filesystem, removing.`);
+          db.runs = db.runs.filter((r: any) => r.id !== run.id);
+          db_updated = true;
+        } else {
+          console.log(`Instance ${run.id} found in database but not in filesystem, process still running, keeping.`);
+        }
         continue;
       }
       // Get latest run
@@ -453,6 +492,26 @@ export class Collection {
 
   getCollectionsPath(): string | null {
     return this.getRootPath();
+  }
+
+  getConfigPath(): string | null {
+    return this.root_path;
+  }
+
+  getDocumentsPath(): string | null {
+    return this.documents_root_path;
+  }
+
+  async setConfigPath(path: string) {
+    this.root_path = path;
+    settings.set('configPath', path);
+    await this.parseCollection();
+  }
+
+  async setDocumentsPath(path: string) {
+    this.documents_root_path = path;
+    settings.set('documentsPath', path);
+    await this.parseCollection();
   }
 
   createWorkflowInstance(workflow_id: string, version: string): IWorkflowInstance {
@@ -808,8 +867,7 @@ export class Collection {
 
   async setCollectionsPath(path: string) {
     this.root_path = path;
-    settings.set('collectionsPath', path);
-    // Reparse collection
+    settings.set('configPath', path);
     await this.parseCollection();
   }
 

@@ -1,16 +1,66 @@
 import * as os from 'os';
 import path from 'path';
-// import { userDataDir } from 'platformdirs';
 import fs from 'fs';
+import { createRequire } from 'module';
 import store from './store.js';
 
-export function getDefaultCollectionsDir(): string {
-  const homeDir = os.homedir();
-  return path.join(homeDir, 'GLACIER');
+const require = createRequire(import.meta.url);
+
+function isElectron(): boolean {
+  return process.versions?.electron !== undefined;
 }
 
+function getElectronApp(): any {
+  try {
+    return require('electron').app;
+  } catch {
+    return null;
+  }
+}
+
+export function getDefaultConfigDir(): string {
+  if (isElectron()) {
+    const app = getElectronApp();
+    if (app && app.getPath) {
+      try {
+        return app.getPath('userData');
+      } catch {
+        // app not ready yet
+      }
+    }
+  }
+  return path.join(os.homedir(), 'GLACIER');
+}
+
+export function getDefaultDocumentsDir(): string {
+  if (isElectron()) {
+    const app = getElectronApp();
+    if (app && app.getPath) {
+      try {
+        return path.join(app.getPath('documents'), 'GLACIER');
+      } catch {
+        // app not ready yet
+      }
+    }
+  }
+  return path.join(os.homedir(), 'Documents', 'GLACIER');
+}
+
+export function getConfigPath(): string {
+  return store.get('configPath') || getDefaultConfigDir();
+}
+
+export function getDocumentsPath(): string {
+  return store.get('documentsPath') || getDefaultDocumentsDir();
+}
+
+// Backward-compat aliases
 export function getCollectionsPath(): string {
-  return store.get('collectionsPath') || getDefaultCollectionsDir();
+  return getConfigPath();
+}
+
+export function getDefaultCollectionsDir(): string {
+  return getDefaultConfigDir();
 }
 
 export function locateReports(reportsDir: string): Record<string, string>[] {

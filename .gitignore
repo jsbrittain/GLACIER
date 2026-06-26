@@ -149,3 +149,7 @@ public/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# WSL E2E test mount artifacts
+C:\
+C:\Users\test

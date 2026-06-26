@@ -40,6 +40,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('is-valid-workflow-repo', repoPath),
   getCollectionsPath: () => ipcRenderer.invoke('get-collections-path'),
   setCollectionsPath: (path: string) => ipcRenderer.invoke('set-collections-path', path),
+  getConfigPath: () => ipcRenderer.invoke('get-config-path'),
+  setConfigPath: (path: string) => ipcRenderer.invoke('set-config-path', path),
+  getDocumentsPath: () => ipcRenderer.invoke('get-documents-path'),
+  setDocumentsPath: (path: string) => ipcRenderer.invoke('set-documents-path', path),
+  getMissingPaths: () => ipcRenderer.invoke('get-missing-paths'),
   getCollectionRepos: () => ipcRenderer.invoke('get-collection-repos'),
   addCatalogue: (repoUrl: string, version: string) =>
     ipcRenderer.invoke('add-catalogue', repoUrl, version),

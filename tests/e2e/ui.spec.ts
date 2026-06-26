@@ -41,6 +41,12 @@ test('clone a repository', async ({ page }) => {
   await page.fill('#settings-collections-path', `${library_path}`);
   await page.locator('#settings-collections-path').blur();
 
+  // Set documents path to a temporary folder
+  const docs_path = path.resolve(path.join(glacier_path, 'docs'));
+  fs.mkdirSync(docs_path, { recursive: true });
+  await page.fill('#settings-documents-path', `${docs_path}`);
+  await page.locator('#settings-documents-path').blur();
+
   // Ensure repositories and catalogues can be modified in settings
   await page.check('#settings-permit-add-catalogues');
   await page.check('#settings-permit-catalogue-modifications');
@@ -49,7 +55,8 @@ test('clone a repository', async ({ page }) => {
   // Use English language for this test
   await page.click('#settings-language-panel');
   await page.click('#settings-language-select');
-  await page.getByRole('option', { name: 'English' }).click();
+  await page.locator('[role="listbox"]').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('[role="option"]').filter({ hasText: 'English' }).click({ force: true });
 
   // === Clone a repository ============================================================
 
@@ -95,6 +102,12 @@ test('launch local workflow', async ({ page }) => {
   await page.click('#settings-general-panel');
   await page.fill('#settings-collections-path', `${local_collections_path}`);
   await page.locator('#settings-collections-path').blur();
+
+  // Set documents path to a temporary folder
+  const docs_path = path.resolve(path.join(os.tmpdir(), 'GLACIER-docs-' + Date.now().toString()));
+  fs.mkdirSync(docs_path, { recursive: true });
+  await page.fill('#settings-documents-path', `${docs_path}`);
+  await page.locator('#settings-documents-path').blur();
 
   // --- Navigate to Library page
   await page.click('#sidebar-library-button');
