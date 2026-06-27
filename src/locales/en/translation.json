@@ -137,7 +137,14 @@
     "unhide": "Unhide",
     "no_hidden": "No hidden instances.",
     "not_started": "Not started",
-    "no-instances": "No instances available"
+    "no-instances": "No instances available",
+    "search_placeholder": "Search instances...",
+    "no_results": "No instances match your search",
+    "sort_by": "Sort by",
+    "sort_name": "Name",
+    "sort_launch_date": "Launch date",
+    "sort_asc": "Ascending",
+    "sort_desc": "Descending"
   },
   "parameters": {
     "launch-workflow": "Launch Workflow",

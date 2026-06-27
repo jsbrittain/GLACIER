@@ -137,7 +137,14 @@
     "unhide": "Afficher",
     "no_hidden": "Aucune instance masquée.",
     "not_started": "Non démarré",
-    "no-instances": "Aucune instance disponible."
+    "no-instances": "Aucune instance disponible.",
+    "search_placeholder": "Rechercher des instances...",
+    "no_results": "Aucune instance ne correspond à votre recherche",
+    "sort_by": "Trier par",
+    "sort_name": "Nom",
+    "sort_launch_date": "Date de lancement",
+    "sort_asc": "Croissant",
+    "sort_desc": "Décroissant"
   },
   "parameters": {
     "launch-workflow": "Lancer le flux de travail",
