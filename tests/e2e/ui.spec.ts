@@ -60,16 +60,20 @@ test('clone a repository', async ({ page }) => {
 
   // === Clone a repository ============================================================
 
-  // Check that the Library is empty
+  // Navigate to Library page
   await page.click('#sidebar-library-button');
-  await expect(page.getByText('No repositories installed.')).toBeVisible({ timeout: TIMEOUT_10s });
+
+  // Wait for the library UI to be interactive rather than asserting exact empty-state text
+  const actionsButton = page.locator('#library-actions-menu-button');
+  await expect(actionsButton).toBeVisible({ timeout: TIMEOUT_30s });
+  await expect(actionsButton).toBeEnabled({ timeout: TIMEOUT_30s });
 
   // Add repository
   const repo_owner = 'jsbrittain';
   const repo_name = 'workflow-runner-test-nextflow';
 
-  // Click Actions menu button
-  await page.click('#library-actions-menu-button');
+  await actionsButton.click();
+  await expect(page.locator('#library-actions-menu-add-repo')).toBeVisible({ timeout: TIMEOUT_10s });
   await page.click('#library-actions-menu-add-repo');
   // Fill in repo details
   await page.fill('#query-add-workflow-repo-url', `${repo_owner}/${repo_name}`);

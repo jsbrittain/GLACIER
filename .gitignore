@@ -153,3 +153,5 @@ public/
 # WSL E2E test mount artifacts
 C:\
 C:\Users\test
+
+.opencode/
