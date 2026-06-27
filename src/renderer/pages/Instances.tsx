@@ -345,6 +345,7 @@ export default function InstancesPage({
   // Poll instances list every 5 seconds when in list view
   useEffect(() => {
     if (item !== '') return;
+    refreshInstancesList();
     const timer = setInterval(() => {
       refreshInstancesList();
     }, 5000);
