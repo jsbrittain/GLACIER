@@ -19,12 +19,20 @@ const sanitizeSchema = {
   }
 };
 
-function isWebPageLink(href) {
-  if (!href) return false;
-  return /^https?:\/\//i.test(href) || /\.(html?|xhtml)$/i.test(href);
-}
-
 export default function MarkdownRenderer({ content, basePath }) {
+  function resolveHref(href) {
+    if (
+      href.startsWith('http://') ||
+      href.startsWith('https://') ||
+      href.startsWith('mailto:') ||
+      href.startsWith('file://')
+    ) {
+      return href;
+    }
+    const absolute = href.startsWith('/') ? `${basePath}${href}` : `${basePath}/${href}`;
+    return `file://${absolute}`;
+  }
+
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm, remarkDirective, remarkAdmonitions]}
@@ -48,18 +56,8 @@ export default function MarkdownRenderer({ content, basePath }) {
         a({ href = '', children, ...props }) {
           const handleClick = (e) => {
             if (href.startsWith('#')) return;
-
             e.preventDefault();
-
-            if (isWebPageLink(href)) {
-              const url = href.startsWith('http')
-                ? href
-                : href.startsWith('/')
-                  ? `${basePath}/${href}`
-                  : `${basePath}/${href}`;
-
-              API.openWebPage(url);
-            }
+            API.openWebPage(resolveHref(href));
           };
 
           return (
