@@ -76,18 +76,23 @@ export default function ParametersPage({
   };
 
   const onSaveParams = async () => {
-    const filePath = await API.showSaveDialog({ filters: paramsFileFilters });
+    const filePathResult = await API.showSaveDialog({ filters: paramsFileFilters });
+    if (!filePathResult.ok) return;
+    const filePath = filePathResult.data;
     if (!filePath) return;
     await API.writeTextFile(filePath, JSON.stringify(params, null, 2));
     logMessage(`Parameters saved to ${filePath}`);
   };
 
   const onLoadParams = async () => {
-    const filePath = await API.pickFile(paramsFileFilters);
+    const pickResult = await API.pickFile(paramsFileFilters);
+    if (!pickResult.ok) return;
+    const filePath = pickResult.data;
     if (!filePath) return;
-    const content = await API.readTextFile(filePath);
+    const readResult = await API.readTextFile(filePath);
+    if (!readResult.ok) return;
     try {
-      const loaded = JSON.parse(content);
+      const loaded = JSON.parse(readResult.data);
       if (typeof loaded !== 'object' || loaded === null || Array.isArray(loaded)) {
         logMessage('Invalid parameters file: must be a JSON object.', 'error');
         return;
@@ -102,22 +107,31 @@ export default function ParametersPage({
 
   const onTestLaunchWorkflow = async (testProfiles) => {
     const test_profiles_str = testProfiles.join(',');
-    await API.runWorkflow(instance, {}, { profile: test_profiles_str });
+    const result = await API.runWorkflow(instance, {}, { profile: test_profiles_str });
+    if (!result.ok) {
+      logMessage(`Error launching test workflow: ${result.error.message}`, 'error');
+      return;
+    }
     logMessage(`Launched test workflow ${instance.name}`);
     refreshInstancesList();
   };
 
   useEffect(() => {
     const getSettings = async () => {
-      setDisableSchemaValidation(await API.settingsGet(SettingsKey.DisableSchemaValidation));
+      const schemaValResult = await API.settingsGet(SettingsKey.DisableSchemaValidation);
+      if (schemaValResult.ok) setDisableSchemaValidation(schemaValResult.data);
     };
     const get_available_profiles = async () => {
-      const profiles = await API.getAvailableProfiles(instance);
+      const profilesResult = await API.getAvailableProfiles(instance);
+      if (!profilesResult.ok) return [default_profile];
+      const profiles = profilesResult.data;
       setAllProfiles(profiles || []);
       return profiles || [default_profile];
     };
     const get_schema = async (profiles: string[]) => {
-      let schema = await API.getWorkflowSchema(instance.workflow_version.path);
+      const schemaResult = await API.getWorkflowSchema(instance.workflow_version.path);
+      if (!schemaResult.ok) return;
+      let schema = schemaResult.data;
       // Add profile selection to the a separate schema category
       if (profiles.length > 0) {
         if (!schema['Launch settings']) {
@@ -142,10 +156,10 @@ export default function ParametersPage({
       setSchema(schema);
     };
     const get_params = async () => {
-      const data = await API.getWorkflowInstanceParams(instance);
-      if (data) {
-        setParams(data);
-        if (Object.keys(data).length > 0) {
+      const paramsResult = await API.getWorkflowInstanceParams(instance);
+      if (paramsResult.ok && paramsResult.data) {
+        setParams(paramsResult.data);
+        if (Object.keys(paramsResult.data).length > 0) {
           setTabSelected(2);
         }
       }

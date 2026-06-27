@@ -83,6 +83,7 @@ const electronAPI = isElectron
       getSystemResources: () => window.electronAPI.getSystemResources(),
       pickFile: (filters) => window.electronAPI.pickFile(filters),
       pickDirectory: () => window.electronAPI.pickDirectory(),
+      pickFileOrDirectory: (options) => window.electronAPI.pickFileOrDirectory(options),
       showSaveDialog: (opts) => window.electronAPI.showSaveDialog(opts),
       writeTextFile: (filePath, content) => window.electronAPI.writeTextFile(filePath, content),
       readTextFile: (filePath) => window.electronAPI.readTextFile(filePath),
@@ -217,6 +218,7 @@ const httpAPI = {
   getSystemResources: async () => httpDispatch('/api/get-system-resources', 'POST', {}),
   pickFile: async (filters) => httpDispatch('/api/pick-file', 'POST', { filters }),
   pickDirectory: async () => httpDispatch('/api/pick-directory', 'POST', {}),
+  pickFileOrDirectory: async (options) => httpDispatch('/api/pick-file-or-directory', 'POST', { options }),
   showSaveDialog: async (opts) => httpDispatch('/api/show-save-dialog', 'POST', { opts }),
   writeTextFile: async (filePath, content) =>
     httpDispatch('/api/write-text-file', 'POST', { filePath, content }),

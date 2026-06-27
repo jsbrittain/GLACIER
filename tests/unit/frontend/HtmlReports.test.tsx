@@ -6,9 +6,10 @@ import HtmlReports from '../../../src/renderer/pages/Monitor/HtmlReports';
 const mockInstance = { id: 'test-instance' };
 
 const { mockGetInstanceReportsList } = vi.hoisted(() => ({
-  mockGetInstanceReportsList: vi.fn().mockResolvedValue([
-    { id: 'r1', name: 'Report 1', path: '/reports/r1.html' }
-  ])
+  mockGetInstanceReportsList: vi.fn().mockResolvedValue({
+    ok: true,
+    data: [{ id: 'r1', name: 'Report 1', path: '/reports/r1.html' }]
+  })
 }));
 
 vi.mock('../../../src/renderer/services/api.js', () => ({

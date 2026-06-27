@@ -59,8 +59,8 @@ export default function SettingsPage({
     const newPath = pathRef.current?.value ?? '';
     if (newPath === collectionsPath) return;
     setCollectionsPath(newPath);
-    API.setConfigPath(newPath).then(() => {
-      console.log(`Collections path updated: ${newPath}`);
+    API.setConfigPath(newPath).then((result) => {
+      if (result.ok) console.log(`Collections path updated: ${newPath}`);
     });
   };
 
@@ -76,24 +76,24 @@ export default function SettingsPage({
     const newPath = docsPathRef.current?.value ?? '';
     if (newPath === documentsPath) return;
     setDocumentsPath(newPath);
-    API.setDocumentsPath(newPath).then(() => {
-      console.log(`Documents path updated: ${newPath}`);
+    API.setDocumentsPath(newPath).then((result) => {
+      if (result.ok) console.log(`Documents path updated: ${newPath}`);
     });
   };
 
   const handlePickConfigDir = async () => {
-    const dir = await API.pickDirectory();
-    if (dir) {
-      setCollectionsPath(dir);
-      API.setConfigPath(dir);
+    const result = await API.pickDirectory();
+    if (result.ok && result.data) {
+      setCollectionsPath(result.data);
+      API.setConfigPath(result.data);
     }
   };
 
   const handlePickDocumentsDir = async () => {
-    const dir = await API.pickDirectory();
-    if (dir) {
-      setDocumentsPath(dir);
-      API.setDocumentsPath(dir);
+    const result = await API.pickDirectory();
+    if (result.ok && result.data) {
+      setDocumentsPath(result.data);
+      API.setDocumentsPath(result.data);
     }
   };
 
@@ -105,49 +105,61 @@ export default function SettingsPage({
 
   const handlePermitAddCatalogues = (value) => {
     setPermitAddCatalogues(value);
-    API.settingsSet(SettingsKey.PermitAddCatalogues, value);
+    API.settingsSet(SettingsKey.PermitAddCatalogues, value).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
   };
 
   const handlePermitCatalogueModifications = (value) => {
     setPermitCatalogueModifications(value);
-    API.settingsSet(SettingsKey.PermitCatalogueModifications, value);
+    API.settingsSet(SettingsKey.PermitCatalogueModifications, value).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
   };
 
   const handlePermitImportShards = (value) => {
     setPermitImportShards(value);
-    API.settingsSet(SettingsKey.PermitImportShards, value);
+    API.settingsSet(SettingsKey.PermitImportShards, value).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
   };
 
   const handlePermitAddRepos = (value) => {
     setPermitAddRepos(value);
-    API.settingsSet(SettingsKey.PermitAddRepos, value);
+    API.settingsSet(SettingsKey.PermitAddRepos, value).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
   };
 
   const handleDarkMode = (value) => {
     setDarkMode(value);
-    API.settingsSet(SettingsKey.DarkMode, value);
+    API.settingsSet(SettingsKey.DarkMode, value).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
   };
 
   const handleDisableSchemaValidation = (value) => {
     setDisableSchemaValidation(value);
-    API.settingsSet(SettingsKey.DisableSchemaValidation, value);
+    API.settingsSet(SettingsKey.DisableSchemaValidation, value).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
   };
 
   useEffect(() => {
-    API.settingsGet(SettingsKey.PermitAddCatalogues).then((value) => {
-      setPermitAddCatalogues(value);
+    API.settingsGet(SettingsKey.PermitAddCatalogues).then((result) => {
+      if (result.ok) setPermitAddCatalogues(result.data);
     });
-    API.settingsGet(SettingsKey.PermitCatalogueModifications).then((value) => {
-      setPermitCatalogueModifications(value);
+    API.settingsGet(SettingsKey.PermitCatalogueModifications).then((result) => {
+      if (result.ok) setPermitCatalogueModifications(result.data);
     });
-    API.settingsGet(SettingsKey.PermitImportShards).then((value) => {
-      setPermitImportShards(value);
+    API.settingsGet(SettingsKey.PermitImportShards).then((result) => {
+      if (result.ok) setPermitImportShards(result.data);
     });
-    API.settingsGet(SettingsKey.PermitAddRepos).then((value) => {
-      setPermitAddRepos(value);
+    API.settingsGet(SettingsKey.PermitAddRepos).then((result) => {
+      if (result.ok) setPermitAddRepos(result.data);
     });
-    API.settingsGet(SettingsKey.DisableSchemaValidation).then((value) => {
-      setDisableSchemaValidation(value);
+    API.settingsGet(SettingsKey.DisableSchemaValidation).then((result) => {
+      if (result.ok) setDisableSchemaValidation(result.data);
     });
   }, []);
 

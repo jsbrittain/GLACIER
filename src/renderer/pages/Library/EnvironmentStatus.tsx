@@ -9,12 +9,14 @@ export default function EnvironmentPage({ navigateToSettingsEnv }) {
   const [actionsRequired, setActionsRequired] = React.useState([]);
 
   const getEnvironmentStatus = async () => {
-    API.getEnvironmentStatus(EnvironmentKey.Nextflow).then((status) => {
-      setActionsRequired(
-        status
-          .filter((item) => item?.status === 'warning' && (item?.actions || []).length > 0)
-          .map((item) => item.title)
-      );
+    API.getEnvironmentStatus(EnvironmentKey.Nextflow).then((result) => {
+      if (result.ok) {
+        setActionsRequired(
+          result.data
+            .filter((item) => item?.status === 'warning' && (item?.actions || []).length > 0)
+            .map((item) => item.title)
+        );
+      }
     });
   };
 

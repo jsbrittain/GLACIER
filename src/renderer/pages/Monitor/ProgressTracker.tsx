@@ -129,7 +129,9 @@ function CustomLabel({
   };
 
   const handleOpenFolder = (event) => {
-    API.openWorkFolder(instance, work_folder);
+    API.openWorkFolder(instance, work_folder).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
     handleMenuClose(event);
   };
 
@@ -153,16 +155,13 @@ function CustomLabel({
   };
 
   const refreshWorkLog = (log_type) => {
-    API.getWorkLog(instance, work_folder, log_type || logType)
-      .then((logs) => {
-        if (logs === '') {
-          logs = t('monitor.progress.no-logs');
-        }
-        setLogText(logs);
-      })
-      .catch(() => {
+    API.getWorkLog(instance, work_folder, log_type || logType).then((result) => {
+      if (result.ok) {
+        setLogText(result.data === '' ? t('monitor.progress.no-logs') : result.data);
+      } else {
         setLogText(t('monitor.progress.no-logs'));
-      });
+      }
+    });
   };
 
   return (
@@ -376,7 +375,9 @@ export default function ProgressTracker({ instance }) {
 
   useEffect(() => {
     const fetchAll = () => {
-      API.getInstanceProgress(instance).then((report) => {
+      API.getInstanceProgress(instance).then((result) => {
+        if (!result.ok) return;
+        const report = result.data;
         // Determine if workflow is still active before ascending process statuses
         const workflow_status =
           (report?.workflow[report.workflow.length - 1]?.status as WorkflowStatus) ||

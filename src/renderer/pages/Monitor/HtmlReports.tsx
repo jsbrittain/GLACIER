@@ -14,8 +14,8 @@ export default function HtmlReports({ instance }) {
   const [reportsList, setReportsList] = React.useState<Record<string, string>[]>([]);
 
   useEffect(() => {
-    API.getInstanceReportsList(instance).then((reports) => {
-      setReportsList(reports || []);
+    API.getInstanceReportsList(instance).then((result) => {
+      if (result.ok) setReportsList(result.data || []);
     });
   }, [instance]);
 

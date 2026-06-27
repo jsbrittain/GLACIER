@@ -1,7 +1,7 @@
 import { app, screen, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { registerIpcHandlers } from './ipc-handlers.js';
+import { registerIpcHandlers, call } from './ipc-handlers.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,39 +54,51 @@ app.on('window-all-closed', () => {
 });
 
 ipcMain.handle('pick-file', async (_evt, opts?: { filters?: Electron.FileFilter[] }) => {
-  const res = await dialog.showOpenDialog(win!, {
-    properties: ['openFile'],
-    filters: opts?.filters
+  return call(async () => {
+    const res = await dialog.showOpenDialog(win!, {
+      properties: ['openFile'],
+      filters: opts?.filters
+    });
+    return res.canceled ? null : (res.filePaths[0] ?? null);
   });
-  return res.canceled ? null : (res.filePaths[0] ?? null);
 });
 
 ipcMain.handle('pick-directory', async () => {
-  const res = await dialog.showOpenDialog(win!, {
-    properties: ['openDirectory']
+  return call(async () => {
+    const res = await dialog.showOpenDialog(win!, {
+      properties: ['openDirectory']
+    });
+    return res.canceled ? null : (res.filePaths[0] ?? null);
   });
-  return res.canceled ? null : (res.filePaths[0] ?? null);
 });
 
 ipcMain.handle('pick-file-or-directory', async (_, options) => {
-  const result = await dialog.showOpenDialog({
-    properties: ['openFile', 'openDirectory'],
-    filters: options?.filters
+  return call(async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile', 'openDirectory'],
+      filters: options?.filters
+    });
+    return result.canceled ? null : (result.filePaths[0] ?? null);
   });
-  return result.canceled ? null : (result.filePaths[0] ?? null);
 });
 
 ipcMain.handle('show-save-dialog', async (_evt, opts) => {
-  const res = await dialog.showSaveDialog(win!, opts);
-  return res.canceled ? null : res.filePath;
+  return call(async () => {
+    const res = await dialog.showSaveDialog(win!, opts);
+    return res.canceled ? null : res.filePath;
+  });
 });
 
 ipcMain.handle('write-text-file', async (_evt, filePath: string, content: string) => {
-  const fs = await import('fs');
-  fs.writeFileSync(filePath, content, 'utf-8');
+  return call(async () => {
+    const fs = await import('fs');
+    fs.writeFileSync(filePath, content, 'utf-8');
+  });
 });
 
 ipcMain.handle('read-text-file', async (_evt, filePath: string) => {
-  const fs = await import('fs');
-  return fs.readFileSync(filePath, 'utf-8');
+  return call(async () => {
+    const fs = await import('fs');
+    return fs.readFileSync(filePath, 'utf-8');
+  });
 });

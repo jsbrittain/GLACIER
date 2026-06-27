@@ -5,7 +5,7 @@ import { Result } from '../types/types.js';
 
 const collection = Collection.getInstance();
 
-async function call(fcn: any, ...args: any[]): Promise<Result<any>> {
+export async function call(fcn: any, ...args: any[]): Promise<Result<any>> {
   try {
     const data = await fcn(...args);
     return { ok: true, data };
@@ -51,149 +51,145 @@ export function registerIpcHandlers() {
     });
   }
 
-  /*
-   * Legacy call format - update to use call() for consistent error handling
-   */
-
   ipcMain.handle(
     'create-workflow-instance',
     async (event, workflow_id: string, version: string) => {
-      return collection.createWorkflowInstance(workflow_id, version);
+      return call(collection.createWorkflowInstance.bind(collection), workflow_id, version);
     }
   );
 
   ipcMain.handle('list-workflow-instances', async () => {
-    return collection.listWorkflowInstances();
+    return call(collection.listWorkflowInstances.bind(collection));
   });
 
   ipcMain.handle('get-workflow-instance-logs', async (event, instance: any, logType: string) => {
-    return collection.getWorkflowInstanceLogs(instance, logType);
+    return call(collection.getWorkflowInstanceLogs.bind(collection), instance, logType);
   });
 
   ipcMain.handle('get-instance-progress', async (event, instance: any) => {
-    return collection.getInstanceProgress(instance);
+    return call(collection.getInstanceProgress.bind(collection), instance);
   });
 
   ipcMain.handle('get-workflow-instance-params', async (event, instance: any) => {
-    return collection.getWorkflowInstanceParams(instance);
+    return call(collection.getWorkflowInstanceParams.bind(collection), instance);
   });
 
   ipcMain.handle('cancel-workflow-instance', async (event, instance: any) => {
-    return collection.cancelWorkflowInstance(instance);
+    return call(collection.cancelWorkflowInstance.bind(collection), instance);
   });
 
   ipcMain.handle('reset-workflow-instance-status', async (event, instance: any) => {
-    return collection.resetWorkflowInstanceStatus(instance);
+    return call(collection.resetWorkflowInstanceStatus.bind(collection), instance);
   });
 
   ipcMain.handle('kill-workflow-instance', async (event, instance: any) => {
-    return collection.killWorkflowInstance(instance);
+    return call(collection.killWorkflowInstance.bind(collection), instance);
   });
 
   ipcMain.handle('delete-workflow-instance', async (event, instance: any) => {
-    return collection.deleteWorkflowInstance(instance);
+    return call(collection.deleteWorkflowInstance.bind(collection), instance);
   });
 
   ipcMain.handle('open-results-folder', async (event, instance: any) => {
-    return collection.openResultsFolder(instance);
+    return call(collection.openResultsFolder.bind(collection), instance);
   });
 
   ipcMain.handle('update-workflow-instance-status', async (event, instance: any) => {
-    return collection.updateWorkflowInstanceStatus(instance);
+    return call(collection.updateWorkflowInstanceStatus.bind(collection), instance);
   });
 
   ipcMain.handle('get-instance-reports-list', async (event, instance: any) => {
-    return collection.getInstanceReportsList(instance);
+    return call(collection.getInstanceReportsList.bind(collection), instance);
   });
 
   ipcMain.handle('open-work-folder', async (event, instance: any, work_id: string) => {
-    return collection.openWorkFolder(instance, work_id);
+    return call(collection.openWorkFolder.bind(collection), instance, work_id);
   });
 
   ipcMain.handle('get-work-log', async (event, instance: any, workID: string, logType: string) => {
-    return collection.getWorkLog(instance, workID, logType);
+    return call(collection.getWorkLog.bind(collection), instance, workID, logType);
   });
 
   ipcMain.handle('get-available-profiles', async (event, instance: any) => {
-    return collection.getAvailableProfiles(instance);
+    return call(collection.getAvailableProfiles.bind(collection), instance);
   });
 
   ipcMain.handle('get-collections-path', () => {
-    return collection.getCollectionsPath();
+    return call(collection.getCollectionsPath.bind(collection));
   });
 
   ipcMain.handle('set-collections-path', (event, path) => {
-    return collection.setCollectionsPath(path);
+    return call(collection.setCollectionsPath.bind(collection), path);
   });
 
   ipcMain.handle('get-config-path', () => {
-    return collection.getConfigPath();
+    return call(collection.getConfigPath.bind(collection));
   });
 
   ipcMain.handle('set-config-path', (event, path) => {
-    return collection.setConfigPath(path);
+    return call(collection.setConfigPath.bind(collection), path);
   });
 
   ipcMain.handle('get-documents-path', () => {
-    return collection.getDocumentsPath();
+    return call(collection.getDocumentsPath.bind(collection));
   });
 
   ipcMain.handle('set-documents-path', (event, path) => {
-    return collection.setDocumentsPath(path);
+    return call(collection.setDocumentsPath.bind(collection), path);
   });
 
   ipcMain.handle('get-missing-paths', () => {
-    return collection.getMissingPaths();
+    return call(collection.getMissingPaths.bind(collection));
   });
 
   ipcMain.handle('get-collection-repos', async () => {
-    return collection.getCollectionRepos();
+    return call(collection.getCollectionRepos.bind(collection));
   });
 
   ipcMain.handle('sync-repo', async (event, path: string) => {
-    return collection.syncRepo(path);
+    return call(collection.syncRepo.bind(collection), path);
   });
 
   ipcMain.handle('get-workflow-params', async (event, repoPath) => {
-    return collection.getWorkflowParams(repoPath);
+    return call(collection.getWorkflowParams.bind(collection), repoPath);
   });
 
   ipcMain.handle('get-workflow-schema', async (event, repoPath) => {
-    return collection.getWorkflowSchema(repoPath);
+    return call(collection.getWorkflowSchema.bind(collection), repoPath);
   });
 
   ipcMain.handle('get-installable-repos-list', async () => {
-    return collection.getInstallableReposList();
+    return call(collection.getInstallableReposList.bind(collection));
   });
 
   ipcMain.handle('add-installable-repo', async (event, repoUrl) => {
-    return collection.addInstallableRepo(repoUrl);
+    return call(collection.addInstallableRepo.bind(collection), repoUrl);
   });
 
   ipcMain.handle('get-workflow-information', async (event, instance) => {
-    return collection.getWorkflowInformation(instance);
+    return call(collection.getWorkflowInformation.bind(collection), instance);
   });
 
   ipcMain.handle('settings-get', async (event, key: keyof StoreSchema) => {
-    return collection.settingsGet(key);
+    return call(collection.settingsGet.bind(collection), key);
   });
 
   ipcMain.handle(
     'settings-set',
     async (event, key: keyof StoreSchema, value: StoreSchema[keyof StoreSchema]) => {
-      return collection.settingsSet(key, value);
+      return call(collection.settingsSet.bind(collection), key, value);
     }
   );
 
   ipcMain.handle('open-web-page', async (event, url: string) => {
-    return collection.openWebPage(url);
+    return call(collection.openWebPage.bind(collection), url);
   });
 
   ipcMain.handle('get-environment-status', async (event, key) => {
-    return collection.getEnvironmentStatus(key);
+    return call(collection.getEnvironmentStatus.bind(collection), key);
   });
 
   ipcMain.handle('perform-environment-action', async (event, key, action) => {
-    return collection.performEnvironmentAction(key, action);
+    return call(collection.performEnvironmentAction.bind(collection), key, action);
   });
 }

@@ -6,6 +6,7 @@ import { TextField, IconButton, Stack } from '@mui/material';
 import { Box } from '@mui/system';
 import FileOpenIcon from '@mui/icons-material/FileOpen';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import { API } from '../../services/api.js';
 
 const toFilters = (accept?: string): Electron.FileFilter[] | undefined => {
   // accept like ".csv,.fastq,.fastq.gz,application/json"
@@ -67,24 +68,24 @@ function InnerFilePathControl(props: ControlProps) {
     const accept = (uischema as any)?.options?.accept as string | undefined;
     const filters = picker === 'directory' ? undefined : toFilters(accept);
 
-    let picked: string | undefined;
+    let result;
 
     switch (picker) {
       case 'directory':
-        picked = await window.electronAPI.pickDirectory();
+        result = await API.pickDirectory();
         break;
 
       case 'file':
-        picked = await window.electronAPI.pickFile(filters);
+        result = await API.pickFile(filters);
         break;
 
       case 'both':
-        picked = await window.electronAPI.pickFileOrDirectory({ filters });
+        result = await API.pickFileOrDirectory({ filters });
         break;
     }
 
-    if (picked) {
-      handleChange(path, picked);
+    if (result?.ok && result.data) {
+      handleChange(path, result.data);
     }
   };
 
