@@ -94,5 +94,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openWebPage: (url: string) => ipcRenderer.invoke('open-web-page', url),
   getEnvironmentStatus: (key: string) => ipcRenderer.invoke('get-environment-status', key),
   performEnvironmentAction: (key: string, action: string) =>
-    ipcRenderer.invoke('perform-environment-action', key, action)
+    ipcRenderer.invoke('perform-environment-action', key, action),
+  getInstanceDiskUsage: (instance: any) => ipcRenderer.invoke('get-instance-disk-usage', instance),
+  deleteOrphanedInstances: () => ipcRenderer.invoke('delete-orphaned-instances'),
+  hideWorkflowInstance: (instance: any) => ipcRenderer.invoke('hide-workflow-instance', instance),
+  unhideWorkflowInstance: (instance: any) => ipcRenderer.invoke('unhide-workflow-instance', instance),
+  listHiddenInstances: () => ipcRenderer.invoke('list-hidden-instances')
 });

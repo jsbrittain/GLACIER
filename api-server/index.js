@@ -156,6 +156,26 @@ app.post('/api/open-results-folder', async (req, res) =>
   post_response(res, call(collection.openResultsFolder.bind(collection), req.body.instance))
 );
 
+app.post('/api/get-instance-disk-usage', async (req, res) =>
+  post_response(res, call(collection.getInstanceDiskUsage.bind(collection), req.body.instance))
+);
+
+app.post('/api/delete-orphaned-instances', async (req, res) =>
+  post_response(res, call(collection.deleteOrphanedInstances.bind(collection)))
+);
+
+app.post('/api/hide-workflow-instance', async (req, res) =>
+  post_response(res, call(collection.hideWorkflowInstance.bind(collection), req.body.instance))
+);
+
+app.post('/api/unhide-workflow-instance', async (req, res) =>
+  post_response(res, call(collection.unhideWorkflowInstance.bind(collection), req.body.instance))
+);
+
+app.post('/api/list-hidden-instances', async (req, res) =>
+  post_response(res, call(collection.listHiddenInstances.bind(collection)))
+);
+
 app.post('/api/update-workflow-instance-status', async (req, res) =>
   post_response(res, call(collection.updateWorkflowInstanceStatus.bind(collection), req.body.instance))
 );

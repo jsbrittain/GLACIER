@@ -135,6 +135,11 @@ export interface IWorkflowInstance {
   path: string;
   params?: IWorkflowParams;
   status?: string;
+  /** Computed by listWorkflowInstances */
+  progress?: number;
+  launch_time?: string;
+  last_update?: string;
+  hidden?: boolean;
 }
 
 class WorkflowInstance implements IWorkflowInstance {
@@ -144,6 +149,10 @@ class WorkflowInstance implements IWorkflowInstance {
   path: string;
   params?: IWorkflowParams;
   status: string;
+  progress?: number;
+  launch_time?: string;
+  last_update?: string;
+  hidden?: boolean;
 
   processes: ProcessDescriptor[] = [];
 
@@ -153,7 +162,8 @@ class WorkflowInstance implements IWorkflowInstance {
     workflow_version,
     path,
     status = 'created',
-    params = {}
+    params = {},
+    hidden
   }: IWorkflowInstance) {
     this.id = id;
     this.name = name;
@@ -161,6 +171,7 @@ class WorkflowInstance implements IWorkflowInstance {
     this.path = path;
     this.params = params;
     this.status = status;
+    this.hidden = hidden;
   }
 
   attachProcess(desc: ProcessDescriptor) {
@@ -189,6 +200,70 @@ class WorkflowInstance implements IWorkflowInstance {
     }
     return 'unknown';
   }
+
+  getProgressPercent(): number {
+    const progressData = this._cachedProgress;
+    if (!progressData?.group) return 0;
+    const count = countProcesses(progressData.group);
+    return count.total > 0 ? Math.round((count.completed / count.total) * 100) : 0;
+  }
+
+  getLaunchTime(instanceDb: any): string | undefined {
+    if (!instanceDb?.runs) return undefined;
+    const run = instanceDb.runs.find((r: any) => r.id === this.id);
+    if (!run?.runs?.length) return undefined;
+    return run.runs[0].datetime || undefined;
+  }
+
+  getLastUpdateTime(): string | undefined {
+    if (!this._cachedProgress) return undefined;
+    const progress = this._cachedProgress;
+    let latest: string | undefined;
+    const consider = (ts: string | undefined) => {
+      if (ts && (!latest || ts > latest)) latest = ts;
+    };
+    // Check workflow-level events
+    for (const entry of progress.workflow || []) {
+      consider(entry.time);
+    }
+    // Walk process tree for timestamps
+    const walk = (items: any[]) => {
+      for (const item of items) {
+        consider(item.last_update);
+        for (const p of item.process || []) {
+          consider(p.time);
+          consider(p.last_update);
+        }
+        if (item.group?.length) walk(item.group);
+      }
+    };
+    walk(progress.group || []);
+    return latest;
+  }
+
+  private _cachedProgress: Record<string, any> | null = null;
+
+  setCachedProgress(data: Record<string, any>) {
+    this._cachedProgress = data;
+  }
+}
+
+function countProcesses(groups: any[]): { total: number; completed: number } {
+  const allProcesses = new Map<string, string>();
+  const walk = (items: any[]) => {
+    for (const item of items) {
+      for (const p of item.process || []) {
+        allProcesses.set(p.full_name, p.status);
+      }
+      if (item.group?.length) walk(item.group);
+    }
+  };
+  walk(groups);
+  let completed = 0;
+  for (const status of allProcesses.values()) {
+    if (status === 'completed') completed++;
+  }
+  return { total: allProcesses.size, completed };
 }
 
 // Singleton class
@@ -417,6 +492,10 @@ export class Collection {
         }
         continue;
       }
+      // Restore hidden flag
+      if (run.hidden) {
+        instance.hidden = true;
+      }
       // Get latest run
       if (run.runs && run.runs.length > 0) {
         const latest_run = run.runs[run.runs.length - 1];
@@ -594,7 +673,21 @@ export class Collection {
       }
     }
     await Promise.all(updatePromises);
-    return this.workflow_instances;
+    // Enrich instances with computed metadata
+    const db_path = path.join(this.root_path, instance_database_file);
+    let instanceDb: any = null;
+    if (fs.existsSync(db_path)) {
+      instanceDb = JSON.parse(fs.readFileSync(db_path, 'utf-8'));
+    }
+    const visible: IWorkflowInstance[] = [];
+    for (const instance of this.workflow_instances) {
+      if (instance.hidden) continue;
+      instance.progress = instance.getProgressPercent();
+      instance.launch_time = instance.getLaunchTime(instanceDb);
+      instance.last_update = instance.getLastUpdateTime();
+      visible.push(instance);
+    }
+    return visible;
   }
 
   async getInstanceProgress(instance: IWorkflowInstance): Promise<Record<string, unknown>> {
@@ -629,6 +722,7 @@ export class Collection {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
     const progress = await local_instance.getProgress();
+    local_instance.setCachedProgress(progress);
     const workflow_progress = progress.workflow;
     // get status of last item
     if (!workflow_progress || workflow_progress.length === 0) {
@@ -851,6 +945,98 @@ export class Collection {
     } else {
       throw new Error(`Results folder ${folderPath} does not exist.`);
     }
+  }
+
+  async getInstanceDiskUsage(instance: IWorkflowInstance): Promise<number> {
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    const folderPath = local_instance.path;
+    if (!fs.existsSync(folderPath)) {
+      return 0;
+    }
+    let totalSize = 0;
+    const walkDir = (dir: string) => {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walkDir(fullPath);
+        } else if (entry.isFile()) {
+          totalSize += fs.statSync(fullPath).size;
+        }
+      }
+    };
+    walkDir(folderPath);
+    return totalSize;
+  }
+
+  async deleteOrphanedInstances(): Promise<number> {
+    const orphans = this.workflow_instances.filter(
+      (inst) => inst.status === WorkflowStatus.Created
+    );
+    const count = orphans.length;
+    for (const inst of orphans) {
+      // Remove from filesystem if folder exists
+      if (fs.existsSync(inst.path)) {
+        fs.rmSync(inst.path, { recursive: true, force: true });
+      }
+      // Remove from collection
+      const idx = this.workflow_instances.indexOf(inst);
+      if (idx !== -1) {
+        this.workflow_instances.splice(idx, 1);
+      }
+    }
+    // Clean up database
+    const db_path = path.join(this.root_path, instance_database_file);
+    if (fs.existsSync(db_path)) {
+      const db = JSON.parse(fs.readFileSync(db_path, 'utf-8'));
+      const orphanIds = new Set(orphans.map((o) => o.id));
+      db.runs = db.runs.filter((r: any) => !orphanIds.has(r.id));
+      fs.writeFileSync(db_path, JSON.stringify(db, null, 2));
+    }
+    return count;
+  }
+
+  async hideWorkflowInstance(instance: IWorkflowInstance): Promise<void> {
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    local_instance.hidden = true;
+    local_instance.processes = [];
+    // Persist hidden flag in DB
+    const db_path = path.join(this.root_path, instance_database_file);
+    if (fs.existsSync(db_path)) {
+      const db = JSON.parse(fs.readFileSync(db_path, 'utf-8'));
+      const run = db.runs.find((r: any) => r.id === local_instance.id);
+      if (run) {
+        run.hidden = true;
+        fs.writeFileSync(db_path, JSON.stringify(db, null, 2));
+      }
+    }
+  }
+
+  async unhideWorkflowInstance(instance: IWorkflowInstance): Promise<void> {
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    local_instance.hidden = false;
+    const db_path = path.join(this.root_path, instance_database_file);
+    if (fs.existsSync(db_path)) {
+      const db = JSON.parse(fs.readFileSync(db_path, 'utf-8'));
+      const run = db.runs.find((r: any) => r.id === local_instance.id);
+      if (run) {
+        delete run.hidden;
+        fs.writeFileSync(db_path, JSON.stringify(db, null, 2));
+      }
+    }
+  }
+
+  listHiddenInstances(): IWorkflowInstance[] {
+    return this.workflow_instances.filter((inst) => inst.hidden);
   }
 
   async openWorkFolder(instance: IWorkflowInstance, word_id: string) {

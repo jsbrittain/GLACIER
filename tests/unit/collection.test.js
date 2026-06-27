@@ -317,8 +317,10 @@ describe('Collection', () => {
   describe('listWorkflowInstances', () => {
     it('returns all instances', async () => {
       const instances = [
-        { id: 'a', name: 'a', workflow_version: {}, path: '', processes: [], status: 'created' },
-        { id: 'b', name: 'b', workflow_version: {}, path: '', processes: [], status: 'created' }
+        { id: 'a', name: 'a', workflow_version: {}, path: '', processes: [], status: 'created',
+          getProgressPercent: () => 0, getLaunchTime: () => undefined, getLastUpdateTime: () => undefined },
+        { id: 'b', name: 'b', workflow_version: {}, path: '', processes: [], status: 'created',
+          getProgressPercent: () => 0, getLaunchTime: () => undefined, getLastUpdateTime: () => undefined }
       ];
       collection.workflow_instances = instances;
 
@@ -374,7 +376,8 @@ describe('Collection', () => {
         workflow_version: { path: '/x' },
         path: '/x',
         processes: [],
-        getProgress: vi.fn().mockResolvedValue({ workflow: [], group: [] })
+        getProgress: vi.fn().mockResolvedValue({ workflow: [], group: [] }),
+        setCachedProgress: vi.fn()
       };
       collection.workflow_instances = [instance];
 
@@ -392,7 +395,8 @@ describe('Collection', () => {
         getProgress: vi.fn().mockResolvedValue({
           workflow: [{ status: 'completed' }],
           group: []
-        })
+        }),
+        setCachedProgress: vi.fn()
       };
       collection.workflow_instances = [instance];
 
