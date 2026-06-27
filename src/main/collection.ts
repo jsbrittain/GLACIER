@@ -41,6 +41,7 @@ export interface Catalogue {
   icon?: string;
   base_dir?: string;
   scheme?: Record<string, string>;
+  scheme_url?: string;
   sections: CatalogueSection[];
 }
 
@@ -1102,6 +1103,18 @@ export class Collection {
         }
         js['source'] = `${owner}/${repo}`;
         js['base_dir'] = repoPath;
+        // Resolve scheme_url if provided
+        if (js['scheme_url']) {
+          try {
+            const response = await fetch(js['scheme_url']);
+            if (response.ok) {
+              const remoteScheme = await response.json();
+              js['scheme'] = { ...remoteScheme, ...js['scheme'] };
+            }
+          } catch (err) {
+            console.error(`Failed to fetch scheme from ${js['scheme_url']}: ${err}`);
+          }
+        }
         // Add to catalogues
         this.catalogues.push(js);
       }
