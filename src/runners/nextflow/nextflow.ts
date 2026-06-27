@@ -7,6 +7,7 @@ import { promises as fs } from 'fs';
 // should not be linking directly to main from here
 import { IWorkflowInstance } from '../../main/collection.js';
 import { getConfigPath } from '../../main/paths.js';
+import { ProcessDescriptor } from '../../types/types.js';
 
 type paramsT = { [key: string]: any };
 
@@ -93,7 +94,7 @@ export async function runWorkflow(
   instance: IWorkflowInstance,
   params: paramsT,
   { resume = false, restart = false, profile = 'standard' }: IRunWorkflowOpts = {}
-) {
+): Promise<ProcessDescriptor | null> {
   const { is_electron, java_binary, jar_file, env } = await get_electron_paths();
 
   // Launch nextflow natively on host system
@@ -180,7 +181,11 @@ export async function runWorkflow(
     }
     p.unref();
 
-    return p.pid;
+    return {
+      pid: p.pid,
+      cmd: cmd,
+      startTime: new Date().toISOString()
+    };
   }
 
   // Unix / macOS launcher
@@ -235,6 +240,9 @@ export async function runWorkflow(
     '--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED'
   ];
 
+  const cmdLine = is_electron
+    ? [java_binary, ...java_flags, '-jar', jar_file, ...cmd].join(' ')
+    : ['nextflow', ...cmd].join(' ');
   console.log(`Spawning nextflow with command: nextflow ${cmd.join(' ')} from ${instancePath}`);
   try {
     let p;
@@ -265,7 +273,11 @@ export async function runWorkflow(
       throw new Error('Failed to spawn nextflow process');
     }
     p.unref(); // allow the parent to exit independently
-    return p.pid;
+    return {
+      pid: p.pid,
+      cmd: cmdLine,
+      startTime: new Date().toISOString()
+    };
   } catch (err) {
     return null;
   }

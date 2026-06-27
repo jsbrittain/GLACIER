@@ -8,7 +8,7 @@ import { generateUniqueName } from './repo.js';
 import { cloneRepo, ICloneRepo, getRepoTags, getRepoBranches, parseRepoUrl } from './repo.js';
 import { runWorkflow } from './runner.js';
 import { getEnvironmentStatus, performEnvironmentAction } from '../runners/environment.js';
-import { WorkflowStatus } from '../types/types.js';
+import { ProcessDescriptor, WorkflowStatus } from '../types/types.js';
 import { syncRepo, getWorkflowParams, getWorkflowSchema, isValidWorkflowRepo as checkIsValidWorkflowRepo } from './repo.js';
 import { getConfigPath, getDocumentsPath, locateReports } from './paths.js';
 import { settings, StoreSchema } from './settings.js';
@@ -145,7 +145,7 @@ class WorkflowInstance implements IWorkflowInstance {
   params?: IWorkflowParams;
   status: string;
 
-  pid: number[] = [];
+  processes: ProcessDescriptor[] = [];
 
   constructor({
     id,
@@ -163,8 +163,8 @@ class WorkflowInstance implements IWorkflowInstance {
     this.status = status;
   }
 
-  attachPID(pid: number) {
-    this.pid.push(pid);
+  attachProcess(desc: ProcessDescriptor) {
+    this.processes.push(desc);
   }
 
   async getProgress(): Promise<Record<string, any>> {
@@ -399,19 +399,16 @@ export class Collection {
       const instance = this.workflow_instances.find((inst) => inst.id === run.id);
       if (!instance) {
         const latest_run = run.runs?.length > 0 ? run.runs[run.runs.length - 1] : null;
-        let has_running_pid = false;
-        if (latest_run?.pids?.length > 0) {
-          for (const pid of latest_run.pids) {
-            try {
-              process.kill(pid, 0);
-              has_running_pid = true;
-              break;
-            } catch {
-              // PID not running
-            }
+        let has_running = false;
+        // Try new-style processes first, fall back to old-style pids
+        const descriptors = this.getDescriptorsFromRun(latest_run);
+        for (const desc of descriptors) {
+          if (await this.verifyProcess(desc)) {
+            has_running = true;
+            break;
           }
         }
-        if (!has_running_pid) {
+        if (!has_running) {
           console.log(`Instance ${run.id} found in database but not in filesystem, removing.`);
           db.runs = db.runs.filter((r: any) => r.id !== run.id);
           db_updated = true;
@@ -424,28 +421,41 @@ export class Collection {
       if (run.runs && run.runs.length > 0) {
         const latest_run = run.runs[run.runs.length - 1];
         instance.status = latest_run.status;
-        // If running and PIDs exist, check if still running
-        if (latest_run.status === 'running' && latest_run.pids && latest_run.pids.length > 0) {
-          instance.pid = latest_run.pids;
-          for (const pid of latest_run.pids) {
-            try {
-              process.kill(pid, 0); // Check if process is running
-              console.log(`Instance ${instance.id} has running PID: ${pid}`);
-            } catch {
-              console.log(`Instance ${instance.id} PID ${pid} is not running, updating status.`);
-              // Remove PID from instance
-              instance.pid = instance.pid.filter((p) => p !== pid);
-              // Add termination status to database
-              const progress = await instance.getStatus();
-              const status = progress || 'closed';
-              run.runs.push({
-                datetime: new Date().toISOString(),
-                pids: [],
-                status: status
-              });
-              instance.status = status;
-              db_updated = true;
+        // If running and process descriptors exist, check if still running
+        const descriptors = this.getDescriptorsFromRun(latest_run);
+        if (latest_run.status === 'running' && descriptors.length > 0) {
+          instance.processes = descriptors;
+          const alive: ProcessDescriptor[] = [];
+          for (const desc of descriptors) {
+            const isAlive = await this.verifyProcess(desc);
+            if (isAlive) {
+              alive.push(desc);
+              const tag = desc.containerId
+                ? `container ${desc.containerId.slice(0, 12)}`
+                : `PID ${desc.pid}`;
+              console.log(`Instance ${instance.id} has running ${tag}`);
+            } else {
+              const tag = desc.containerId
+                ? `container ${desc.containerId.slice(0, 12)}`
+                : `PID ${desc.pid}`;
+              console.log(`Instance ${instance.id} ${tag} is not running, updating status.`);
             }
+          }
+          instance.processes = alive;
+          if (alive.length === 0 && descriptors.length > 0) {
+            // All processes dead — update status
+            const progress = await instance.getStatus();
+            const status = progress || 'closed';
+            run.runs.push({
+              datetime: new Date().toISOString(),
+              pids: [],
+              status: status
+            });
+            instance.status = status;
+            db_updated = true;
+          } else if (alive.length !== descriptors.length) {
+            // Some processes died — update DB with cleaned list
+            db_updated = true;
           }
         }
       }
@@ -453,6 +463,23 @@ export class Collection {
     if (db_updated) {
       fs.writeFileSync(db_path, JSON.stringify(db, null, 2));
     }
+  }
+
+  /** Extract ProcessDescriptors from a DB run entry, handling both old and new schema */
+  private getDescriptorsFromRun(run: any): ProcessDescriptor[] {
+    if (!run) return [];
+    // New format
+    if (run.processes && Array.isArray(run.processes) && run.processes.length > 0) {
+      return run.processes;
+    }
+    // Legacy format: `pids: number[]`
+    if (run.pids && Array.isArray(run.pids) && run.pids.length > 0) {
+      return run.pids.map((pid: number) => ({
+        pid,
+        startTime: run.datetime || undefined
+      }));
+    }
+    return [];
   }
 
   private printCollection() {
@@ -466,8 +493,11 @@ export class Collection {
     console.log('Instances in collection:');
     for (const inst of this.workflow_instances) {
       console.log(`- ${inst.id} (${inst.workflow_version.id}) at ${inst.path}`);
-      if (inst.pid.length > 0) {
-        console.log(`  - PIDs: ${inst.pid.join(', ')}`);
+      if (inst.processes.length > 0) {
+        const descs = inst.processes
+          .map((p) => `${p.pid}${p.containerId ? ' (container:' + p.containerId.slice(0, 12) + ')' : ''}`)
+          .join(', ');
+        console.log(`  - Processes: ${descs}`);
       }
     }
   }
@@ -650,27 +680,98 @@ export class Collection {
     }
   };
 
+  /**
+   * Read the command line of a running process for PID-reuse detection.
+   * Returns null when the platform doesn't support it or the PID is gone.
+   */
+  private async getProcessCmd(pid: number): Promise<string | null> {
+    const isWin = process.platform === 'win32';
+    try {
+      if (isWin) {
+        const { execSync } = require('child_process');
+        const out = execSync(
+          `wmic process where processid=${pid} get commandline /format:list`,
+          { encoding: 'utf-8', timeout: 3000 }
+        );
+        const match = out.match(/CommandLine=(.+)/);
+        return match ? match[1].trim() : null;
+      } else {
+        // macOS / Linux — read /proc/<pid>/cmdline (works on both)
+        const cmdline = require('fs').readFileSync(`/proc/${pid}/cmdline`, 'utf-8');
+        return cmdline.replace(/\0/g, ' ').trim();
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Verify that a process descriptor still refers to the expected OS process.
+   * For Docker containers, inspect via Docker API.
+   */
+  private async verifyProcess(desc: ProcessDescriptor): Promise<boolean> {
+    // Docker containers
+    if (desc.containerId) {
+      try {
+        const { docker } = await import('../runners/docker/docker.js');
+        const container = docker.getContainer(desc.containerId);
+        const info = await container.inspect();
+        return info.State.Running;
+      } catch {
+        return false;
+      }
+    }
+
+    // Standard PID — check liveness first, then verify command line
+    try {
+      process.kill(desc.pid, 0);
+    } catch {
+      return false;
+    }
+
+    // If we have a stored cmd, verify it matches the running process
+    if (desc.cmd) {
+      const actualCmd = await this.getProcessCmd(desc.pid);
+      if (actualCmd !== null && !actualCmd.includes(desc.cmd)) {
+        // The PID is alive but belongs to a different program — PID reuse
+        const excerpt =
+          actualCmd.length > 120 ? actualCmd.slice(0, 120) + '...' : actualCmd;
+        console.warn(
+          `PID ${desc.pid} cmd mismatch: expected "${desc.cmd.slice(0, 80)}", got "${excerpt}"`
+        );
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   async cancelWorkflowInstance(instance: IWorkflowInstance): Promise<void> {
-    // Find instance
     console.log(`Cancelling instance ${instance.id}`);
     const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
     if (!local_instance) {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
-    if (local_instance.pid.length === 0) {
+    if (local_instance.processes.length === 0) {
       throw new Error(`Instance ${instance.id} has no running process.`);
     }
-    for (const pid of local_instance.pid) {
+    for (const desc of local_instance.processes) {
       try {
-        const success = this.killPID(pid, 'graceful');
-        if (!success) {
-          console.error(`Failed to stop process ${pid} for instance ${instance.id}`);
+        if (desc.containerId) {
+          const { docker } = await import('../runners/docker/docker.js');
+          const container = docker.getContainer(desc.containerId);
+          await container.stop({ t: 10 });
+        } else {
+          const success = this.killPID(desc.pid, 'graceful');
+          if (!success) {
+            console.error(`Failed to stop PID ${desc.pid} for instance ${instance.id}`);
+          }
         }
       } catch (err) {
-        console.error(`Failed to stop process ${pid} for instance ${instance.id}: ${err}`);
+        console.error(`Failed to stop process for instance ${instance.id}: ${err}`);
       }
     }
-    local_instance.pid = [];
+    local_instance.processes = [];
   }
 
   async resetWorkflowInstanceStatus(instance: IWorkflowInstance): Promise<void> {
@@ -679,30 +780,35 @@ export class Collection {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
     local_instance.status = WorkflowStatus.Created;
-    local_instance.pid = [];
+    local_instance.processes = [];
   }
 
   async killWorkflowInstance(instance: IWorkflowInstance): Promise<void> {
-    // Find instance
-    console.log(`Cancelling instance ${instance.id}`);
+    console.log(`Killing instance ${instance.id}`);
     const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
     if (!local_instance) {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
-    if (local_instance.pid.length === 0) {
+    if (local_instance.processes.length === 0) {
       throw new Error(`Instance ${instance.id} has no running process.`);
     }
-    for (const pid of local_instance.pid) {
+    for (const desc of local_instance.processes) {
       try {
-        const success = this.killPID(pid, 'kill');
-        if (!success) {
-          console.error(`Failed to kill process ${pid} for instance ${instance.id}`);
+        if (desc.containerId) {
+          const { docker } = await import('../runners/docker/docker.js');
+          const container = docker.getContainer(desc.containerId);
+          await container.kill();
+        } else {
+          const success = this.killPID(desc.pid, 'kill');
+          if (!success) {
+            console.error(`Failed to kill PID ${desc.pid} for instance ${instance.id}`);
+          }
         }
       } catch (err) {
-        console.error(`Failed to kill process ${pid} for instance ${instance.id}: ${err}`);
+        console.error(`Failed to kill process for instance ${instance.id}: ${err}`);
       }
     }
-    local_instance.pid = [];
+    local_instance.processes = [];
   }
 
   async deleteWorkflowInstance(instance: IWorkflowInstance): Promise<void> {
@@ -715,7 +821,7 @@ export class Collection {
     }
     const local_instance = this.workflow_instances[local_instance_index];
     // Ensure no running processes
-    if (local_instance.pid.length > 0) {
+    if (local_instance.processes.length > 0) {
       await this.killWorkflowInstance(instance);
     }
     // Delete folder
@@ -888,22 +994,26 @@ export class Collection {
     return repos;
   }
 
-  async runWorkflow(instance: IWorkflowInstance, params: IWorkflowParams = {}, opts = {}) {
+  async runWorkflow(
+    instance: IWorkflowInstance,
+    params: IWorkflowParams = {},
+    opts = {}
+  ): Promise<ProcessDescriptor | null> {
     const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
     if (!local_instance) {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
-    const pid = await runWorkflow({
+    const desc = await runWorkflow({
       instance: instance,
       params: params,
       opts: opts
     });
-    if (!pid) {
+    if (!desc) {
       throw new Error(`Failed to start workflow instance ${instance.id}.`);
     }
-    local_instance.attachPID(pid as number);
+    local_instance.attachProcess(desc);
     this.recordRunWorkflow(instance);
-    return pid;
+    return desc;
   }
 
   recordRunWorkflow(instance: IWorkflowInstance, status = 'running') {
@@ -919,28 +1029,25 @@ export class Collection {
     if (fs.existsSync(db_path)) {
       db = JSON.parse(fs.readFileSync(db_path, 'utf-8'));
     }
+    // Build the run entry with both new structured processes and legacy pids
+    const entry = {
+      datetime: new Date().toISOString(),
+      processes: local_instance.processes,
+      pids: local_instance.processes.map((p) => p.pid).filter((p) => p > 0),
+      status: status
+    };
     // Find existing run
     const existing_run = db.runs.find((r: any) => r.id === local_instance.id);
     if (existing_run) {
       // Append new run
-      existing_run.runs.push({
-        datetime: new Date().toISOString(),
-        pids: local_instance.pid,
-        status: status
-      });
+      existing_run.runs.push(entry);
     } else {
       // Create instance
       db.runs.push({
         id: local_instance.id,
         name: local_instance.name,
         workflow: local_instance.workflow_version.id,
-        runs: [
-          {
-            datetime: new Date().toISOString(),
-            pids: local_instance.pid,
-            status: status
-          }
-        ]
+        runs: [entry]
       });
     }
     // Write DB

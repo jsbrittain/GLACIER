@@ -25,6 +25,18 @@ export enum WorkflowStatus {
   Undefined = 'undefined'
 }
 
+// Persistent handle to an OS process (or Docker container) for lifecycle management.
+// Augments a bare PID with enough metadata to detect PID reuse across restarts.
+export interface ProcessDescriptor {
+  pid: number;
+  /** Human-readable command line used to spawn the process (for PID reuse detection) */
+  cmd?: string;
+  /** ISO timestamp of when this descriptor was first captured */
+  startTime?: string;
+  /** Docker container ID (if this is a container-backed workflow) */
+  containerId?: string;
+}
+
 // Process status enumeration
 export enum ProcessStatus {
   Created = 'created',
