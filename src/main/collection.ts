@@ -1005,7 +1005,7 @@ export class Collection {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
     local_instance.hidden = true;
-    local_instance.pid = [];
+    local_instance.processes = [];
     // Persist hidden flag in DB
     const db_path = path.join(this.root_path, instance_database_file);
     if (fs.existsSync(db_path)) {
