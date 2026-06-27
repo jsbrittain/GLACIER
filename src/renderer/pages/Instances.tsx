@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Container,
@@ -16,16 +16,24 @@ import {
   Tooltip,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
+  TextField,
+  InputAdornment,
+  Select,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import SearchIcon from '@mui/icons-material/Search';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import { API } from '../services/api.js';
 import { useTranslation } from 'react-i18next';
 import { WorkflowStatus } from '../../types/types';
+import { SettingsKey } from '../../types/settings';
 import MonitorPage from './Monitor/Monitor';
 import ParametersPage from './Parameters/Parameters';
 function formatDiskSize(bytes: number): string {
@@ -185,31 +193,6 @@ const InstanceAccordion = ({
         </AccordionSummary>
         <AccordionDetails>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pl: 1, pr: 1 }}>
-            {/* Progress section */}
-            <Box>
-              <Typography variant="subtitle2" gutterBottom>
-                {t('instances.progress')}
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {isCreated ? (
-                  <Typography variant="body2" color="text.secondary">
-                    {t('instances.not_started')}
-                  </Typography>
-                ) : (
-                  <>
-                    <LinearProgress
-                      variant="determinate"
-                      value={progress}
-                      sx={{ flex: 1, height: 12, borderRadius: 6 }}
-                    />
-                    <Typography variant="body2" sx={{ minWidth: 48, textAlign: 'right' }}>
-                      {progress}%
-                    </Typography>
-                  </>
-                )}
-              </Box>
-            </Box>
-
             {/* Timing section */}
             <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               <Box>
@@ -324,6 +307,38 @@ export default function InstancesPage({
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [hiddenDialogOpen, setHiddenDialogOpen] = useState(false);
   const [hiddenInstances, setHiddenInstances] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'launch-date'>('name');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const dirDefaults = { name: 'asc', 'launch-date': 'desc' } as const;
+
+  // Load saved sort preferences on mount
+  useEffect(() => {
+    API.settingsGet(SettingsKey.InstanceSortBy).then((result) => {
+      if (result.ok && result.data) {
+        setSortBy(result.data as 'name' | 'launch-date');
+      }
+    });
+    API.settingsGet(SettingsKey.InstanceSortDir).then((result) => {
+      if (result.ok && result.data) {
+        setSortDir(result.data as 'asc' | 'desc');
+      }
+    });
+  }, []);
+
+  // Save sort preferences on change
+  useEffect(() => {
+    API.settingsSet(SettingsKey.InstanceSortBy, sortBy);
+  }, [sortBy]);
+  useEffect(() => {
+    API.settingsSet(SettingsKey.InstanceSortDir, sortDir);
+  }, [sortDir]);
+
+  // Reset direction to field default when sort field changes
+  useEffect(() => {
+    setSortDir(dirDefaults[sortBy]);
+  }, [sortBy]);
 
   const onEditComplete = () => {
     setEditingInstance(null);
@@ -429,6 +444,37 @@ export default function InstancesPage({
     }
   }, [item]);
 
+  const sortedList = useMemo(() => {
+    let list = instancesList;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      list = instancesList.filter((entry) => {
+        const status = entry.instance.status || '';
+        return (
+          entry.name.toLowerCase().includes(q) ||
+          entry.instance.workflow_version.name.toLowerCase().includes(q) ||
+          status.toLowerCase().includes(q)
+        );
+      });
+    }
+    return [...list].sort((a, b) => {
+      let cmp: number;
+      if (sortBy === 'launch-date') {
+        const tA = a.instance.launch_time ?? '';
+        const tB = b.instance.launch_time ?? '';
+        cmp = tA.localeCompare(tB);
+      } else {
+        const wfA = a.instance.workflow_version.name.toLowerCase();
+        const wfB = b.instance.workflow_version.name.toLowerCase();
+        cmp =
+          wfA !== wfB
+            ? wfA.localeCompare(wfB)
+            : a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+  }, [instancesList, searchQuery, sortBy, sortDir]);
+
   return (
     <Container sx={{ height: '100%' }}>
       {item === '' ? (
@@ -452,10 +498,53 @@ export default function InstancesPage({
             </Menu>
           </Box>
 
+          {/* Search and sort controls */}
+          <Box sx={{ display: 'flex', gap: 1, mb: 1, alignItems: 'center' }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder={t('instances.search_placeholder')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  )
+                }
+              }}
+            />
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>{t('instances.sort_by')}</InputLabel>
+              <Select
+                value={sortBy}
+                label={t('instances.sort_by')}
+                onChange={(e) => setSortBy(e.target.value as 'name' | 'launch-date')}
+              >
+                <MenuItem value="name">{t('instances.sort_name')}</MenuItem>
+                <MenuItem value="launch-date">{t('instances.sort_launch_date')}</MenuItem>
+              </Select>
+            </FormControl>
+            <Tooltip title={sortDir === 'asc' ? t('instances.sort_asc') : t('instances.sort_desc')}>
+              <IconButton
+                size="small"
+                onClick={() => setSortDir(sortDir === 'asc' ? 'desc' : 'asc')}
+                sx={{
+                  transform: sortDir === 'desc' ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.2s'
+                }}
+              >
+                <ArrowUpwardIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+
           {/* Accordion list */}
-          {rows.length > 0 ? (
+          {sortedList.length > 0 ? (
             <Box>
-              {instancesList.map((entry) => (
+              {sortedList.map((entry) => (
                 <InstanceAccordion
                   key={entry.name}
                   instance={entry.instance}
@@ -473,7 +562,7 @@ export default function InstancesPage({
           ) : (
             <Container>
               <Typography variant="h6" sx={{ mt: 1 }}>
-                {t('instances.no-instances')}
+                {searchQuery ? t('instances.no_results') : t('instances.no-instances')}
               </Typography>
             </Container>
           )}

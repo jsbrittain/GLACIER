@@ -687,6 +687,12 @@ export class Collection {
       instance.last_update = instance.getLastUpdateTime();
       visible.push(instance);
     }
+    visible.sort((a, b) => {
+      const wfA = (a.workflow_version?.name ?? '').toLowerCase();
+      const wfB = (b.workflow_version?.name ?? '').toLowerCase();
+      if (wfA !== wfB) return wfA.localeCompare(wfB);
+      return (a.name ?? '').toLowerCase().localeCompare((b.name ?? '').toLowerCase());
+    });
     return visible;
   }
 
