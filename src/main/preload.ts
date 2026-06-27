@@ -58,6 +58,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('hide-catalogue-section', catalogue_name, section_name),
   removeCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string) =>
     ipcRenderer.invoke('remove-catalogue-workflow', catalogue_name, section_name, workflow_name),
+  uninstallCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string) =>
+    ipcRenderer.invoke('uninstall-catalogue-workflow', catalogue_name, section_name, workflow_name),
   updateCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string) =>
     ipcRenderer.invoke('update-catalogue-workflow', catalogue_name, section_name, workflow_name),
   checkCatalogueWorkflowUpdates: (catalogue_name: string) =>

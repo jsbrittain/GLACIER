@@ -42,6 +42,8 @@ const electronAPI = isElectron
         window.electronAPI.hideCatalogueSection(catalogue_name, section_name),
       removeCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
         window.electronAPI.removeCatalogueWorkflow(catalogue_name, section_name, workflow_name),
+      uninstallCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
+        window.electronAPI.uninstallCatalogueWorkflow(catalogue_name, section_name, workflow_name),
       updateCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
         window.electronAPI.updateCatalogueWorkflow(catalogue_name, section_name, workflow_name),
       checkCatalogueWorkflowUpdates: (catalogue_name) =>
@@ -166,6 +168,12 @@ const httpAPI = {
     httpDispatch('/api/hide-catalogue-section', 'POST', { catalogue_name, section_name }),
   removeCatalogueWorkflow: async (catalogue_name, section_name, workflow_name) =>
     httpDispatch('/api/remove-catalogue-workflow', 'POST', {
+      catalogue_name,
+      section_name,
+      workflow_name
+    }),
+  uninstallCatalogueWorkflow: async (catalogue_name, section_name, workflow_name) =>
+    httpDispatch('/api/uninstall-catalogue-workflow', 'POST', {
       catalogue_name,
       section_name,
       workflow_name
