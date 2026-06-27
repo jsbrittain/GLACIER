@@ -231,20 +231,20 @@ describe('Collection', () => {
 
   describe('runWorkflow', () => {
     it('delegates to runner and attaches PID', async () => {
-      vi.mocked(runner.runWorkflow).mockResolvedValue(999);
-      const instance = { id: 'test-instance', name: 'test', workflow_version: {}, path: '', pid: [], status: 'created', attachPID: vi.fn() };
+      vi.mocked(runner.runWorkflow).mockResolvedValue({ pid: 999, cmd: 'test-cmd', startTime: new Date().toISOString() });
+      const instance = { id: 'test-instance', name: 'test', workflow_version: {}, path: '', processes: [], status: 'created', attachProcess: vi.fn() };
       collection.workflow_instances = [instance];
-      const spy = vi.spyOn(instance, 'attachPID');
+      const spy = vi.spyOn(instance, 'attachProcess');
 
-      const pid = await collection.runWorkflow(instance, { key: 'val' });
+      const desc = await collection.runWorkflow(instance, { key: 'val' });
 
-      expect(pid).toBe(999);
-      expect(spy).toHaveBeenCalledWith(999);
+      expect(desc.pid).toBe(999);
+      expect(spy).toHaveBeenCalledWith(expect.objectContaining({ pid: 999 }));
     });
 
     it('throws if runner returns null PID', async () => {
       vi.mocked(runner.runWorkflow).mockResolvedValue(null);
-      const instance = { id: 'test-instance', name: 'test', workflow_version: {}, path: '', pid: [], status: 'created' };
+      const instance = { id: 'test-instance', name: 'test', workflow_version: {}, path: '', processes: [], status: 'created' };
       collection.workflow_instances = [instance];
 
       await expect(collection.runWorkflow(instance, {})).rejects.toThrow('Failed to start');
@@ -260,7 +260,7 @@ describe('Collection', () => {
   describe('cancelWorkflowInstance', () => {
     it('kills each PID with graceful signal', async () => {
       const killSpy = vi.spyOn(collection, 'killPID').mockReturnValue(true);
-      const instance = { id: 'test', name: '', workflow_version: {}, path: '', pid: [100, 200], status: 'running' };
+      const instance = { id: 'test', name: '', workflow_version: {}, path: '', processes: [{ pid: 100 }, { pid: 200 }], status: 'running' };
       collection.workflow_instances = [instance];
 
       await collection.cancelWorkflowInstance(instance);
@@ -268,7 +268,7 @@ describe('Collection', () => {
       expect(killSpy).toHaveBeenCalledTimes(2);
       expect(killSpy).toHaveBeenCalledWith(100, 'graceful');
       expect(killSpy).toHaveBeenCalledWith(200, 'graceful');
-      expect(instance.pid).toEqual([]);
+      expect(instance.processes).toEqual([]);
     });
 
     it('throws for unknown instance', async () => {
@@ -276,7 +276,7 @@ describe('Collection', () => {
     });
 
     it('throws if no running PIDs', async () => {
-      const instance = { id: 'test', name: '', workflow_version: {}, path: '', pid: [], status: 'created' };
+      const instance = { id: 'test', name: '', workflow_version: {}, path: '', processes: [], status: 'created' };
       collection.workflow_instances = [instance];
 
       await expect(collection.cancelWorkflowInstance(instance)).rejects.toThrow('no running process');
@@ -286,13 +286,13 @@ describe('Collection', () => {
   describe('killWorkflowInstance', () => {
     it('kills each PID with kill signal', async () => {
       const killSpy = vi.spyOn(collection, 'killPID').mockReturnValue(true);
-      const instance = { id: 'test', name: '', workflow_version: {}, path: '', pid: [100], status: 'running' };
+      const instance = { id: 'test', name: '', workflow_version: {}, path: '', processes: [{ pid: 100 }], status: 'running' };
       collection.workflow_instances = [instance];
 
       await collection.killWorkflowInstance(instance);
 
       expect(killSpy).toHaveBeenCalledWith(100, 'kill');
-      expect(instance.pid).toEqual([]);
+      expect(instance.processes).toEqual([]);
     });
   });
 
@@ -300,7 +300,7 @@ describe('Collection', () => {
     it('removes instance folder and removes from list', async () => {
       const instPath = path.join(tmpDir, 'instances', 'owner', 'repo@v1.0', 'test-instance');
       fs.mkdirSync(instPath, { recursive: true });
-      const instance = { id: 'test-instance', name: 'test', workflow_version: {}, path: instPath, pid: [], status: 'created' };
+      const instance = { id: 'test-instance', name: 'test', workflow_version: {}, path: instPath, processes: [], status: 'created' };
       collection.workflow_instances = [instance];
 
       await collection.deleteWorkflowInstance(instance);
@@ -317,8 +317,8 @@ describe('Collection', () => {
   describe('listWorkflowInstances', () => {
     it('returns all instances', async () => {
       const instances = [
-        { id: 'a', name: 'a', workflow_version: {}, path: '', pid: [], status: 'created' },
-        { id: 'b', name: 'b', workflow_version: {}, path: '', pid: [], status: 'created' }
+        { id: 'a', name: 'a', workflow_version: {}, path: '', processes: [], status: 'created' },
+        { id: 'b', name: 'b', workflow_version: {}, path: '', processes: [], status: 'created' }
       ];
       collection.workflow_instances = instances;
 
@@ -349,7 +349,7 @@ describe('Collection', () => {
       const instPath = path.join(tmpDir, 'instances', 'test-instance');
       fs.mkdirSync(instPath, { recursive: true });
       fs.writeFileSync(path.join(instPath, 'params.json'), JSON.stringify({ key: 'val' }), 'utf8');
-      const instance = { id: 'test', name: 'test', workflow_version: {}, path: instPath, pid: [], status: 'created' };
+      const instance = { id: 'test', name: 'test', workflow_version: {}, path: instPath, processes: [], status: 'created' };
       collection.workflow_instances = [instance];
 
       const params = await collection.getWorkflowInstanceParams(instance);
@@ -358,7 +358,7 @@ describe('Collection', () => {
     });
 
     it('returns empty object if params.json missing', async () => {
-      const instance = { id: 'test', name: 'test', workflow_version: {}, path: '/nonexistent', pid: [], status: 'created' };
+      const instance = { id: 'test', name: 'test', workflow_version: {}, path: '/nonexistent', processes: [], status: 'created' };
       collection.workflow_instances = [instance];
 
       const params = await collection.getWorkflowInstanceParams(instance);
@@ -373,7 +373,7 @@ describe('Collection', () => {
         id: 'test',
         workflow_version: { path: '/x' },
         path: '/x',
-        pid: [],
+        processes: [],
         getProgress: vi.fn().mockResolvedValue({ workflow: [], group: [] })
       };
       collection.workflow_instances = [instance];
@@ -388,7 +388,7 @@ describe('Collection', () => {
         id: 'test',
         workflow_version: { path: '/x' },
         path: '/x',
-        pid: [],
+        processes: [],
         getProgress: vi.fn().mockResolvedValue({
           workflow: [{ status: 'completed' }],
           group: []
@@ -407,7 +407,7 @@ describe('Collection', () => {
       const wfPath = path.join(tmpDir, 'wf');
       fs.mkdirSync(wfPath, { recursive: true });
       fs.writeFileSync(path.join(wfPath, 'README.md'), '# Test', 'utf8');
-      const instance = { id: 'test', name: 'test', workflow_version: { path: wfPath }, path: '', pid: [] };
+      const instance = { id: 'test', name: 'test', workflow_version: { path: wfPath }, path: '', processes: [] };
 
       const readme = collection.getWorkflowReadme(instance);
 
@@ -415,7 +415,7 @@ describe('Collection', () => {
     });
 
     it('throws if no README.md', () => {
-      const instance = { id: 'test', name: 'test', workflow_version: { path: '/nonexistent' }, path: '', pid: [] };
+      const instance = { id: 'test', name: 'test', workflow_version: { path: '/nonexistent' }, path: '', processes: [] };
 
       expect(() => collection.getWorkflowReadme(instance)).toThrow('No README.md');
     });
@@ -426,7 +426,7 @@ describe('Collection', () => {
       const wfPath = path.join(tmpDir, 'wf');
       fs.mkdirSync(wfPath, { recursive: true });
       fs.writeFileSync(path.join(wfPath, 'LICENSE'), 'MIT', 'utf8');
-      const instance = { id: 'test', name: 'test', workflow_version: { path: wfPath }, path: '', pid: [] };
+      const instance = { id: 'test', name: 'test', workflow_version: { path: wfPath }, path: '', processes: [] };
 
       const license = collection.getWorkflowLicense(instance);
 
@@ -473,7 +473,7 @@ describe('Collection', () => {
       const workDir = path.join(instPath, 'work', 'ab', '123456somehash');
       fs.mkdirSync(workDir, { recursive: true });
       fs.writeFileSync(path.join(workDir, '.command.out'), 'stdout content', 'utf8');
-      const instance = { id: 'test', name: 'test', workflow_version: {}, path: instPath, pid: [], status: 'created' };
+      const instance = { id: 'test', name: 'test', workflow_version: {}, path: instPath, processes: [], status: 'created' };
       collection.workflow_instances = [instance];
 
       const log = collection.getWorkLog(instance, 'ab/123456', 'stdout');
@@ -482,14 +482,14 @@ describe('Collection', () => {
     });
 
     it('throws for unknown log type', () => {
-      const instance = { id: 'test', name: 'test', workflow_version: {}, path: tmpDir, pid: [] };
+      const instance = { id: 'test', name: 'test', workflow_version: {}, path: tmpDir, processes: [] };
       collection.workflow_instances = [instance];
 
       expect(() => collection.getWorkLog(instance, 'ab/123456', 'invalid')).toThrow('Unknown log type');
     });
 
     it('throws for invalid work ID format', () => {
-      const instance = { id: 'test', name: 'test', workflow_version: {}, path: tmpDir, pid: [] };
+      const instance = { id: 'test', name: 'test', workflow_version: {}, path: tmpDir, processes: [] };
       collection.workflow_instances = [instance];
 
       expect(() => collection.getWorkLog(instance, 'bad-id', 'stdout')).toThrow('Invalid work ID');
@@ -500,7 +500,7 @@ describe('Collection', () => {
     it('opens the instance path via shell', async () => {
       const instPath = path.join(tmpDir, 'instances', 'test-instance');
       fs.mkdirSync(instPath, { recursive: true });
-      const instance = { id: 'test', name: 'test', workflow_version: {}, path: instPath, pid: [] };
+      const instance = { id: 'test', name: 'test', workflow_version: {}, path: instPath, processes: [] };
       collection.workflow_instances = [instance];
 
       await collection.openResultsFolder(instance);
@@ -509,7 +509,7 @@ describe('Collection', () => {
     });
 
     it('throws for missing folder', async () => {
-      const instance = { id: 'test', name: 'test', workflow_version: {}, path: '/nonexistent', pid: [] };
+      const instance = { id: 'test', name: 'test', workflow_version: {}, path: '/nonexistent', processes: [] };
       collection.workflow_instances = [instance];
 
       await expect(collection.openResultsFolder(instance)).rejects.toThrow('does not exist');
@@ -521,7 +521,7 @@ describe('Collection', () => {
       const instPath = path.join(tmpDir, 'instances', 'test-instance');
       const workDir = path.join(instPath, 'work', 'ab', '123456somehash');
       fs.mkdirSync(workDir, { recursive: true });
-      const instance = { id: 'test', name: 'test', workflow_version: {}, path: instPath, pid: [] };
+      const instance = { id: 'test', name: 'test', workflow_version: {}, path: instPath, processes: [] };
       collection.workflow_instances = [instance];
 
       await collection.openWorkFolder(instance, 'ab/123456');
@@ -788,7 +788,7 @@ describe('Collection', () => {
   describe('getAvailableProfiles', () => {
     it('delegates to nextflow runner', async () => {
       vi.mocked(getAvailableProfiles).mockResolvedValue(['standard', 'test']);
-      const instance = { id: 'test', name: 'test', workflow_version: { path: '/x' }, path: '/x', pid: [] };
+      const instance = { id: 'test', name: 'test', workflow_version: { path: '/x' }, path: '/x', processes: [] };
       collection.workflow_instances = [instance];
 
       const profiles = await collection.getAvailableProfiles(instance);
@@ -802,7 +802,7 @@ describe('Collection', () => {
       const instPath = path.join(tmpDir, 'instances', 'test-instance');
       fs.mkdirSync(instPath, { recursive: true });
       fs.writeFileSync(path.join(instPath, 'stdout.log'), 'log content', 'utf8');
-      const instance = { id: 'test', name: 'test', workflow_version: {}, path: instPath, pid: [], status: 'created' };
+      const instance = { id: 'test', name: 'test', workflow_version: {}, path: instPath, processes: [], status: 'created' };
 
       const logs = collection.getWorkflowInstanceLogs(instance, 'stdout');
 
@@ -810,7 +810,7 @@ describe('Collection', () => {
     });
 
     it('returns empty string if log file missing', () => {
-      const instance = { id: 'test', name: 'test', workflow_version: {}, path: '/nonexistent', pid: [] };
+      const instance = { id: 'test', name: 'test', workflow_version: {}, path: '/nonexistent', processes: [] };
 
       const logs = collection.getWorkflowInstanceLogs(instance, 'stdout');
 
@@ -821,7 +821,7 @@ describe('Collection', () => {
   describe('getInstanceReportsList', () => {
     it('delegates to locateReports', () => {
       vi.mocked(paths.locateReports).mockReturnValue([{ id: '1', name: 'report', path: '/r.html', shortPath: 'r.html' }]);
-      const instance = { id: 'test', name: 'test', workflow_version: {}, path: '/some/path', pid: [] };
+      const instance = { id: 'test', name: 'test', workflow_version: {}, path: '/some/path', processes: [] };
 
       const reports = collection.getInstanceReportsList(instance);
 

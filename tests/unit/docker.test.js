@@ -180,7 +180,7 @@ describe('docker module', () => {
       mockBuildImage.mockResolvedValue(tarStream);
       mockContainer.start.mockResolvedValue(undefined);
 
-      const id = await docker.runRepo_Docker('/repo/path', 'my/repo', {});
+      const desc = await docker.runRepo_Docker('/repo/path', 'my/repo', {});
 
       expect(mockBuildImage).toHaveBeenCalledWith(
         { context: '/repo/path', src: ['Dockerfile'] },
@@ -196,7 +196,8 @@ describe('docker module', () => {
         Tty: true,
       });
       expect(mockContainer.start).toHaveBeenCalled();
-      expect(id).toBe('container-id-123');
+      expect(desc.containerId).toBe('container-id-123');
+      expect(desc.pid).toBe(0);
     });
 
     it('throws when build fails', async () => {

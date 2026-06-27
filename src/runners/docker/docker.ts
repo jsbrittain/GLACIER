@@ -7,6 +7,7 @@ import { spawn } from 'child_process';
 import { Readable, Duplex } from 'stream';
 import { promises as fs } from 'fs';
 import { IWorkflowInstance, IWorkflowParams } from '../../main/collection.js'; // should not need to import from main
+import { ProcessDescriptor } from '../../types/types.js';
 
 type paramsT = { [key: string]: any };
 
@@ -140,7 +141,11 @@ export async function runRepo_NextflowDocker(repoPath: string, name: string, par
   return container.id;
 }
 
-export async function runRepo_Docker(repoPath: string, name: string, params: paramsT) {
+export async function runRepo_Docker(
+  repoPath: string,
+  name: string,
+  params: paramsT
+): Promise<ProcessDescriptor> {
   const imageName = name.replace('/', '-');
 
   const tarStream = await docker.buildImage(
@@ -159,7 +164,12 @@ export async function runRepo_Docker(repoPath: string, name: string, params: par
   });
 
   await container.start();
-  return container.id;
+  return {
+    pid: 0,
+    containerId: container.id,
+    cmd: `docker run ${imageName}`,
+    startTime: new Date().toISOString()
+  };
 }
 
 export async function getContainerLogs(containerId: string) {

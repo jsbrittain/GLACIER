@@ -5,6 +5,7 @@ import {
   runWorkflow as runWorkflowNextflow
 } from '../runners/nextflow/nextflow.js';
 import { runRepo_Docker } from '../runners/docker/docker.js';
+import { ProcessDescriptor } from '../types/types.js';
 
 export { getEnvironmentStatus, performEnvironmentAction } from '../runners/environment.js';
 
@@ -14,7 +15,11 @@ interface IRunWorkflowArgs {
   opts?: IRunWorkflowOpts;
 }
 
-export async function runWorkflow({ instance, params, opts }: IRunWorkflowArgs) {
+export async function runWorkflow({
+  instance,
+  params,
+  opts
+}: IRunWorkflowArgs): Promise<ProcessDescriptor | null> {
   const projectPath = instance.workflow_version.path;
 
   if (!projectPath || !(await fs.stat(projectPath)).isDirectory()) {
