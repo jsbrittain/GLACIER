@@ -88,7 +88,12 @@ const electronAPI = isElectron
       writeTextFile: (filePath, content) => window.electronAPI.writeTextFile(filePath, content),
       readTextFile: (filePath) => window.electronAPI.readTextFile(filePath),
       importShard: (filePath) => window.electronAPI.importShard(filePath),
-      queryShardStatus: (shardId) => window.electronAPI.queryShardStatus(shardId)
+      queryShardStatus: (shardId) => window.electronAPI.queryShardStatus(shardId),
+      getInstanceDiskUsage: (instance) => window.electronAPI.getInstanceDiskUsage(instance),
+      deleteOrphanedInstances: () => window.electronAPI.deleteOrphanedInstances(),
+      hideWorkflowInstance: (instance) => window.electronAPI.hideWorkflowInstance(instance),
+      unhideWorkflowInstance: (instance) => window.electronAPI.unhideWorkflowInstance(instance),
+      listHiddenInstances: () => window.electronAPI.listHiddenInstances()
     }
   : null;
 
@@ -236,7 +241,15 @@ const httpAPI = {
     httpDispatch('/api/write-text-file', 'POST', { filePath, content }),
   readTextFile: async (filePath) => httpDispatch('/api/read-text-file', 'POST', { filePath }),
   importShard: async (filePath) => httpDispatch('/api/import-shard', 'POST', { filePath }),
-  queryShardStatus: async (shardId) => httpDispatch('/api/query-shard-status', 'POST', { shardId })
+  queryShardStatus: async (shardId) => httpDispatch('/api/query-shard-status', 'POST', { shardId }),
+  getInstanceDiskUsage: async (instance) =>
+    httpDispatch('/api/get-instance-disk-usage', 'POST', { instance }),
+  deleteOrphanedInstances: async () => httpDispatch('/api/delete-orphaned-instances', 'POST', {}),
+  hideWorkflowInstance: async (instance) =>
+    httpDispatch('/api/hide-workflow-instance', 'POST', { instance }),
+  unhideWorkflowInstance: async (instance) =>
+    httpDispatch('/api/unhide-workflow-instance', 'POST', { instance }),
+  listHiddenInstances: async () => httpDispatch('/api/list-hidden-instances', 'POST', {})
 };
 
 export const API = isElectron ? electronAPI : httpAPI;

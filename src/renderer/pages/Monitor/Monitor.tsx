@@ -41,9 +41,9 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-export default function MonitorPage({ instance, logMessage, onRestart }) {
+export default function MonitorPage({ instance, logMessage, onRestart, initialTab = 0 }) {
   const { t } = useTranslation();
-  const [tabSelected, setTabSelected] = React.useState(0);
+  const [tabSelected, setTabSelected] = React.useState(initialTab);
 
   const handleTabChange = (event, newValue) => {
     setTabSelected(newValue);

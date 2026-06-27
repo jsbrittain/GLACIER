@@ -94,6 +94,26 @@ export function registerIpcHandlers() {
     return call(collection.openResultsFolder.bind(collection), instance);
   });
 
+  ipcMain.handle('get-instance-disk-usage', async (event, instance: any) => {
+    return call(collection.getInstanceDiskUsage.bind(collection), instance);
+  });
+
+  ipcMain.handle('delete-orphaned-instances', async () => {
+    return call(collection.deleteOrphanedInstances.bind(collection));
+  });
+
+  ipcMain.handle('hide-workflow-instance', async (event, instance: any) => {
+    return call(collection.hideWorkflowInstance.bind(collection), instance);
+  });
+
+  ipcMain.handle('unhide-workflow-instance', async (event, instance: any) => {
+    return call(collection.unhideWorkflowInstance.bind(collection), instance);
+  });
+
+  ipcMain.handle('list-hidden-instances', async () => {
+    return call(collection.listHiddenInstances.bind(collection));
+  });
+
   ipcMain.handle('update-workflow-instance-status', async (event, instance: any) => {
     return call(collection.updateWorkflowInstanceStatus.bind(collection), instance);
   });

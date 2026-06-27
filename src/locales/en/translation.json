@@ -102,12 +102,6 @@
   },
   "instances": {
     "title": "Instances",
-    "table": {
-      "status": "Status",
-      "name": "Name",
-      "workflow": "Workflow",
-      "actions": "Actions"
-    },
     "statuses": {
       "created": "Created",
       "running": "Running",
@@ -115,7 +109,34 @@
       "closed": "Closed",
       "failed": "Failed"
     },
-    "delete_confirm": "Are you sure you want to delete this instance? This action cannot be undone.",
+    "progress": "Progress",
+    "launch_time": "Launch time",
+    "last_update": "Last update",
+    "last_update_tooltip": "Most recent process output or log activity",
+    "disk_usage": "Disk usage",
+    "disk_usage_loading": "Loading...",
+    "open_reports": "Open Reports",
+    "open_output_folder": "Open output folder",
+    "view_details": "View details",
+    "delete": "Delete",
+    "delete_confirm": "Are you sure you want to delete instance {{name}}? This action cannot be undone.",
+    "wipe": "Wipe from disk",
+    "wipe_title": "Delete instance from computer",
+    "wipe_confirm": "Are you sure you want to permanently delete instance {{name}} from the computer?",
+    "wipe_warning": "Warning: Any output files in the instance folder will also be permanently deleted. This action cannot be undone.",
+    "wipe_success": "Instance {{name}} has been deleted from the computer.",
+    "delete_orphaned": "Delete orphaned instances",
+    "delete_orphaned_confirm": "Are you sure you want to delete all orphaned (not started) instances?",
+    "delete_orphaned_success": "{{count}} orphaned instance(s) deleted.",
+    "hide": "Hide",
+    "hide_title": "Hide instance",
+    "hide_confirm": "Are you sure you want to hide instance {{name}}?",
+    "hide_info": "The instance will be removed from the list. All instance files will be kept on disk. You can unhide it later from the menu.",
+    "manage_hidden": "Manage hidden instances",
+    "show_all": "Show all",
+    "unhide": "Unhide",
+    "no_hidden": "No hidden instances.",
+    "not_started": "Not started",
     "no-instances": "No instances available"
   },
   "parameters": {

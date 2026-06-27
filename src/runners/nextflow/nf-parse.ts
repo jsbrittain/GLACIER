@@ -139,9 +139,11 @@ export async function readNextflowLog(path: string) {
           }
 
           const last_update = await lastUpdateTime(root_path, process_label, 'log');
+          // m[1] = work ID, m[2] = process name — full_name must use process name
+          const submitted_full_name = m[2].replace(/\s*\(.*\)$/, '');
           obj.process.push({
             time: ts,
-            full_name: process_group,
+            full_name: submitted_full_name,
             status: 'submitted',
             work: process_label,
             last_update: last_update
