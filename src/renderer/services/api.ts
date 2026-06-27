@@ -216,10 +216,22 @@ const httpAPI = {
   performEnvironmentAction: async (key, action) =>
     httpDispatch('/api/perform-environment-action', 'POST', { key, action }),
   getSystemResources: async () => httpDispatch('/api/get-system-resources', 'POST', {}),
-  pickFile: async (filters) => httpDispatch('/api/pick-file', 'POST', { filters }),
-  pickDirectory: async () => httpDispatch('/api/pick-directory', 'POST', {}),
-  pickFileOrDirectory: async (options) => httpDispatch('/api/pick-file-or-directory', 'POST', { options }),
-  showSaveDialog: async (opts) => httpDispatch('/api/show-save-dialog', 'POST', { opts }),
+  pickFile: async (filters) => {
+    const { showFileBrowser } = await import('./showFileBrowser.js');
+    return showFileBrowser({ mode: 'file', filters });
+  },
+  pickDirectory: async () => {
+    const { showFileBrowser } = await import('./showFileBrowser.js');
+    return showFileBrowser({ mode: 'directory' });
+  },
+  pickFileOrDirectory: async (options) => {
+    const { showFileBrowser } = await import('./showFileBrowser.js');
+    return showFileBrowser({ mode: 'both', filters: options?.filters });
+  },
+  showSaveDialog: async (opts) => {
+    const { showFileBrowser } = await import('./showFileBrowser.js');
+    return showFileBrowser({ mode: 'save', filters: opts?.filters, defaultFilename: opts?.defaultPath });
+  },
   writeTextFile: async (filePath, content) =>
     httpDispatch('/api/write-text-file', 'POST', { filePath, content }),
   readTextFile: async (filePath) => httpDispatch('/api/read-text-file', 'POST', { filePath }),

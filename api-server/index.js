@@ -2,6 +2,8 @@ import express from 'express';
 import { Collection } from '../dist/main/collection.js';
 
 import path from 'path';
+import fs from 'fs';
+import os from 'os';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -36,6 +38,72 @@ async function call(fcn, ...args) {
     };
   }
 }
+
+app.post('/api/fs-home', async (req, res) => {
+  res.json({ ok: true, data: os.homedir() });
+});
+
+app.post('/api/fs-list', async (req, res) => {
+  const { path: reqPath, offset = 0, limit = 100, showHidden = false } = req.body;
+  const resolvedPath = reqPath ? reqPath.replace(/^~/, os.homedir()) : os.homedir();
+  const targetPath = path.resolve(resolvedPath);
+
+  try {
+    if (!fs.existsSync(targetPath)) {
+      return res.json({ ok: false, error: { message: `Path does not exist: ${targetPath}` } });
+    }
+    const stat = fs.statSync(targetPath);
+    if (!stat.isDirectory()) {
+      return res.json({ ok: false, error: { message: `Not a directory: ${targetPath}` } });
+    }
+
+    const entries = fs.readdirSync(targetPath, { withFileTypes: true });
+    const fileEntries = entries
+      .filter((entry) => showHidden || !entry.name.startsWith('.'))
+      .map((entry) => {
+        try {
+          const entryStat = fs.statSync(path.join(targetPath, entry.name));
+          return {
+            name: entry.name,
+            path: path.join(targetPath, entry.name),
+            isDirectory: entry.isDirectory(),
+            size: entry.isDirectory() ? 0 : entryStat.size,
+            modifiedAt: entryStat.mtime.toISOString()
+          };
+        } catch {
+          return {
+            name: entry.name,
+            path: path.join(targetPath, entry.name),
+            isDirectory: entry.isDirectory(),
+            size: 0,
+            modifiedAt: ''
+          };
+        }
+      })
+      .sort((a, b) => {
+        if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+
+    const total = fileEntries.length;
+    const paginated = fileEntries.slice(offset, offset + limit);
+    const parent = path.dirname(targetPath) === targetPath ? null : path.dirname(targetPath);
+
+    return res.json({
+      ok: true,
+      data: {
+        current: targetPath,
+        parent,
+        entries: paginated,
+        total,
+        offset,
+        limit
+      }
+    });
+  } catch (err) {
+    return res.json({ ok: false, error: { message: err.message } });
+  }
+});
 
 app.post('/api/init', async (req, res) =>
   post_response(res, call(collection.init.bind(collection), req.body.config))
@@ -259,14 +327,6 @@ app.post('/api/get-missing-paths', async (req, res) =>
   post_response(res, call(collection.getMissingPaths.bind(collection)))
 );
 
-app.post('/api/pick-directory', async (req, res) => {
-  const { dialog } = await import('electron');
-  post_response(res, call(async () => {
-    const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
-    return result.canceled ? null : (result.filePaths[0] ?? null);
-  }));
-});
-
 app.post('/api/get-container-logs', async (req, res) =>
   post_response(res, call(collection.getContainerLogs.bind(collection), req.body.containerId))
 );
@@ -330,18 +390,6 @@ app.post('/api/perform-environment-action', async (req, res) =>
 app.post('/api/get-system-resources', async (req, res) =>
   post_response(res, call(collection.getSystemResources.bind(collection)))
 );
-
-app.post('/api/file-pick', async (req, res) =>
-  post_response(res, call(collection.filePick.bind(collection), req.body.filters))
-);
-
-app.post('/api/show-save-dialog', async (req, res) => {
-  const { dialog } = await import('electron');
-  post_response(res, call(async () => {
-    const result = await dialog.showSaveDialog(req.body.opts);
-    return result.canceled ? null : result.filePath;
-  }));
-});
 
 app.post('/api/write-text-file', async (req, res) => {
   const fs = await import('fs');
