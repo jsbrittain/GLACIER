@@ -23,13 +23,13 @@ export function getDefaultConfigDir(): string {
     const app = getElectronApp();
     if (app && app.getPath) {
       try {
-        return app.getPath('userData');
+        return path.join(app.getPath('userData'), 'Library');
       } catch {
         // app not ready yet
       }
     }
   }
-  return path.join(os.homedir(), 'GLACIER');
+  return path.join(os.homedir(), 'GLACIER', 'Library');
 }
 
 export function getDefaultDocumentsDir(): string {

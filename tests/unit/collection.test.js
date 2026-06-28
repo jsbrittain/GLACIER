@@ -622,12 +622,22 @@ describe('Collection', () => {
       expect(result).toBe('');
     });
 
-    it('returns first version for latest', async () => {
-      collection.workflows = [makeWorkflow()];
+    it('returns version with sourceVersion latest', async () => {
+      const wf = makeWorkflow();
+      wf.versions[0].sourceVersion = 'latest';
+      collection.workflows = [wf];
 
       const result = await collection.isRepoInstalled('owner/repo', 'latest');
 
       expect(result).toBe('v1.0');
+    });
+
+    it('returns empty string if no version has sourceVersion latest', async () => {
+      collection.workflows = [makeWorkflow()];
+
+      const result = await collection.isRepoInstalled('owner/repo', 'latest');
+
+      expect(result).toBe('');
     });
   });
 

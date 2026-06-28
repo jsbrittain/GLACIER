@@ -101,8 +101,13 @@ export default function MainPage({ darkMode, setDarkMode }) {
 
       const missing = r.data || {};
       if (missing.config || missing.documents) {
-        setPendingConfigPath(pathResult.ok ? pathResult.data : '');
-        setPendingDocumentsPath(dPathResult.ok ? dPathResult.data : '');
+        const defaultPaths = await API.getDefaultPaths();
+        setPendingConfigPath(
+          missing.config && defaultPaths.ok ? defaultPaths.data.config : (pathResult.ok ? pathResult.data : '')
+        );
+        setPendingDocumentsPath(
+          missing.documents && defaultPaths.ok ? defaultPaths.data.documents : (dPathResult.ok ? dPathResult.data : '')
+        );
         setShowPathDialog(true);
       }
 
@@ -280,9 +285,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 darkMode={darkMode}
                 setDarkMode={setDarkMode}
                 collectionsPath={collectionsPath}
-                setCollectionsPath={setCollectionsPath}
                 documentsPath={documentsPath}
-                setDocumentsPath={setDocumentsPath}
                 permitAddCatalogues={permitAddCatalogues}
                 setPermitAddCatalogues={setPermitAddCatalogues}
                 permitCatalogueModifications={permitCatalogueModifications}
@@ -297,6 +300,11 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 onShowLogPanelChange={handleShowLogPanel}
                 navigateToPage={navigateToSettingsPage}
                 setNavigateToPage={setNavigateToSettingsPage}
+                onReopenSetup={() => {
+                  setPendingConfigPath(collectionsPath);
+                  setPendingDocumentsPath(documentsPath);
+                  setShowPathDialog(true);
+                }}
               />
             ) : null}
           </Paper>

@@ -28,7 +28,8 @@ const electronAPI = isElectron
       getWorkLog: (instance, workID, logType) =>
         window.electronAPI.getWorkLog(instance, workID, logType),
       getAvailableProfiles: (instance) => window.electronAPI.getAvailableProfiles(instance),
-      cloneRepo: (repoUrl, ver) => window.electronAPI.cloneRepo(repoUrl, ver),
+      cloneRepo: (repoUrl, ver, sourceVer) => window.electronAPI.cloneRepo(repoUrl, ver, sourceVer),
+      getRepoTags: (repoUrl) => window.electronAPI.getRepoTags(repoUrl),
       isRepoInstalled: (repoUrl, ver) => window.electronAPI.isRepoInstalled(repoUrl, ver),
       isValidWorkflowRepo: (repoPath) => window.electronAPI.isValidWorkflowRepo(repoPath),
       syncRepo: (repo) => window.electronAPI.syncRepo(repo),
@@ -42,8 +43,8 @@ const electronAPI = isElectron
         window.electronAPI.hideCatalogueSection(catalogue_name, section_name),
       removeCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
         window.electronAPI.removeCatalogueWorkflow(catalogue_name, section_name, workflow_name),
-      uninstallCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
-        window.electronAPI.uninstallCatalogueWorkflow(catalogue_name, section_name, workflow_name),
+      uninstallCatalogueWorkflow: (catalogue_name, section_name, workflow_name, workflow_version) =>
+        window.electronAPI.uninstallCatalogueWorkflow(catalogue_name, section_name, workflow_name, workflow_version),
       updateCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
         window.electronAPI.updateCatalogueWorkflow(catalogue_name, section_name, workflow_name),
       checkCatalogueWorkflowUpdates: (catalogue_name) =>
@@ -147,7 +148,8 @@ const httpAPI = {
     httpDispatch('/api/get-work-log', 'POST', { instance, workID, logType }),
   getAvailableProfiles: async (instance) =>
     httpDispatch('/api/get-available-profiles', 'POST', { instance }),
-  cloneRepo: async (repoUrl, ver) => httpDispatch('/api/clone-repo', 'POST', { repoUrl, ver }),
+  cloneRepo: async (repoUrl, ver, sourceVer) => httpDispatch('/api/clone-repo', 'POST', { repoUrl, ver, sourceVer }),
+  getRepoTags: async (repoUrl) => httpDispatch('/api/get-repo-tags', 'POST', { repoUrl }),
   isRepoInstalled: async (repoUrl, ver) =>
     httpDispatch('/api/is-repo-installed', 'POST', { repoUrl, ver }),
   isValidWorkflowRepo: async (repoPath) =>
@@ -173,11 +175,12 @@ const httpAPI = {
       section_name,
       workflow_name
     }),
-  uninstallCatalogueWorkflow: async (catalogue_name, section_name, workflow_name) =>
+  uninstallCatalogueWorkflow: async (catalogue_name, section_name, workflow_name, workflow_version) =>
     httpDispatch('/api/uninstall-catalogue-workflow', 'POST', {
       catalogue_name,
       section_name,
-      workflow_name
+      workflow_name,
+      workflow_version
     }),
   updateCatalogueWorkflow: async (catalogue_name, section_name, workflow_name) =>
     httpDispatch('/api/update-catalogue-workflow', 'POST', {

@@ -10,9 +10,9 @@ describe('getDefaultConfigDir', () => {
     expect(typeof result).toBe('string');
   });
 
-  it('ends with GLACIER', () => {
+  it('ends with GLACIER/Library', () => {
     const result = getDefaultConfigDir();
-    expect(result).toMatch(/GLACIER$/);
+    expect(result).toMatch(/GLACIER[/\\]Library$/);
   });
 });
 
