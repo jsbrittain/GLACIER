@@ -60,6 +60,14 @@ export default function ParametersPage({
   const paramsFileFilters = [{ name: paramsFilter, extensions: ['json'] }];
 
   const onLaunch = async (instance, params) => {
+    if (!isValidWorkflow) {
+      logMessage(t('parameters.no-valid-workflow'), 'error');
+      return;
+    }
+    if (schemaErrors !== null) {
+      setTabSelected(2);
+      return;
+    }
     // Strip out profile from params before sending to backend
     const call_params = { ...params };
     const profile = params['profile'] || default_profile;
@@ -283,7 +291,6 @@ export default function ParametersPage({
           >
             <span>
               <Button
-                disabled={schemaErrors !== null || !isValidWorkflow}
                 variant="contained"
                 onClick={() => onLaunch(instance, params)}
               >
