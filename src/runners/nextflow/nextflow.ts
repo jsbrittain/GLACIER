@@ -98,7 +98,9 @@ export async function runWorkflow(
   const { is_electron, java_binary, jar_file, env } = await get_electron_paths();
 
   // Launch nextflow natively on host system
-  const name = instance.name;
+  // Append a timestamp suffix so each run has a unique Nextflow name (avoids
+  // "Run name <name> has been already used" collisions across restarts).
+  const name = `${instance.name}-${Date.now().toString(36)}`;
   const instancePath = instance.path; // launch from Windows path (on win32)
   const workPath = resolvePath(instancePath, 'work');
   await fs.mkdir(workPath, { recursive: true });
@@ -111,7 +113,7 @@ export async function runWorkflow(
   }
 
   // Save parameters to a file in the instance folder
-  const paramsFile = path.resolve(instancePath, 'params.json');
+  const paramsFile = path.resolve(instancePath, 'glacier-params.json');
   if (!resume && !restart) {
     fs.writeFile(paramsFile, JSON.stringify(params, null, 2), 'utf8');
   }
