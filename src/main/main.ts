@@ -66,7 +66,7 @@ ipcMain.handle('pick-file', async (_evt, opts?: { filters?: Electron.FileFilter[
 ipcMain.handle('pick-directory', async () => {
   return call(async () => {
     const res = await dialog.showOpenDialog(win!, {
-      properties: ['openDirectory']
+      properties: ['openDirectory', 'createDirectory']
     });
     return res.canceled ? null : (res.filePaths[0] ?? null);
   });
@@ -75,7 +75,7 @@ ipcMain.handle('pick-directory', async () => {
 ipcMain.handle('pick-file-or-directory', async (_, options) => {
   return call(async () => {
     const result = await dialog.showOpenDialog({
-      properties: ['openFile', 'openDirectory'],
+      properties: ['openFile', 'openDirectory', 'createDirectory'],
       filters: options?.filters
     });
     return result.canceled ? null : (result.filePaths[0] ?? null);

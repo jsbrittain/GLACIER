@@ -10,7 +10,13 @@ import { runWorkflow } from './runner.js';
 import { getEnvironmentStatus, performEnvironmentAction } from '../runners/environment.js';
 import { ProcessDescriptor, WorkflowStatus } from '../types/types.js';
 import { syncRepo, getWorkflowParams, getWorkflowSchema, isValidWorkflowRepo as checkIsValidWorkflowRepo } from './repo.js';
-import { getConfigPath, getDocumentsPath, locateReports } from './paths.js';
+import {
+  getConfigPath,
+  getDocumentsPath,
+  locateReports,
+  getDefaultConfigDir,
+  getDefaultDocumentsDir
+} from './paths.js';
 import { settings, StoreSchema } from './settings.js';
 import { importShard, queryShardStatus } from './shard.js';
 
@@ -346,6 +352,13 @@ export class Collection {
     await this.parseCollection();
     this.starting_up = false;
     return missing;
+  }
+
+  getDefaultPaths(): Record<string, string> {
+    return {
+      config: getDefaultConfigDir(),
+      documents: getDefaultDocumentsDir()
+    };
   }
 
   getMissingPaths(): Record<string, boolean> {

@@ -159,6 +159,10 @@ export function registerIpcHandlers() {
     return call(collection.setDocumentsPath.bind(collection), path);
   });
 
+  ipcMain.handle('get-default-paths', () => {
+    return call(collection.getDefaultPaths.bind(collection));
+  });
+
   ipcMain.handle('get-missing-paths', () => {
     return call(collection.getMissingPaths.bind(collection));
   });

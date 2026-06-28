@@ -228,6 +228,13 @@ const InstanceAccordion = ({
               <Button
                 variant="outlined"
                 size="small"
+                onClick={handleOpenDetails}
+              >
+                {t('instances.view_details')}
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
                 onClick={handleOpenReports}
                 disabled={isCreated}
               >
@@ -239,9 +246,6 @@ const InstanceAccordion = ({
                 onClick={() => API.openResultsFolder(instance)}
               >
                 {t('instances.open_output_folder')}
-              </Button>
-              <Button variant="text" size="small" onClick={handleOpenDetails}>
-                {t('instances.view_details')}
               </Button>
               <Box sx={{ flex: 1 }} />
               <Button

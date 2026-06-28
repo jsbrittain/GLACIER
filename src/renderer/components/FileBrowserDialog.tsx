@@ -25,6 +25,7 @@ import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
 
 interface FileEntry {
   name: string;
@@ -90,6 +91,8 @@ export default function FileBrowserDialog({ open, mode, filters, defaultPath, on
   );
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   const isSaveMode = mode === 'save';
 
@@ -197,6 +200,33 @@ export default function FileBrowserDialog({ open, mode, filters, defaultPath, on
     }
   }, [offset, total, loading, currentPath, showHidden]);
 
+  const handleCreateFolder = useCallback(async () => {
+    setNewFolderName('');
+    setShowCreateDialog(true);
+  }, []);
+
+  const handleCreateFolderConfirm = useCallback(async () => {
+    if (!newFolderName.trim()) return;
+    setShowCreateDialog(false);
+    try {
+      const res = await fetch('/api/fs-mkdir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: currentPath + '/' + newFolderName.trim() })
+      });
+      const result = await res.json();
+      if (!result.ok) {
+        setError(
+          'Failed to create folder: ' + (result.error?.message ?? 'Unknown error')
+        );
+      } else {
+        loadDir(currentPath, true);
+      }
+    } catch (err: any) {
+      setError('Failed to create folder: ' + (err.message ?? 'Unknown error'));
+    }
+  }, [newFolderName, currentPath, loadDir]);
+
   useEffect(() => {
     if (!open) return;
     (async () => {
@@ -263,7 +293,7 @@ export default function FileBrowserDialog({ open, mode, filters, defaultPath, on
   const confirmDisabled = isSaveMode ? !filename.trim() : !selectedPath;
 
   return (
-    <Dialog open={open} onClose={() => onClose(null)} maxWidth="md" fullWidth>
+    <><Dialog open={open} onClose={() => onClose(null)} maxWidth="md" fullWidth>
       <DialogTitle>{getDialogTitle()}</DialogTitle>
       <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', minHeight: 400 }}>
         {error && (
@@ -281,6 +311,9 @@ export default function FileBrowserDialog({ open, mode, filters, defaultPath, on
           </IconButton>
           <IconButton size="small" onClick={goUp} disabled={!parentPath}>
             <ArrowUpwardIcon fontSize="small" />
+          </IconButton>
+          <IconButton size="small" onClick={handleCreateFolder} title="New Folder">
+            <CreateNewFolderIcon fontSize="small" />
           </IconButton>
           <Breadcrumbs sx={{ flexGrow: 1, ml: 1 }} maxItems={4}>
             <Link
@@ -424,5 +457,29 @@ export default function FileBrowserDialog({ open, mode, filters, defaultPath, on
         </Button>
       </DialogActions>
     </Dialog>
+    <Dialog open={showCreateDialog} onClose={() => setShowCreateDialog(false)} maxWidth="xs" fullWidth>
+      <DialogTitle>New Folder</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            size="small"
+            label="Folder name"
+            sx={{ mt: 1 }}
+          value={newFolderName}
+          onChange={(e) => setNewFolderName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleCreateFolderConfirm();
+          }}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+        <Button onClick={handleCreateFolderConfirm} variant="contained" disabled={!newFolderName.trim()}>
+          Create
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 }

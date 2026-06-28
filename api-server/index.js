@@ -355,6 +355,10 @@ app.post('/api/set-documents-path', async (req, res) =>
   post_response(res, call(collection.setDocumentsPath.bind(collection), req.body.path))
 );
 
+app.post('/api/get-default-paths', async (req, res) =>
+  post_response(res, call(collection.getDefaultPaths.bind(collection)))
+);
+
 app.post('/api/get-missing-paths', async (req, res) =>
   post_response(res, call(collection.getMissingPaths.bind(collection)))
 );
@@ -422,6 +426,14 @@ app.post('/api/perform-environment-action', async (req, res) =>
 app.post('/api/get-system-resources', async (req, res) =>
   post_response(res, call(collection.getSystemResources.bind(collection)))
 );
+
+app.post('/api/fs-mkdir', async (req, res) => {
+  const { path: dirPath } = req.body;
+  post_response(res, call(async () => {
+    const fs = await import('fs');
+    fs.mkdirSync(dirPath, { recursive: true });
+  }));
+});
 
 app.post('/api/write-text-file', async (req, res) => {
   const fs = await import('fs');

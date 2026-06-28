@@ -65,6 +65,7 @@ const electronAPI = isElectron
       setConfigPath: (path) => window.electronAPI.setConfigPath(path),
       getDocumentsPath: () => window.electronAPI.getDocumentsPath(),
       setDocumentsPath: (path) => window.electronAPI.setDocumentsPath(path),
+      getDefaultPaths: () => window.electronAPI.getDefaultPaths(),
       getMissingPaths: () => window.electronAPI.getMissingPaths(),
       getContainerLogs: (containerId) => window.electronAPI.getContainerLogs(containerId),
       stopContainer: (containerId) => window.electronAPI.stopContainer(containerId),
@@ -203,6 +204,7 @@ const httpAPI = {
   setConfigPath: async (path) => httpDispatch('/api/set-config-path', 'POST', { path }),
   getDocumentsPath: async () => httpDispatch('/api/get-documents-path', 'POST', {}),
   setDocumentsPath: async (path) => httpDispatch('/api/set-documents-path', 'POST', { path }),
+  getDefaultPaths: async () => httpDispatch('/api/get-default-paths', 'POST', {}),
   getMissingPaths: async () => httpDispatch('/api/get-missing-paths', 'POST', {}),
   getContainerLogs: async (containerId) =>
     httpDispatch('/api/get-container-logs', 'POST', { containerId }),
