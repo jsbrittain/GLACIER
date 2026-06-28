@@ -171,6 +171,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
     setMessage(text);
     setSeverity(level);
     setOpen(true);
+    const consoleFn = level === 'error' ? console.error : level === 'warning' ? console.warn : console.log;
+    consoleFn(text);
   };
 
   return (
