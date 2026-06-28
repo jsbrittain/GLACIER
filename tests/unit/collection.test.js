@@ -347,10 +347,10 @@ describe('Collection', () => {
   });
 
   describe('getWorkflowInstanceParams', () => {
-    it('reads params.json from instance path', async () => {
+    it('reads glacier-params.json from instance path', async () => {
       const instPath = path.join(tmpDir, 'instances', 'test-instance');
       fs.mkdirSync(instPath, { recursive: true });
-      fs.writeFileSync(path.join(instPath, 'params.json'), JSON.stringify({ key: 'val' }), 'utf8');
+      fs.writeFileSync(path.join(instPath, 'glacier-params.json'), JSON.stringify({ key: 'val' }), 'utf8');
       const instance = { id: 'test', name: 'test', workflow_version: {}, path: instPath, processes: [], status: 'created' };
       collection.workflow_instances = [instance];
 
@@ -359,7 +359,7 @@ describe('Collection', () => {
       expect(params).toEqual({ key: 'val' });
     });
 
-    it('returns empty object if params.json missing', async () => {
+    it('returns empty object if glacier-params.json missing', async () => {
       const instance = { id: 'test', name: 'test', workflow_version: {}, path: '/nonexistent', processes: [], status: 'created' };
       collection.workflow_instances = [instance];
 
