@@ -221,6 +221,7 @@
     "title": "Paramètres",
     "general": "Général",
     "dark-mode": "Mode sombre",
+    "show-log-panel": "Afficher le journal",
     "collections-path": "Chemin de la bibliothèque",
     "permit-add-catalogues": "Autoriser l'ajout de catalogues",
     "permit-import-shards": "Autoriser l'importation de shards",
