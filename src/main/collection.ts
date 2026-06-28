@@ -185,8 +185,21 @@ class WorkflowInstance implements IWorkflowInstance {
   }
 
   async getProgress(): Promise<Record<string, any>> {
-    // Read .nextflow.log and parse
-    const logFile = path.join(this.path, '.nextflow.log');
+    // Read the most recent .nextflow.log (handles rotation: .nextflow.log, .nextflow.log.1, ...)
+    let logFile = path.join(this.path, '.nextflow.log');
+    if (fs.existsSync(this.path)) {
+      const candidates = fs
+        .readdirSync(this.path)
+        .filter((f) => f.startsWith('.nextflow.log'))
+        .map((f) => ({
+          name: f,
+          mtime: fs.statSync(path.join(this.path, f)).mtimeMs
+        }))
+        .sort((a, b) => b.mtime - a.mtime);
+      if (candidates.length > 0) {
+        logFile = path.join(this.path, candidates[0].name);
+      }
+    }
     if (fs.existsSync(logFile)) {
       return await parseNextflowLog(logFile);
     } else {
@@ -249,7 +262,7 @@ class WorkflowInstance implements IWorkflowInstance {
 
   private _cachedProgress: Record<string, any> | null = null;
 
-  setCachedProgress(data: Record<string, any>) {
+  setCachedProgress(data: Record<string, any> | null) {
     this._cachedProgress = data;
   }
 }
@@ -724,7 +737,7 @@ export class Collection {
     if (!local_instance) {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
-    const filename = path.join(local_instance.path, 'params.json');
+    const filename = path.join(local_instance.path, 'glacier-params.json');
     if (!fs.existsSync(filename)) {
       console.log(`Params file ${filename} does not exist.`);
       return {};
@@ -892,8 +905,16 @@ export class Collection {
     if (!local_instance) {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
+    if (fs.existsSync(local_instance.path)) {
+      const entries = fs.readdirSync(local_instance.path);
+      for (const entry of entries) {
+        if (entry === 'glacier-params.json') continue;
+        fs.rmSync(path.join(local_instance.path, entry), { recursive: true, force: true });
+      }
+    }
     local_instance.status = WorkflowStatus.Created;
     local_instance.processes = [];
+    local_instance.setCachedProgress(null);
   }
 
   async killWorkflowInstance(instance: IWorkflowInstance): Promise<void> {

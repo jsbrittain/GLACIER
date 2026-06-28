@@ -190,7 +190,7 @@ describe('nextflow', () => {
           '-params-file',
           expect.any(String),
           '-name',
-          'test-name'
+          expect.stringMatching(/^test-name-/)
         ]),
         expect.objectContaining({
           cwd: '/tmp/instances/test',
@@ -398,19 +398,19 @@ describe('nextflow', () => {
   });
 
   describe('runWorkflow — params handling', () => {
-    it('writes params to params.json', async () => {
+    it('writes params to glacier-params.json', async () => {
       const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
 
       await runWorkflow(makeInstance(), { key: 'value', num: 42 });
 
       expect(writeSpy).toHaveBeenCalledWith(
-        expect.stringContaining('params.json'),
+        expect.stringContaining('glacier-params.json'),
         JSON.stringify({ key: 'value', num: 42 }, null, 2),
         'utf8'
       );
     });
 
-    it('skips writing params.json on resume', async () => {
+    it('skips writing glacier-params.json on resume', async () => {
       const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
 
       await runWorkflow(makeInstance(), {}, { resume: true });
