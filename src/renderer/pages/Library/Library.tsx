@@ -3,6 +3,10 @@ import { useTheme } from '@mui/material/styles';
 import {
   Button,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   Paper,
   Stack,
@@ -41,7 +45,7 @@ const repoUrl = (repo) => {
 function WorkflowCard({
   workflow,
   hideWorkflow,
-  deleteWorkflow,
+  uninstallWorkflow,
   updateWorkflow,
   scheme,
   createWorkflowInstance,
@@ -67,11 +71,14 @@ function WorkflowCard({
         if (installed_version) {
           setVersionInstalled(installed_version);
           setIsRepoInstalled(true);
-          setLoading(false);
+        } else {
+          setVersionInstalled('');
+          setIsRepoInstalled(false);
         }
       } else {
         setIsRepoInstalled(false);
       }
+      setLoading(false);
     });
 
   useEffect(() => {
@@ -109,8 +116,8 @@ function WorkflowCard({
     handleMenuClose();
   };
 
-  const handleDeleteWorkflow = async () => {
-    deleteWorkflow();
+  const handleUninstallWorkflow = async () => {
+    uninstallWorkflow();
     handleMenuClose();
   };
 
@@ -164,7 +171,9 @@ function WorkflowCard({
         </Box>
         <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
           <MenuItem onClick={handleHideWorkflow}>{t('library.hide-repository')}</MenuItem>
-          <MenuItem onClick={handleDeleteWorkflow}>{t('library.remove-repository')}</MenuItem>
+          {isRepoInstalled && (
+            <MenuItem onClick={handleUninstallWorkflow}>{t('library.uninstall-repository')}</MenuItem>
+          )}
           {workflow['version'] === 'latest' && isRepoInstalled && (
             <MenuItem onClick={checkForUpdates}>{t('library.check-for-updates')}</MenuItem>
           )}
@@ -210,7 +219,7 @@ function SectionCard({
   section,
   deleteSection,
   hideWorkflow,
-  deleteWorkflow,
+  uninstallWorkflow,
   updateWorkflow,
   hideSection,
   showSectionWorkflows,
@@ -343,7 +352,7 @@ function SectionCard({
               <WorkflowCard
                 workflow={workflow}
                 hideWorkflow={() => hideWorkflow(workflow)}
-                deleteWorkflow={() => deleteWorkflow(workflow)}
+                uninstallWorkflow={() => uninstallWorkflow(workflow)}
                 updateWorkflow={() => updateWorkflow(workflow)}
                 scheme={scheme}
                 createWorkflowInstance={createWorkflowInstance}
@@ -363,7 +372,7 @@ function CatalogueCard({
   deleteCatalogue,
   deleteSection,
   hideWorkflow,
-  deleteWorkflow,
+  uninstallWorkflow,
   updateWorkflow,
   hideSection,
   showSectionWorkflows,
@@ -532,7 +541,7 @@ function CatalogueCard({
               section={section}
               deleteSection={() => deleteSection(section)}
               hideWorkflow={(workflow) => hideWorkflow(section, workflow)}
-              deleteWorkflow={(workflow) => deleteWorkflow(section, workflow)}
+              uninstallWorkflow={(workflow) => uninstallWorkflow(section, workflow)}
               updateWorkflow={(workflow) => updateWorkflow(section, workflow)}
               hideSection={() => hideSection(section)}
               showSectionWorkflows={() => showSectionWorkflows(section)}
@@ -566,6 +575,8 @@ export default function LibraryPage({
 
   const [progressCount, setProgressCount] = useState(0);
   const [progressValue, setProgressValue] = useState(0);
+  const [uninstallTarget, setUninstallTarget] = useState(null);
+  const [uninstallDialogOpen, setUninstallDialogOpen] = useState(false);
 
   const getCatalogues = async () => {
     API.getCatalogues().then((result) => {
@@ -635,18 +646,25 @@ export default function LibraryPage({
     });
   };
 
-  const deleteWorkflow = (catalogue, section, workflow) => {
-    if (!window.confirm(t('library.confirm-remove-workflow', { name: workflow.name }))) {
-      return;
+  const uninstallWorkflow = (catalogue, section, workflow) => {
+    setUninstallTarget({ catalogue, section, workflow });
+    setUninstallDialogOpen(true);
+  };
+
+  const confirmUninstall = async () => {
+    if (!uninstallTarget) return;
+    const { catalogue, section, workflow } = uninstallTarget;
+    const result = await API.uninstallCatalogueWorkflow(
+      catalogue.name, section.name, workflow.name
+    );
+    if (result.ok) {
+      logMessage(t('library.workflow-uninstalled-success', { name: workflow.name }), 'success');
+      setRefresh(!refresh);
+    } else {
+      logMessage(t('library.workflow-uninstalled-failure', { name: workflow.name }), 'error');
     }
-    API.removeCatalogueWorkflow(catalogue.name, section.name, workflow.name).then((result) => {
-      if (result.ok) {
-        logMessage(t('library.workflow-removed-success', { name: workflow.name }), 'success');
-        getCatalogues();
-      } else {
-        logMessage(t('library.workflow-removed-failure', { name: workflow.name }), 'error');
-      }
-    });
+    setUninstallDialogOpen(false);
+    setUninstallTarget(null);
   };
 
   const updateWorkflow = (catalogue, section, workflow) => {
@@ -751,7 +769,7 @@ export default function LibraryPage({
             deleteCatalogue={() => deleteCatalogue(catalogue)}
             deleteSection={(section) => deleteSection(catalogue, section)}
             hideWorkflow={(section, workflow) => hideWorkflow(catalogue, section, workflow)}
-            deleteWorkflow={(section, workflow) => deleteWorkflow(catalogue, section, workflow)}
+            uninstallWorkflow={(section, workflow) => uninstallWorkflow(catalogue, section, workflow)}
             updateWorkflow={(section, workflow) => updateWorkflow(catalogue, section, workflow)}
             hideSection={(section) => hideSection(catalogue, section)}
             showSections={() => showSections(catalogue)}
@@ -780,6 +798,22 @@ export default function LibraryPage({
           </Typography>
         </Container>
       )}
+      <Dialog open={uninstallDialogOpen} onClose={() => setUninstallDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('library.uninstall-repository')}</DialogTitle>
+        <DialogContent>
+          <Typography>
+            {t('library.confirm-uninstall-workflow', { name: uninstallTarget?.workflow?.name || '' })}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUninstallDialogOpen(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={confirmUninstall} variant="contained" color="error">
+            {t('library.uninstall-repository')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

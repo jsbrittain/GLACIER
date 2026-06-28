@@ -29,6 +29,7 @@ export function registerIpcHandlers() {
     'hide-catalogue-workflow': collection.hideCatalogueWorkflow.bind(collection),
     'hide-catalogue-section': collection.hideCatalogueSection.bind(collection),
     'remove-catalogue-workflow': collection.removeCatalogueWorkflow.bind(collection),
+    'uninstall-catalogue-workflow': collection.uninstallCatalogueWorkflow.bind(collection),
     'update-catalogue-workflow': collection.updateCatalogueWorkflow.bind(collection),
     'show-catalogue-section-workflows': collection.showCatalogueSectionWorkflows.bind(collection),
     'show-catalogue-workflows': collection.showCatalogueWorkflows.bind(collection),

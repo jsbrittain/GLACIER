@@ -1505,6 +1505,41 @@ export class Collection {
     this.parseCatalogues();
   }
 
+  async uninstallCatalogueWorkflow(
+    catalogue_name: string,
+    section_name: string,
+    workflow_name: string
+  ) {
+    // Keep the catalogue entry — only remove the installed files from disk
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) {
+      throw new Error(`Catalogue ${catalogue_name} not found.`);
+    }
+    const section = cat.sections.find((s) => s.name === section_name);
+    if (!section) {
+      throw new Error(`Section ${section_name} not found in catalogue ${catalogue_name}.`);
+    }
+    const workflow_entry = section.workflows.find((w) => w.name === workflow_name);
+    if (!workflow_entry) {
+      throw new Error(
+        `Workflow ${workflow_name} not found in section ${section_name} of catalogue ${catalogue_name}.`
+      );
+    }
+    // Delete workflow repo files from disk
+    const { owner: wf_owner, repo: wf_repo } = parseRepoUrl(workflow_entry.repo);
+    const wf_id = `${wf_owner}/${wf_repo}`;
+    const wf_index = this.workflows.findIndex((w) => w.id === wf_id);
+    if (wf_index !== -1) {
+      const wf = this.workflows[wf_index];
+      for (const version of wf.versions) {
+        if (fs.existsSync(version.path)) {
+          fs.rmSync(version.path, { recursive: true, force: true });
+        }
+      }
+      this.workflows.splice(wf_index, 1);
+    }
+  }
+
   async hideCatalogueSection(catalogue_name: string, section_name: string) {
     // Hide catalogue section by adding "hidden" property
     console.log('Hiding section', section_name, 'in catalogue', catalogue_name);
