@@ -44,6 +44,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setConfigPath: (path: string) => ipcRenderer.invoke('set-config-path', path),
   getDocumentsPath: () => ipcRenderer.invoke('get-documents-path'),
   setDocumentsPath: (path: string) => ipcRenderer.invoke('set-documents-path', path),
+  getDefaultPaths: () => ipcRenderer.invoke('get-default-paths'),
   getMissingPaths: () => ipcRenderer.invoke('get-missing-paths'),
   getCollectionRepos: () => ipcRenderer.invoke('get-collection-repos'),
   addCatalogue: (repoUrl: string, version: string) =>

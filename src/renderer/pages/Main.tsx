@@ -134,6 +134,14 @@ export default function MainPage({ darkMode, setDarkMode }) {
     if (result.ok && result.data) setPendingDocumentsPath(result.data);
   };
 
+  const handleDefaults = async () => {
+    const result = await API.getDefaultPaths();
+    if (result.ok && result.data) {
+      setPendingConfigPath(result.data.config);
+      setPendingDocumentsPath(result.data.documents);
+    }
+  };
+
   const handleConfirmPaths = async () => {
     await API.setConfigPath(pendingConfigPath);
     await API.setDocumentsPath(pendingDocumentsPath);
@@ -343,6 +351,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
           </Typography>
         </DialogContent>
         <DialogActions>
+          <Button onClick={handleDefaults}>{t('setup.defaults', 'Defaults')}</Button>
           <Button variant="contained" onClick={handleConfirmPaths} id="setup-continue-button">
             {t('setup.continue', 'Continue')}
           </Button>
