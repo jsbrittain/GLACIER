@@ -36,6 +36,8 @@ export default function SettingsPage({
   setPermitAddRepos,
   showHiddenParams,
   setShowHiddenParams,
+  showLogPanel,
+  onShowLogPanelChange,
   navigateToPage,
   setNavigateToPage
 }) {
@@ -297,10 +299,21 @@ export default function SettingsPage({
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
-        <FormControlLabel
-          control={<Switch checked={darkMode} onChange={() => handleDarkMode(!darkMode)} />}
-          label={t('settings.dark-mode')}
-        />
+        <Stack spacing={2}>
+          <FormControlLabel
+            control={<Switch checked={darkMode} onChange={() => handleDarkMode(!darkMode)} />}
+            label={t('settings.dark-mode')}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showLogPanel}
+                onChange={() => onShowLogPanelChange(!showLogPanel)}
+              />
+            }
+            label={t('settings.show-log-panel')}
+          />
+        </Stack>
       </TabPanel>
 
       <TabPanel value={tabValue} index={2}>

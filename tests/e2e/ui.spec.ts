@@ -18,7 +18,7 @@ const TIMEOUT_30s = 30_000;
 const TIMEOUT_60s = 60_000;
 
 async function waitForLogLine(page: Page, text: string | RegExp, timeout = 60000) {
-  await expect(page.locator('#logMessage > p').filter({ hasText: text })).toBeVisible({ timeout });
+  await page.waitForEvent('console', { predicate: (msg) => text instanceof RegExp ? text.test(msg.text()) : msg.text().includes(text), timeout });
 }
 
 test('show title', async ({ page }) => {

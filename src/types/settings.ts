@@ -9,7 +9,8 @@ export const SettingsKey = {
   PermitAddRepos: 'permitAddRepos',
   DisableSchemaValidation: 'disableSchemaValidation',
   InstanceSortBy: 'instanceSortBy',
-  InstanceSortDir: 'instanceSortDir'
+  InstanceSortDir: 'instanceSortDir',
+  ShowLogPanel: 'showLogPanel'
 } as const;
 
 export type SettingsKey = (typeof SettingsKey)[keyof typeof SettingsKey];

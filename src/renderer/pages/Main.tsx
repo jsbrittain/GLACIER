@@ -52,6 +52,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [severity, setSeverity] = useState<severityLevels>('info');
   const [message, setMessage] = useState('');
   const [showHiddenParams, setShowHiddenParams] = useState(false);
+  const [showLogPanel, setShowLogPanel] = useState(false);
   const [open, setOpen] = useState(false);
   const [item, setItem] = useState('');
   const [navigateToSettingsPage, setNavigateToSettingsPage] = useState('');
@@ -84,6 +85,9 @@ export default function MainPage({ darkMode, setDarkMode }) {
       });
       API.settingsGet(SettingsKey.PermitAddRepos).then((result) => {
         if (result.ok) setPermitAddRepos(result.data);
+      });
+      API.settingsGet(SettingsKey.ShowLogPanel).then((result) => {
+        if (result.ok) setShowLogPanel(result.data);
       });
       const r = await API.init();
       if (!r.ok) {
@@ -157,11 +161,18 @@ export default function MainPage({ darkMode, setDarkMode }) {
     refreshInstancesList();
   };
 
+  const handleShowLogPanel = (value: boolean) => {
+    setShowLogPanel(value);
+    API.settingsSet(SettingsKey.ShowLogPanel, value);
+  };
+
   const logMessage = (text, level: severityLevels = 'info') => {
     setLog((prevLog) => [...prevLog, text]);
     setMessage(text);
     setSeverity(level);
     setOpen(true);
+    const consoleFn = level === 'error' ? console.error : level === 'warning' ? console.warn : console.log;
+    consoleFn(text);
   };
 
   return (
@@ -282,6 +293,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 setPermitAddRepos={setPermitAddRepos}
                 showHiddenParams={showHiddenParams}
                 setShowHiddenParams={setShowHiddenParams}
+                showLogPanel={showLogPanel}
+                onShowLogPanelChange={handleShowLogPanel}
                 navigateToPage={navigateToSettingsPage}
                 setNavigateToPage={setNavigateToSettingsPage}
               />
@@ -289,9 +302,9 @@ export default function MainPage({ darkMode, setDarkMode }) {
           </Paper>
         </Panel>
 
-        <PanelResizeHandle />
+        {showLogPanel && <PanelResizeHandle />}
 
-        <Panel defaultSize={4} minSize={3} collapsible>
+        {showLogPanel && <Panel defaultSize={10} minSize={2} collapsible>
           <Paper
             variant="outlined"
             sx={{ width: '100%', height: '100%', overflowY: 'auto' }}
@@ -313,7 +326,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
               ))}
             </Box>
           </Paper>
-        </Panel>
+        </Panel>}
       </PanelGroup>
 
       <Dialog open={showPathDialog} maxWidth="sm" fullWidth>

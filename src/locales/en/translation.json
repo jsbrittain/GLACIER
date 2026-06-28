@@ -225,6 +225,7 @@
     "title": "Settings",
     "general": "General",
     "dark-mode": "Dark Mode",
+    "show-log-panel": "Show log panel",
     "collections-path": "Library path",
     "permit-add-catalogues": "Allow adding catalogues",
     "permit-import-shards": "Allow importing shards",

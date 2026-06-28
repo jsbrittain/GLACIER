@@ -14,6 +14,7 @@ export interface StoreSchema {
   disableSchemaValidation: boolean;
   instanceSortBy: string;
   instanceSortDir: string;
+  showLogPanel: boolean;
 }
 
 let _instance: any = null;
@@ -33,7 +34,8 @@ function getInstance() {
           permitAddRepos: { type: 'boolean', default: true },
           disableSchemaValidation: { type: 'boolean', default: false },
           instanceSortBy: { type: 'string', default: 'name' },
-          instanceSortDir: { type: 'string', default: 'asc' }
+          instanceSortDir: { type: 'string', default: 'asc' },
+          showLogPanel: { type: 'boolean', default: false }
         },
         name: 'GLACIER'
       });
