@@ -77,7 +77,6 @@ function WorkflowCard({
       } else {
         setIsRepoInstalled(false);
       }
-      setLoading(false);
     });
 
   useEffect(() => {
@@ -701,6 +700,8 @@ export default function LibraryPage({
       const result = await API.cloneRepo(workflow.repo, workflow.version);
       if (!result.ok) {
         failed_list.push(workflow.id);
+      } else {
+        logMessage(`Cloned ${result.data.name}`, 'success');
       }
       setProgressValue((prev) => prev + 1);
     }

@@ -85,6 +85,11 @@ test('clone a repository', async ({ page }) => {
   // Click Install (clone the repository)
   await page.click(`#install-${cssEscape(repo_name)}`);
 
+  // Confirm the installation dialog (security check)
+  const installDialog = page.getByRole('dialog', { name: 'Confirm Workflow Installation' });
+  await expect(installDialog).toBeVisible({ timeout: TIMEOUT_10s });
+  await installDialog.getByRole('button', { name: 'Install' }).click();
+
   // Wait for clone to complete before attempting to run
   await waitForLogLine(page, /Cloned/, TIMEOUT_60s);
 
