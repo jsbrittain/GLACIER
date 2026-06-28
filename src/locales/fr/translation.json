@@ -75,6 +75,10 @@
     "workflows-shown-failure": "Échec de l'affichage des flux de travail",
     "installing-workflows": "Installation des flux de travail...",
     "install-workflows-completed-with-errors": "Installation des flux de travail terminée avec des erreurs.",
+    "confirm-install-workflow": "Confirmer l'installation du flux de travail",
+    "confirm-install-workflow-description": "Ce flux de travail sera installé depuis le dépôt suivant. Veuillez vérifier l'URL source avant de continuer.",
+    "confirm-install-workflows-description": "Les flux de travail suivants seront installés. Veuillez vérifier les URL sources avant de continuer.",
+    "install-proceed": "Installer",
     "add-catalogue-dialog": {
       "title": "Ajouter un catalogue",
       "description": "Entrez l'URL du catalogue à ajouter:",

@@ -75,6 +75,10 @@
     "workflows-shown-failure": "Failed to show workflows",
     "installing-workflows": "Installing workflows...",
     "install-workflows-completed-with-errors": "Workflow installation completed with errors.",
+    "confirm-install-workflow": "Confirm Workflow Installation",
+    "confirm-install-workflow-description": "This workflow will be installed from the following repository. Please verify the source URL before proceeding.",
+    "confirm-install-workflows-description": "The following workflows will be installed. Please verify the source URLs before proceeding.",
+    "install-proceed": "Install",
     "add-catalogue-dialog": {
       "title": "Add Catalogue",
       "description": "Enter the Github organisation, or repository to add:",
