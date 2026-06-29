@@ -3,8 +3,8 @@
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
-import { execFile } from 'child_process';
 import { IRepo, IRepoVersions } from './types.js';
+import { getShell } from './shell.js';
 import { generateUniqueName } from './repo.js';
 import { cloneRepo, ICloneRepo, getRepoTags, getRepoBranches, parseRepoUrl } from './repo.js';
 import { runWorkflow } from './runner.js';
@@ -25,25 +25,6 @@ import { importShard, queryShardStatus } from './shard.js';
 import { getAvailableProfiles } from '../runners/nextflow/nextflow.js';
 import { parseNextflowLog } from '../runners/nextflow/nf-parse.js';
 //
-
-let _shell: any;
-async function getShell(): Promise<any> {
-  if (!_shell) {
-    const osCmd =
-      process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
-    _shell = {
-      openPath: (p: string) =>
-        new Promise<void>((resolve, reject) => {
-          execFile(osCmd, [p], (err) => (err ? reject(err) : resolve()));
-        }),
-      openExternal: (url: string) =>
-        new Promise<void>((resolve, reject) => {
-          execFile(osCmd, [url], (err) => (err ? reject(err) : resolve()));
-        })
-    };
-  }
-  return _shell;
-}
 
 const instance_database_file = 'instances.json';
 

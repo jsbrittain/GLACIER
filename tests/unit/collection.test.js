@@ -3,7 +3,14 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
-import { shell } from 'electron';
+import { getShell } from '../../src/main/shell.js';
+
+vi.mock('../../src/main/shell.js', () => ({
+  getShell: vi.fn().mockResolvedValue({
+    openPath: vi.fn().mockResolvedValue(),
+    openExternal: vi.fn().mockResolvedValue()
+  })
+}));
 
 vi.mock('../../src/main/repo.js', async (importOriginal) => {
   const actual = await importOriginal();
@@ -509,7 +516,8 @@ describe('Collection', () => {
 
       await collection.openResultsFolder(instance);
 
-      expect(shell.openPath).toHaveBeenCalledWith(instPath);
+      const mockShell = await getShell();
+      expect(mockShell.openPath).toHaveBeenCalledWith(instPath);
     });
 
     it('throws for missing folder', async () => {
@@ -530,7 +538,8 @@ describe('Collection', () => {
 
       await collection.openWorkFolder(instance, 'ab/123456');
 
-      expect(shell.openPath).toHaveBeenCalledWith(workDir);
+      const mockShell = await getShell();
+      expect(mockShell.openPath).toHaveBeenCalledWith(workDir);
     });
   });
 
@@ -538,7 +547,8 @@ describe('Collection', () => {
     it('opens URL via shell.openExternal', async () => {
       await collection.openWebPage('https://example.com');
 
-      expect(shell.openExternal).toHaveBeenCalledWith('https://example.com');
+      const mockShell = await getShell();
+      expect(mockShell.openExternal).toHaveBeenCalledWith('https://example.com');
     });
   });
 
