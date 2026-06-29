@@ -48,6 +48,8 @@ export function registerIpcHandlers(resourceRoot?: string) {
     'get-workflow-license': collection.getWorkflowLicense.bind(collection),
     'import-shard': collection.importShard.bind(collection),
     'query-shard-status': collection.queryShardStatus.bind(collection),
+    'export-catalogue': collection.exportCatalogue.bind(collection),
+    'create-catalogue-from-file': collection.createCatalogueFromFile.bind(collection),
   };
 
   for (const [channel, fcn] of Object.entries(redirect)) {

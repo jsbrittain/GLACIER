@@ -577,6 +577,24 @@ function CatalogueCard({
     handleMenuClose();
   };
 
+  const handleExport = async () => {
+    const saveResult = await API.showSaveDialog({
+      defaultPath: `${catalogue.name}.json`,
+      filters: [{ name: 'JSON', extensions: ['json'] }]
+    });
+    if (!saveResult.ok) {
+      handleMenuClose();
+      return;
+    }
+    const result = await API.exportCatalogue(catalogue.name, saveResult.data);
+    if (result.ok) {
+      logMessage(t('library.export-catalogue-success', { name: catalogue.name, path: saveResult.data }), 'success');
+    } else {
+      logMessage(t('library.export-catalogue-failure', { error: result.error.message }), 'error');
+    }
+    handleMenuClose();
+  };
+
   return (
     <Paper
       sx={{
@@ -633,6 +651,7 @@ function CatalogueCard({
               </MenuItem>
               <MenuItem onClick={handleDeleteCatalogue}>{t('library.remove-catalogue')}</MenuItem>
               <MenuItem onClick={handleShowSections}>{t('library.show-all-workflows')}</MenuItem>
+              <MenuItem onClick={handleExport}>{t('library.export-catalogue')}</MenuItem>
               {catalogue?.name !== 'User collection' && (
                 <MenuItem onClick={checkForUpdates}>{t('library.check-for-updates')}</MenuItem>
               )}

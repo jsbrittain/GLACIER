@@ -64,8 +64,22 @@ export default function ActionMenu({
       }
     });
   };
+
+  const addCatalogueFromFile = async () => {
+    handleMenuClose();
+    const fileResult = await API.pickFile([{ name: 'JSON', extensions: ['json'] }]);
+    if (!fileResult.ok || !fileResult.data) return;
+    API.createCatalogueFromFile(fileResult.data).then((result) => {
+      if (result.ok) {
+        logMessage(t('library.create-catalogue-from-file-success', { name: result.data }), 'success');
+        getCatalogues();
+      } else {
+        logMessage(t('library.create-catalogue-from-file-failure', { error: result.error.message }), 'error');
+      }
+    });
+  };
   
-  const display = permitAddCatalogues || permitAddRepos;
+  const display = permitAddCatalogues || permitAddRepos || permitImportShards;
   return (
     <Box
       sx={{
@@ -88,6 +102,12 @@ export default function ActionMenu({
                 {t('library.add-catalogue')}
               </MenuItem>
             )}
+            <MenuItem
+              id="library-actions-menu-add-catalogue-from-file"
+              onClick={addCatalogueFromFile}
+            >
+              {t('library.add-catalogue-from-file')}
+            </MenuItem>
             {permitImportShards && (
               <MenuItem
                 id="library-actions-menu-import-shard"

@@ -105,5 +105,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteOrphanedInstances: () => ipcRenderer.invoke('delete-orphaned-instances'),
   hideWorkflowInstance: (instance: any) => ipcRenderer.invoke('hide-workflow-instance', instance),
   unhideWorkflowInstance: (instance: any) => ipcRenderer.invoke('unhide-workflow-instance', instance),
-  listHiddenInstances: () => ipcRenderer.invoke('list-hidden-instances')
+  listHiddenInstances: () => ipcRenderer.invoke('list-hidden-instances'),
+  exportCatalogue: (name: string, path: string) => ipcRenderer.invoke('export-catalogue', name, path),
+  createCatalogueFromFile: (filePath: string) =>
+    ipcRenderer.invoke('create-catalogue-from-file', filePath)
 });

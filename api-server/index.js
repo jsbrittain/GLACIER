@@ -466,6 +466,14 @@ app.post('/api/query-shard-status', async (req, res) =>
   post_response(res, call(collection.queryShardStatus.bind(collection), req.body.shardId))
 );
 
+app.post('/api/export-catalogue', async (req, res) =>
+  post_response(res, call(collection.exportCatalogue.bind(collection), req.body.name, req.body.path))
+);
+
+app.post('/api/create-catalogue-from-file', async (req, res) =>
+  post_response(res, call(collection.createCatalogueFromFile.bind(collection), req.body.filePath))
+);
+
 const PORT = process.env.PORT || 3030;
 app.listen(PORT, () => {
   console.log(`✅ API server listening on http://localhost:${PORT}`);
