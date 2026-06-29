@@ -209,12 +209,12 @@ describe('Collection', () => {
   });
 
   describe('createWorkflowInstance', () => {
-    it('creates a new instance and records it', () => {
+    it('creates a new instance and records it', async () => {
       const wf = makeWorkflow();
       collection.workflows = [wf];
       vi.mocked(repo.generateUniqueName).mockReturnValue('happy-fox');
 
-      const instance = collection.createWorkflowInstance('owner/repo', 'v1.0');
+      const instance = await collection.createWorkflowInstance('owner/repo', 'v1.0');
 
       expect(instance.name).toBe('happy-fox');
       expect(instance.workflow_version.version).toBe('v1.0');
@@ -222,15 +222,15 @@ describe('Collection', () => {
       expect(collection.workflow_instances[0]).toBe(instance);
     });
 
-    it('throws for unknown workflow', () => {
-      expect(() => collection.createWorkflowInstance('unknown/repo', 'v1.0')).toThrow(
+    it('throws for unknown workflow', async () => {
+      await expect(collection.createWorkflowInstance('unknown/repo', 'v1.0')).rejects.toThrow(
         'not found'
       );
     });
 
-    it('throws for workflow with no versions', () => {
+    it('throws for workflow with no versions', async () => {
       collection.workflows = [makeWorkflow({ versions: [] })];
-      expect(() => collection.createWorkflowInstance('owner/repo', 'v1.0')).toThrow(
+      await expect(collection.createWorkflowInstance('owner/repo', 'v1.0')).rejects.toThrow(
         'no versions'
       );
     });
