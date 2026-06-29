@@ -233,6 +233,7 @@
     "disable-projects": "Désactiver la gestion des projets",
     "disable-schema-validation": "Désactiver la validation stricte du schéma",
     "show-hidden-params": "Afficher les paramètres cachés",
+    "auto-store-dir": "Résolution automatique du paramètre store_dir",
     "project-options": "Projets",
     "projects": {
       "url": "URL",

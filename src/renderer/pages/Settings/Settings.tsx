@@ -36,13 +36,15 @@ export default function SettingsPage({
   setShowHiddenParams,
   showLogPanel,
   onShowLogPanelChange,
+  autoStoreDir,
+  setAutoStoreDir,
   navigateToPage,
   setNavigateToPage,
   onReopenSetup
 }) {
   const { t, i18n } = useTranslation();
 
-  const [language, setLanguage] = React.useState(i18n.language || 'en');
+  const [language, setLanguage] = React.useState(i18n.language?.split('-')[0] || 'en');
   const [tabValue, setTabValue] = React.useState(0);
   const [disableSchemaValidation, setDisableSchemaValidation] = React.useState(false);
 
@@ -90,6 +92,13 @@ export default function SettingsPage({
   const handleDisableSchemaValidation = (value) => {
     setDisableSchemaValidation(value);
     API.settingsSet(SettingsKey.DisableSchemaValidation, value).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
+  };
+
+  const handleAutoStoreDir = (value) => {
+    setAutoStoreDir(value);
+    API.settingsSet(SettingsKey.AutoStoreDir, value).then((result) => {
       if (!result.ok) console.error(result.error.message);
     });
   };
@@ -281,6 +290,15 @@ export default function SettingsPage({
               />
             }
             label={t('settings.show-hidden-params')}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={autoStoreDir}
+                onChange={(_, checked) => handleAutoStoreDir(checked)}
+              />
+            }
+            label={t('settings.auto-store-dir')}
           />
         </Stack>
       </TabPanel>

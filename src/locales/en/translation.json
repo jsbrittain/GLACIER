@@ -243,6 +243,7 @@
     "disable-projects": "Disable projects",
     "disable-schema-validation": "Disable strict schema validation",
     "show-hidden-params": "Show hidden parameters",
+    "auto-store-dir": "Auto-resolve store_dir parameter",
     "project-options": "Projects",
     "projects": {
       "url": "URL",

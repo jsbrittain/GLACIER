@@ -55,6 +55,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [message, setMessage] = useState('');
   const [showHiddenParams, setShowHiddenParams] = useState(false);
   const [showLogPanel, setShowLogPanel] = useState(false);
+  const [autoStoreDir, setAutoStoreDir] = useState(false);
   const [open, setOpen] = useState(false);
   const [item, setItem] = useState('');
   const [navigateToSettingsPage, setNavigateToSettingsPage] = useState('');
@@ -92,6 +93,9 @@ export default function MainPage({ darkMode, setDarkMode }) {
       });
       API.settingsGet(SettingsKey.ShowLogPanel).then((result) => {
         if (result.ok) setShowLogPanel(result.data);
+      });
+      API.settingsGet(SettingsKey.AutoStoreDir).then((result) => {
+        if (result.ok) setAutoStoreDir(result.data);
       });
       const r = await API.init();
       if (!r.ok) {
@@ -315,6 +319,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 setShowHiddenParams={setShowHiddenParams}
                 showLogPanel={showLogPanel}
                 onShowLogPanelChange={handleShowLogPanel}
+                autoStoreDir={autoStoreDir}
+                setAutoStoreDir={setAutoStoreDir}
                 navigateToPage={navigateToSettingsPage}
                 setNavigateToPage={setNavigateToSettingsPage}
                 onReopenSetup={() => {

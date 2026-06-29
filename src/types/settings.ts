@@ -10,7 +10,8 @@ export const SettingsKey = {
   DisableSchemaValidation: 'disableSchemaValidation',
   InstanceSortBy: 'instanceSortBy',
   InstanceSortDir: 'instanceSortDir',
-  ShowLogPanel: 'showLogPanel'
+  ShowLogPanel: 'showLogPanel',
+  AutoStoreDir: 'autoStoreDir'
 } as const;
 
 export type SettingsKey = (typeof SettingsKey)[keyof typeof SettingsKey];

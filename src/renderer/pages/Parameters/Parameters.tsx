@@ -167,9 +167,6 @@ export default function ParametersPage({
       const paramsResult = await API.getWorkflowInstanceParams(instance);
       if (paramsResult.ok && paramsResult.data) {
         setParams(paramsResult.data);
-        if (Object.keys(paramsResult.data).length > 0) {
-          setTabSelected(2);
-        }
       }
     };
     const fetchReadme = async () => {
