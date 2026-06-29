@@ -180,7 +180,7 @@ export default function SettingsPage({
             slotProps={{ input: { readOnly: true } }}
             sx={{ mb: 2 }}
           />
-          <Button variant="contained" onClick={onReopenSetup}>
+          <Button variant="contained" id="settings-reopen-setup" onClick={onReopenSetup}>
             {t('settings.reopen-setup', 'Re-run initial setup')}
           </Button>
         </Box>

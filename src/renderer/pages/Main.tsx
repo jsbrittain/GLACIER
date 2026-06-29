@@ -345,6 +345,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <TextField
+              id="setup-config-folder"
               label={t('setup.config-folder', 'Config folder')}
               value={pendingConfigPath}
               onChange={(e) => setPendingConfigPath(e.target.value)}
@@ -357,6 +358,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <TextField
+              id="setup-documents-folder"
               label={t('setup.documents-folder', 'Documents folder')}
               value={pendingDocumentsPath}
               onChange={(e) => setPendingDocumentsPath(e.target.value)}
