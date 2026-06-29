@@ -3,6 +3,7 @@
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
+import { execFile } from 'child_process';
 import { IRepo, IRepoVersions } from './types.js';
 import { generateUniqueName } from './repo.js';
 import { cloneRepo, ICloneRepo, getRepoTags, getRepoBranches, parseRepoUrl } from './repo.js';
@@ -28,12 +29,18 @@ import { parseNextflowLog } from '../runners/nextflow/nf-parse.js';
 let _shell: any;
 async function getShell(): Promise<any> {
   if (!_shell) {
-    try {
-      const pkg = await import('electron');
-      _shell = pkg.shell;
-    } catch {
-      _shell = { openPath: () => Promise.resolve(), openExternal: () => Promise.resolve() };
-    }
+    const osCmd =
+      process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
+    _shell = {
+      openPath: (p: string) =>
+        new Promise<void>((resolve, reject) => {
+          execFile(osCmd, [p], (err) => (err ? reject(err) : resolve()));
+        }),
+      openExternal: (url: string) =>
+        new Promise<void>((resolve, reject) => {
+          execFile(osCmd, [url], (err) => (err ? reject(err) : resolve()));
+        })
+    };
   }
   return _shell;
 }
@@ -338,7 +345,7 @@ export class Collection {
 
   // --- Logic -------------------------------------------------------------------------
 
-  async init(): Promise<Record<string, boolean>> {
+  async init(resourceRoot?: string): Promise<Record<string, boolean>> {
     // Re-read paths from store in case they were changed
     this.root_path = getConfigPath();
     this.documents_root_path = getDocumentsPath();
@@ -349,17 +356,12 @@ export class Collection {
       documents: !this.documents_root_path || !fs.existsSync(this.documents_root_path)
     };
 
-    const is_electron = process.versions?.electron !== undefined;
-    if (is_electron && !fs.existsSync(this.catalogues_path)) {
-      // Import manifest if one exists
-      const { app } = await import('electron');
-      const resource_root = path.join(
-        app.isPackaged ? process.resourcesPath : app.getAppPath(),
-        'bundle'
-      );
-      const manifestPath = path.join(resource_root, 'manifest.json');
-      if (fs.existsSync(manifestPath)) {
-        await this.importManifest(manifestPath);
+    if (process.versions?.electron !== undefined && !fs.existsSync(this.catalogues_path)) {
+      if (resourceRoot) {
+        const manifestPath = path.join(resourceRoot, 'manifest.json');
+        if (fs.existsSync(manifestPath)) {
+          await this.importManifest(manifestPath);
+        }
       }
     }
     await this.parseCollection();
