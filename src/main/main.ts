@@ -2,11 +2,61 @@ import { app, screen, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { registerIpcHandlers, call } from './ipc-handlers.js';
+import { Collection } from './collection.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let win: BrowserWindow | null = null;
+
+/**
+ * Attempt to gracefully shut down running processes and save state on catastrophic failure.
+ */
+async function gracefulCrash(error: Error, type: 'uncaughtException' | 'unhandledRejection') {
+  console.error(`FATAL [${type}]:`, error);
+  try {
+    const col = Collection.getInstance();
+    for (const inst of col.workflow_instances) {
+      for (const desc of inst.processes) {
+        try {
+          if (desc.containerId) {
+            const { docker } = await import('../runners/docker/docker.js');
+            const container = docker.getContainer(desc.containerId);
+            await container.stop({ t: 5 });
+          } else {
+            // Send SIGTERM to process group
+            try { process.kill(-desc.pid, 'SIGTERM'); } catch { /* already dead */ }
+            try { process.kill(desc.pid, 'SIGTERM'); } catch { /* already dead */ }
+          }
+        } catch {
+          // Best effort
+        }
+      }
+    }
+  } catch {
+    // Best effort during crash recovery
+  }
+
+  if (win) {
+    dialog.showErrorBox(
+      'GLACIER - Fatal Error',
+      `A fatal ${type === 'uncaughtException' ? 'exception' : 'error'} occurred:\n\n${error.message}\n\nThe application will now exit.`
+    );
+  }
+
+  process.exit(1);
+}
+
+process.on('uncaughtException', (error) => {
+  void gracefulCrash(error, 'uncaughtException');
+});
+
+process.on('unhandledRejection', (reason) => {
+  void gracefulCrash(
+    reason instanceof Error ? reason : new Error(String(reason)),
+    'unhandledRejection'
+  );
+});
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
