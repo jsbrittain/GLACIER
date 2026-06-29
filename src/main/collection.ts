@@ -1895,6 +1895,15 @@ export class Collection {
       );
     }
 
+    // Kill any running processes for these workflow versions before removing files
+    for (const version of versionsToRemove) {
+      for (const inst of this.workflow_instances) {
+        if (inst.workflow_version?.id === version.id && inst.processes.length > 0) {
+          await this.killWorkflowInstance(inst);
+        }
+      }
+    }
+
     for (const version of versionsToRemove) {
       if (safeFs.existsSync(version.path)) {
         safeFs.rmSync(version.path, { recursive: true, force: true });
