@@ -42,7 +42,11 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow();
-  registerIpcHandlers();
+  const resourceRoot = path.join(
+    app.isPackaged ? process.resourcesPath : app.getAppPath(),
+    'bundle'
+  );
+  registerIpcHandlers(resourceRoot);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

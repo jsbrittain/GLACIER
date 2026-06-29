@@ -83,6 +83,8 @@ export default [
         'error',
         {
           devDependencies: [
+            'src/main/**',
+            'src/preload/**',
             'test/**',
             'tests/**',
             '**/*.test.{js,jsx,ts,tsx}',
