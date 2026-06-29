@@ -304,6 +304,7 @@ export default function InstancesPage({
 
   const [rows, setRows] = useState([]);
   const [editingInstance, setEditingInstance] = useState<string | null>(null);
+  const [justLaunchedId, setJustLaunchedId] = useState<string | null>(null);
   const [initialMonitorTab, setInitialMonitorTab] = useState(0);
   const [wipeDialogOpen, setWipeDialogOpen] = useState(false);
   const [wipeTarget, setWipeTarget] = useState<{ instance: any; name: string } | null>(null);
@@ -347,6 +348,14 @@ export default function InstancesPage({
   const onEditComplete = () => {
     setEditingInstance(null);
   };
+
+  const onLaunchSuccess = (instanceId: string) => {
+    setJustLaunchedId(instanceId);
+  };
+
+  useEffect(() => {
+    if (item === '') setJustLaunchedId(null);
+  }, [item]);
 
   useEffect(() => {
     setRows(
@@ -657,6 +666,7 @@ export default function InstancesPage({
                 showHiddenParams={showHiddenParams}
                 logMessage={logMessage}
                 onEditComplete={onEditComplete}
+                onLaunchSuccess={onLaunchSuccess}
                 startOnParamsTab={editingInstance === name}
               />
             ) : (
@@ -666,6 +676,8 @@ export default function InstancesPage({
                 logMessage={logMessage}
                 onRestart={onRestart}
                 initialTab={initialMonitorTab}
+                showLaunchBanner={justLaunchedId === instance.id}
+                onLaunchBannerDismissed={() => setJustLaunchedId(null)}
               />
             );
           })
