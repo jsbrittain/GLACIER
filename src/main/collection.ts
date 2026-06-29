@@ -677,22 +677,28 @@ export class Collection {
       const instance = this.workflow_instances.find((inst) => inst.id === run.id);
       if (!instance) {
         const latest_run = run.runs?.length > 0 ? run.runs[run.runs.length - 1] : null;
-        let has_running = false;
         // Try new-style processes first, fall back to old-style pids
         const descriptors = this.getDescriptorsFromRun(latest_run);
         for (const desc of descriptors) {
           if (await this.verifyProcess(desc)) {
-            has_running = true;
-            break;
+            // Kill orphan — instance folder gone but process still alive
+            if (desc.containerId) {
+              try {
+                const { docker } = await import('../runners/docker/docker.js');
+                const container = docker.getContainer(desc.containerId);
+                await container.kill();
+              } catch (err) {
+                console.error(`Failed to kill orphan container ${desc.containerId}: ${err}`);
+              }
+            } else {
+              this.killPID(desc.pid, 'kill');
+            }
+            console.log(`Instance ${run.id} found in database but not in filesystem, killed orphan process.`);
           }
         }
-        if (!has_running) {
-          console.log(`Instance ${run.id} found in database but not in filesystem, removing.`);
-          db.runs = db.runs.filter((r: any) => r.id !== run.id);
-          db_updated = true;
-        } else {
-          console.log(`Instance ${run.id} found in database but not in filesystem, process still running, keeping.`);
-        }
+        console.log(`Instance ${run.id} found in database but not in filesystem, removing.`);
+        db.runs = db.runs.filter((r: any) => r.id !== run.id);
+        db_updated = true;
         continue;
       }
       // Restore hidden flag
@@ -1893,6 +1899,15 @@ export class Collection {
       versionsToRemove = wf.versions.filter(
         (v) => v.version === workflow_entry.version && v.sourceVersion !== 'latest'
       );
+    }
+
+    // Kill any running processes for these workflow versions before removing files
+    for (const version of versionsToRemove) {
+      for (const inst of this.workflow_instances) {
+        if (inst.workflow_version?.id === version.id && inst.processes.length > 0) {
+          await this.killWorkflowInstance(inst);
+        }
+      }
     }
 
     for (const version of versionsToRemove) {
