@@ -56,6 +56,7 @@ const electronAPI = isElectron
       showCatalogueSections: (catalogue_name) =>
         window.electronAPI.showCatalogueSections(catalogue_name),
       getCatalogues: () => window.electronAPI.getCatalogues(),
+      getCatalogueParseResults: () => window.electronAPI.getCatalogueParseResults(),
       refreshCatalogues: () => window.electronAPI.refreshCatalogues(),
       addUserWorkflow: (name, repoUrl, ver, section) =>
         window.electronAPI.addUserWorkflow(name, repoUrl, ver, section),
@@ -197,6 +198,7 @@ const httpAPI = {
   showCatalogueSections: async (catalogue_name) =>
     httpDispatch('/api/show-catalogue-sections', 'POST', { catalogue_name }),
   getCatalogues: async () => httpDispatch('/api/get-catalogues', 'POST', {}),
+  getCatalogueParseResults: async () => httpDispatch('/api/get-catalogue-parse-results', 'POST', {}),
   refreshCatalogues: async () => httpDispatch('/api/refresh-catalogues', 'POST', {}),
   addUserWorkflow: async (name, repoUrl, ver, section) =>
     httpDispatch('/api/add-user-workflow', 'POST', { name, repoUrl, ver, section }),

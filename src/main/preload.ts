@@ -74,6 +74,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   showCatalogueSections: (catalogue_name: string) =>
     ipcRenderer.invoke('show-catalogue-sections', catalogue_name),
   getCatalogues: () => ipcRenderer.invoke('get-catalogues'),
+  getCatalogueParseResults: () => ipcRenderer.invoke('get-catalogue-parse-results'),
   refreshCatalogues: () => ipcRenderer.invoke('refresh-catalogues'),
   addUserWorkflow: (name: string, repoUrl: string, version: string, section: string) =>
     ipcRenderer.invoke('add-user-workflow', name, repoUrl, version, section),

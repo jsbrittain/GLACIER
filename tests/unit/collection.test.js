@@ -742,6 +742,76 @@ describe('Collection', () => {
 
       expect(collection.catalogues).toHaveLength(2);
     });
+
+    it('collects errors for malformed catalogue.json instead of throwing', async () => {
+      const catDir = path.join(tmpDir, 'catalogues', 'owner', 'cat-repo');
+      fs.mkdirSync(catDir, { recursive: true });
+      fs.writeFileSync(path.join(catDir, 'catalogue.json'), '{invalid json}', 'utf8');
+
+      await collection.parseCatalogues();
+
+      expect(collection.catalogues).toHaveLength(0);
+      expect(collection.catalogueParseErrors).toHaveLength(1);
+      expect(collection.catalogueParseErrors[0].source).toBe('owner/cat-repo');
+      expect(collection.catalogueParseErrors[0].error).toContain('Failed to parse catalogue.json');
+    });
+
+    it('collects errors for unreadable catalogue.json', async () => {
+      const catDir = path.join(tmpDir, 'catalogues', 'owner', 'cat-repo');
+      fs.mkdirSync(catDir, { recursive: true });
+
+      await collection.parseCatalogues();
+
+      expect(collection.catalogues).toHaveLength(0);
+      expect(collection.catalogueParseErrors).toHaveLength(1);
+      expect(collection.catalogueParseErrors[0].source).toBe('owner/cat-repo');
+      expect(collection.catalogueParseErrors[0].error).toContain('Failed to read catalogue.json');
+    });
+
+    it('parses valid catalogues even when others have errors', async () => {
+      const goodDir = path.join(tmpDir, 'catalogues', 'owner', 'good-repo');
+      fs.mkdirSync(goodDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(goodDir, 'catalogue.json'),
+        JSON.stringify({ name: 'Good Cat', sections: [] }),
+        'utf8'
+      );
+      const badDir = path.join(tmpDir, 'catalogues', 'owner', 'bad-repo');
+      fs.mkdirSync(badDir, { recursive: true });
+      fs.writeFileSync(path.join(badDir, 'catalogue.json'), '{invalid}', 'utf8');
+
+      await collection.parseCatalogues();
+
+      expect(collection.catalogues).toHaveLength(1);
+      expect(collection.catalogues[0].name).toBe('Good Cat');
+      expect(collection.catalogueParseErrors).toHaveLength(1);
+      expect(collection.catalogueParseErrors[0].source).toBe('owner/bad-repo');
+    });
+
+    it('getCatalogueParseResults returns combined successes and failures', async () => {
+      const goodDir = path.join(tmpDir, 'catalogues', 'owner', 'good-repo');
+      fs.mkdirSync(goodDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(goodDir, 'catalogue.json'),
+        JSON.stringify({ name: 'Good Cat', sections: [] }),
+        'utf8'
+      );
+      const badDir = path.join(tmpDir, 'catalogues', 'owner', 'bad-repo');
+      fs.mkdirSync(badDir, { recursive: true });
+      fs.writeFileSync(path.join(badDir, 'catalogue.json'), '{invalid}', 'utf8');
+
+      await collection.parseCatalogues();
+      const results = await collection.getCatalogueParseResults();
+
+      expect(results).toHaveLength(2);
+      const success = results.find((r) => r.source === 'owner/good-repo');
+      expect(success).toBeDefined();
+      expect(success.success).toBe(true);
+      const failure = results.find((r) => r.source === 'owner/bad-repo');
+      expect(failure).toBeDefined();
+      expect(failure.success).toBe(false);
+      expect(failure.error).toContain('Failed to parse catalogue.json');
+    });
   });
 
   describe('addCatalogue', () => {

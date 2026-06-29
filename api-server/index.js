@@ -315,6 +315,10 @@ app.post('/api/get-catalogues', async (req, res) =>
   post_response(res, call(collection.getCatalogues.bind(collection)))
 );
 
+app.post('/api/get-catalogue-parse-results', async (req, res) =>
+  post_response(res, call(collection.getCatalogueParseResults.bind(collection)))
+);
+
 app.post('/api/refresh-catalogues', async (req, res) =>
   post_response(res, call(collection.refreshCatalogues.bind(collection)))
 );

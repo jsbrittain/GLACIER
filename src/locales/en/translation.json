@@ -2,7 +2,9 @@
   "glacier": "GLACIER",
   "container-started": "Container built and started with ID",
   "error": {
-    "parsing-catalogue": "Error parsing catalogue"
+    "parsing-catalogue": "Catalogue loading results",
+    "catalogue-parse-success": "{{source}} loaded successfully",
+    "catalogue-parse-failure": "{{source}} — {{error}}"
   },
   "common": {
     "okay": "Okay",
