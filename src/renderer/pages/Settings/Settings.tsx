@@ -2,9 +2,9 @@ import React, { useEffect } from 'react';
 import {
   Box,
   Typography,
+  TextField,
   Switch,
   FormControlLabel,
-  TextField,
   Select,
   Stack,
   MenuItem,
@@ -23,9 +23,7 @@ export default function SettingsPage({
   darkMode,
   setDarkMode,
   collectionsPath,
-  setCollectionsPath,
   documentsPath,
-  setDocumentsPath,
   permitAddCatalogues,
   setPermitAddCatalogues,
   permitCatalogueModifications,
@@ -39,65 +37,14 @@ export default function SettingsPage({
   showLogPanel,
   onShowLogPanelChange,
   navigateToPage,
-  setNavigateToPage
+  setNavigateToPage,
+  onReopenSetup
 }) {
   const { t, i18n } = useTranslation();
 
-  const pathRef = React.useRef(null);
-  const docsPathRef = React.useRef(null);
   const [language, setLanguage] = React.useState(i18n.language || 'en');
   const [tabValue, setTabValue] = React.useState(0);
   const [disableSchemaValidation, setDisableSchemaValidation] = React.useState(false);
-
-  const handlePathKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handlePathBlur();
-      e.target.blur();
-    }
-  };
-
-  const handlePathBlur = () => {
-    const newPath = pathRef.current?.value ?? '';
-    if (newPath === collectionsPath) return;
-    setCollectionsPath(newPath);
-    API.setConfigPath(newPath).then((result) => {
-      if (result.ok) console.log(`Collections path updated: ${newPath}`);
-    });
-  };
-
-  const handleDocsPathKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleDocsPathBlur();
-      e.target.blur();
-    }
-  };
-
-  const handleDocsPathBlur = () => {
-    const newPath = docsPathRef.current?.value ?? '';
-    if (newPath === documentsPath) return;
-    setDocumentsPath(newPath);
-    API.setDocumentsPath(newPath).then((result) => {
-      if (result.ok) console.log(`Documents path updated: ${newPath}`);
-    });
-  };
-
-  const handlePickConfigDir = async () => {
-    const result = await API.pickDirectory();
-    if (result.ok && result.data) {
-      setCollectionsPath(result.data);
-      API.setConfigPath(result.data);
-    }
-  };
-
-  const handlePickDocumentsDir = async () => {
-    const result = await API.pickDirectory();
-    if (result.ok && result.data) {
-      setDocumentsPath(result.data);
-      API.setDocumentsPath(result.data);
-    }
-  };
 
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
@@ -149,30 +96,21 @@ export default function SettingsPage({
 
   useEffect(() => {
     API.settingsGet(SettingsKey.PermitAddCatalogues).then((result) => {
-      if (result.ok) setPermitAddCatalogues(result.data);
+      if (result.ok && result.data !== undefined) setPermitAddCatalogues(result.data);
     });
     API.settingsGet(SettingsKey.PermitCatalogueModifications).then((result) => {
-      if (result.ok) setPermitCatalogueModifications(result.data);
+      if (result.ok && result.data !== undefined) setPermitCatalogueModifications(result.data);
     });
     API.settingsGet(SettingsKey.PermitImportShards).then((result) => {
-      if (result.ok) setPermitImportShards(result.data);
+      if (result.ok && result.data !== undefined) setPermitImportShards(result.data);
     });
     API.settingsGet(SettingsKey.PermitAddRepos).then((result) => {
-      if (result.ok) setPermitAddRepos(result.data);
+      if (result.ok && result.data !== undefined) setPermitAddRepos(result.data);
     });
     API.settingsGet(SettingsKey.DisableSchemaValidation).then((result) => {
       if (result.ok) setDisableSchemaValidation(result.data);
     });
   }, []);
-
-  useEffect(() => {
-    if (pathRef.current && document.activeElement !== pathRef.current) {
-      pathRef.current.value = collectionsPath ?? '';
-    }
-    if (docsPathRef.current && document.activeElement !== docsPathRef.current) {
-      docsPathRef.current.value = documentsPath ?? '';
-    }
-  }, [collectionsPath, documentsPath]);
 
   useEffect(() => {
     if (navigateToPage === 'environment') {
@@ -225,43 +163,33 @@ export default function SettingsPage({
       </Tabs>
 
       <TabPanel value={tabValue} index={0}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+        <Box sx={{ mt: 2, mb: 2 }}>
           <TextField
-            id="settings-collections-path"
-            inputRef={pathRef}
             label={t('settings.config-folder', 'Config folder')}
+            value={collectionsPath || ''}
             fullWidth
-            defaultValue={collectionsPath}
-            onKeyDown={handlePathKeyDown}
-            onBlur={handlePathBlur}
+            size="small"
+            slotProps={{ input: { readOnly: true } }}
+            sx={{ mb: 2 }}
           />
-          <Button variant="outlined" onClick={handlePickConfigDir}>
-            {t('settings.browse', 'Browse')}
-          </Button>
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
           <TextField
-            id="settings-documents-path"
-            inputRef={docsPathRef}
             label={t('settings.documents-folder', 'Documents folder')}
+            value={documentsPath || ''}
             fullWidth
-            defaultValue={documentsPath}
-            onKeyDown={handleDocsPathKeyDown}
-            onBlur={handleDocsPathBlur}
+            size="small"
+            slotProps={{ input: { readOnly: true } }}
+            sx={{ mb: 2 }}
           />
-          <Button variant="outlined" onClick={handlePickDocumentsDir}>
-            {t('settings.browse', 'Browse')}
+          <Button variant="contained" id="settings-reopen-setup" onClick={onReopenSetup}>
+            {t('settings.reopen-setup', 'Re-run initial setup')}
           </Button>
         </Box>
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1, display: 'block' }}>
-          {t('settings.instances-note', 'Workflow instances go here')}
-        </Typography>
         <FormControlLabel
           control={
             <Switch
               id="settings-permit-add-catalogues"
               checked={permitAddCatalogues}
-              onChange={() => handlePermitAddCatalogues(!permitAddCatalogues)}
+              onChange={(_, checked) => handlePermitAddCatalogues(checked)}
             />
           }
           label={t('settings.permit-add-catalogues')}
@@ -271,7 +199,7 @@ export default function SettingsPage({
             <Switch
               id="settings-permit-catalogue-modifications"
               checked={permitCatalogueModifications}
-              onChange={() => handlePermitCatalogueModifications(!permitCatalogueModifications)}
+              onChange={(_, checked) => handlePermitCatalogueModifications(checked)}
             />
           }
           label={t('settings.permit-catalogue-modifications')}
@@ -281,7 +209,7 @@ export default function SettingsPage({
             <Switch
               id="settings-permit-import-shards"
               checked={permitImportShards}
-              onChange={() => handlePermitImportShards(!permitImportShards)}
+              onChange={(_, checked) => handlePermitImportShards(checked)}
             />
           }
           label={t('settings.permit-import-shards')}
@@ -291,7 +219,7 @@ export default function SettingsPage({
             <Switch
               id="settings-permit-add-repos"
               checked={permitAddRepos}
-              onChange={() => handlePermitAddRepos(!permitAddRepos)}
+              onChange={(_, checked) => handlePermitAddRepos(checked)}
             />
           }
           label={t('settings.permit-add-repos')}
@@ -301,7 +229,7 @@ export default function SettingsPage({
       <TabPanel value={tabValue} index={1}>
         <Stack spacing={2}>
           <FormControlLabel
-            control={<Switch checked={darkMode} onChange={() => handleDarkMode(!darkMode)} />}
+            control={<Switch checked={darkMode} onChange={(_, checked) => handleDarkMode(checked)} />}
             label={t('settings.dark-mode')}
           />
           <FormControlLabel
@@ -340,7 +268,7 @@ export default function SettingsPage({
             control={
               <Switch
                 checked={disableSchemaValidation}
-                onChange={() => handleDisableSchemaValidation(!disableSchemaValidation)}
+                onChange={(_, checked) => handleDisableSchemaValidation(checked)}
               />
             }
             label={t('settings.disable-schema-validation')}

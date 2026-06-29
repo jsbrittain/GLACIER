@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
 import {
   Button,
@@ -21,6 +21,7 @@ import EnvironmentStatus from './EnvironmentStatus';
 import ActionMenu from './ActionMenu';
 import ProgressDialog from './ProgressDialog';
 import ConfirmInstallDialog from './ConfirmInstallDialog';
+import VersionSelectDialog from './VersionSelectDialog';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { API } from '../../services/api.js';
 
@@ -51,13 +52,17 @@ function WorkflowCard({
   scheme,
   createWorkflowInstance,
   refresh,
-  requestInstallWorkflows
+  requestInstallWorkflows,
+  logMessage
 }) {
   const { t } = useTranslation();
 
   const [anchorEl, setAnchorEl] = useState(null);
   const [isRepoInstalled, setIsRepoInstalled] = useState(false);
   const [versionInstalled, setVersionInstalled] = useState('');
+  const [versionSelectorOpen, setVersionSelectorOpen] = useState(false);
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [tagsLoading, setTagsLoading] = useState(false);
   const menuIsOpen = Boolean(anchorEl);
 
   workflow['id'] = workflow['repo'];
@@ -84,12 +89,52 @@ function WorkflowCard({
   }, [refresh]);
 
   const cloneRepo = async () => {
+    if (workflow.version === 'latest') {
+      setTagsLoading(true);
+      setVersionSelectorOpen(true);
+      const result = await API.getRepoTags(workflow.repo);
+      setTagsLoading(false);
+      if (result.ok) {
+        const tags = result.data || [];
+        if (tags.length === 0) {
+          setVersionSelectorOpen(false);
+          logMessage(t('library.no-tags-installing-default', { name: workflow.name }), 'info');
+          requestInstallWorkflows([{
+            id: `${workflow.repo}@latest`,
+            repo: workflow.repo,
+            version: 'latest',
+            sourceVersion: 'latest'
+          }]);
+        } else {
+          setAvailableTags(tags);
+        }
+      } else {
+        setAvailableTags([]);
+      }
+    } else {
+      const workflows = [{
+        id: `${workflow.repo}@${workflow.version}`,
+        repo: workflow.repo,
+        version: workflow.version
+      }];
+      requestInstallWorkflows(workflows);
+    }
+  };
+
+  const handleVersionSelected = (version: string) => {
+    setVersionSelectorOpen(false);
     const workflows = [{
-      id: `${workflow.repo}@${workflow.version}`,
+      id: `${workflow.repo}@latest`,
       repo: workflow.repo,
-      version: workflow.version
+      version: version,
+      sourceVersion: 'latest'
     }];
     requestInstallWorkflows(workflows);
+  };
+
+  const handleVersionCancel = () => {
+    setVersionSelectorOpen(false);
+    setAvailableTags([]);
   };
 
   const runWorkflow = () => {
@@ -115,7 +160,33 @@ function WorkflowCard({
   };
 
   const checkForUpdates = async () => {
-    updateWorkflow();
+    const result = await updateWorkflow();
+    if (result?.ok && result.data?.updated && result.data?.availableVersion) {
+      const tagsResult = await API.getRepoTags(workflow.repo);
+      if (tagsResult.ok) {
+        setAvailableTags(tagsResult.data || []);
+        setVersionSelectorOpen(true);
+      }
+    }
+    handleMenuClose();
+  };
+
+  const selectVersion = async () => {
+    setTagsLoading(true);
+    setVersionSelectorOpen(true);
+    const result = await API.getRepoTags(workflow.repo);
+    setTagsLoading(false);
+    if (result.ok) {
+      const tags = result.data || [];
+      if (tags.length === 0) {
+        setVersionSelectorOpen(false);
+        logMessage(t('library.no-tags-installing-default', { name: workflow.name }), 'info');
+      } else {
+        setAvailableTags(tags);
+      }
+    } else {
+      setVersionSelectorOpen(false);
+    }
     handleMenuClose();
   };
 
@@ -129,7 +200,7 @@ function WorkflowCard({
       id={`card-${workflow.name}`}
       variant="outlined"
       onClick={isRepoInstalled ? () => {
-        if (menuIsOpen) return;
+        if (menuIsOpen || versionSelectorOpen) return;
         runWorkflow();
       } : undefined}
       sx={{
@@ -168,6 +239,9 @@ function WorkflowCard({
             <MenuItem onClick={handleUninstallWorkflow}>{t('library.uninstall-repository')}</MenuItem>
           )}
           {workflow['version'] === 'latest' && isRepoInstalled && (
+            <MenuItem onClick={selectVersion}>{t('library.select-version')}</MenuItem>
+          )}
+          {workflow['version'] === 'latest' && isRepoInstalled && (
             <MenuItem onClick={checkForUpdates}>{t('library.check-for-updates')}</MenuItem>
           )}
         </Menu>
@@ -203,6 +277,14 @@ function WorkflowCard({
           </Button>
         </Stack>
       )}
+      <VersionSelectDialog
+        open={versionSelectorOpen}
+        workflowName={workflow.name}
+        tags={availableTags}
+        loading={tagsLoading}
+        onConfirm={handleVersionSelected}
+        onCancel={handleVersionCancel}
+      />
     </Paper>
   );
 }
@@ -220,7 +302,8 @@ function SectionCard({
   createWorkflowInstance,
   permitCatalogueModifications,
   refresh,
-  requestInstallWorkflows
+  requestInstallWorkflows,
+  logMessage
 }) {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState(null);
@@ -347,6 +430,7 @@ function SectionCard({
                 createWorkflowInstance={createWorkflowInstance}
                 refresh={refresh}
                 requestInstallWorkflows={requestInstallWorkflows}
+                logMessage={logMessage}
               />
             </Grid>
           ))}
@@ -376,6 +460,12 @@ function CatalogueCard({
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
   const menuIsOpen = Boolean(anchorEl);
+  const updateQueueRef = useRef([]);
+  const updateQueueIndexRef = useRef(0);
+  const [versionSelectorOpen, setVersionSelectorOpen] = useState(false);
+  const [availableTags, setAvailableTags] = useState([]);
+  const [tagsLoading, setTagsLoading] = useState(false);
+  const [currentUpdateName, setCurrentUpdateName] = useState('');
 
   const handleMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -410,31 +500,62 @@ function CatalogueCard({
     handleMenuClose();
   };
 
+  const showVersionPickerForUpdate = async (entry) => {
+    setCurrentUpdateName(entry.name);
+    setTagsLoading(true);
+    setVersionSelectorOpen(true);
+    const tagsResult = await API.getRepoTags(entry.repo);
+    setTagsLoading(false);
+    if (tagsResult.ok) {
+      setAvailableTags(tagsResult.data || []);
+    } else {
+      setAvailableTags([]);
+    }
+  };
+
+  const advanceUpdateQueue = async () => {
+    const nextIndex = updateQueueIndexRef.current + 1;
+    if (nextIndex < updateQueueRef.current.length) {
+      updateQueueIndexRef.current = nextIndex;
+      await showVersionPickerForUpdate(updateQueueRef.current[nextIndex]);
+    } else {
+      setVersionSelectorOpen(false);
+      updateQueueRef.current = [];
+      updateQueueIndexRef.current = 0;
+    }
+  };
+
+  const handleUpdateVersionSelected = async (version: string) => {
+    const entry = updateQueueRef.current[updateQueueIndexRef.current];
+    setVersionSelectorOpen(false);
+    requestInstallWorkflows([{
+      id: `${entry.repo}@latest`,
+      repo: entry.repo,
+      version: version,
+      sourceVersion: 'latest'
+    }]);
+    await advanceUpdateQueue();
+  };
+
+  const handleUpdateVersionCancel = async () => {
+    await advanceUpdateQueue();
+  };
+
   const checkForUpdates = async () => {
     logMessage(t('library.checking-for-updates-catalogue', { name: catalogue.name }), 'info');
     const result = await API.checkCatalogueWorkflowUpdates(catalogue.name);
     if (result.ok) {
-      const { errors, updated, errorDetails } = result.data;
+      const { errors, updated, errorDetails, updates } = result.data;
       for (const detail of errorDetails || []) {
         logMessage(detail, 'error');
       }
-      if (updated > 0 && errors > 0) {
-        logMessage(
-          t('library.catalogue-workflows-check-errors', {
-            updated,
-            errors,
-            name: catalogue.name
-          }),
-          'warning'
-        );
-      } else if (updated > 0) {
-        logMessage(
-          t('library.catalogue-workflows-updated', {
-            count: updated,
-            name: catalogue.name
-          }),
-          'success'
-        );
+      if (updated > 0) {
+        updateQueueRef.current = updates || [];
+        updateQueueIndexRef.current = 0;
+        const entry = (updates || [])[0];
+        if (entry) {
+          await showVersionPickerForUpdate(entry);
+        }
       } else if (errors > 0) {
         logMessage(
           t('library.catalogue-workflows-check-failure', { name: catalogue.name, error: `All ${errors} workflow(s) failed to sync` }),
@@ -537,9 +658,18 @@ function CatalogueCard({
               permitCatalogueModifications={permitCatalogueModifications}
               refresh={refresh}
               requestInstallWorkflows={requestInstallWorkflows}
+              logMessage={logMessage}
             />
           ))}
       </Stack>
+      <VersionSelectDialog
+        open={versionSelectorOpen}
+        workflowName={currentUpdateName}
+        tags={availableTags}
+        loading={tagsLoading}
+        onConfirm={handleUpdateVersionSelected}
+        onCancel={handleUpdateVersionCancel}
+      />
     </Paper>
   );
 }
@@ -639,8 +769,9 @@ export default function LibraryPage({
   const confirmUninstall = async () => {
     if (!uninstallTarget) return;
     const { catalogue, section, workflow } = uninstallTarget;
+    workflow['version'] = workflow['version'] ?? 'latest';
     const result = await API.uninstallCatalogueWorkflow(
-      catalogue.name, section.name, workflow.name
+      catalogue.name, section.name, workflow.name, workflow.version
     );
     if (result.ok) {
       logMessage(t('library.workflow-uninstalled-success', { name: workflow.name }), 'success');
@@ -654,7 +785,7 @@ export default function LibraryPage({
 
   const updateWorkflow = (catalogue, section, workflow) => {
     logMessage(t('library.checking-for-updates', { name: workflow.name }), 'info');
-    API.updateCatalogueWorkflow(catalogue.name, section.name, workflow.name).then((result) => {
+    return API.updateCatalogueWorkflow(catalogue.name, section.name, workflow.name).then((result) => {
       if (result.ok) {
         if (result.data?.updated) {
           logMessage(t('library.workflow-updated-success', { name: workflow.name }), 'success');
@@ -665,6 +796,7 @@ export default function LibraryPage({
       } else {
         logMessage(t('library.workflow-updated-failure', { name: workflow.name }), 'error');
       }
+      return result;
     }).catch((err) => {
       logMessage(t('library.workflow-update-error', { name: workflow.name, error: err.message }), 'error');
     });
@@ -697,7 +829,7 @@ export default function LibraryPage({
     setProgressCount(workflows.length);
     const failed_list = [];
     for (const workflow of workflows) {
-      const result = await API.cloneRepo(workflow.repo, workflow.version);
+      const result = await API.cloneRepo(workflow.repo, workflow.version, workflow.sourceVersion);
       if (!result.ok) {
         failed_list.push(workflow.id);
       } else {

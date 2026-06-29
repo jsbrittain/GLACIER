@@ -33,7 +33,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   importShard: (filePath: string) => ipcRenderer.invoke('import-shard', filePath),
   queryShardStatus: (shardId: string) => ipcRenderer.invoke('query-shard-status', shardId),
 
-  cloneRepo: (repoUrl: string, ver: string) => ipcRenderer.invoke('clone-repo', repoUrl, ver),
+  cloneRepo: (repoUrl: string, ver: string, sourceVer?: string) =>
+    ipcRenderer.invoke('clone-repo', repoUrl, ver, sourceVer),
+  getRepoTags: (repoUrl: string) => ipcRenderer.invoke('get-repo-tags', repoUrl),
   isRepoInstalled: (repoUrl: string, ver: string) =>
     ipcRenderer.invoke('is-repo-installed', repoUrl, ver),
   isValidWorkflowRepo: (repoPath: string) =>
@@ -59,8 +61,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('hide-catalogue-section', catalogue_name, section_name),
   removeCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string) =>
     ipcRenderer.invoke('remove-catalogue-workflow', catalogue_name, section_name, workflow_name),
-  uninstallCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string) =>
-    ipcRenderer.invoke('uninstall-catalogue-workflow', catalogue_name, section_name, workflow_name),
+  uninstallCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string, workflow_version?: string) =>
+    ipcRenderer.invoke('uninstall-catalogue-workflow', catalogue_name, section_name, workflow_name, workflow_version),
   updateCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string) =>
     ipcRenderer.invoke('update-catalogue-workflow', catalogue_name, section_name, workflow_name),
   checkCatalogueWorkflowUpdates: (catalogue_name: string) =>

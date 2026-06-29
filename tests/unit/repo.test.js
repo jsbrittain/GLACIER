@@ -129,7 +129,7 @@ describe('cloneRepo', () => {
     expect(result.version).toBe('main');
   });
 
-  it('uses first tag when version is latest', async () => {
+  it('uses newest semver tag when version is latest', async () => {
     const dir = wd('latest');
     git.clone.mockResolvedValue(undefined);
     git.getRemoteInfo.mockResolvedValue(
@@ -138,7 +138,7 @@ describe('cloneRepo', () => {
 
     const result = await repo.cloneRepo('owner/test-repo', dir, 'latest');
 
-    expect(result.version).toBe('v1');
+    expect(result.version).toBe('v2');
   });
 
   it('returns cached result if target already exists', async () => {

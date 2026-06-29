@@ -6,7 +6,7 @@ import fs from 'fs';
 import { IRepo, IRepoVersions } from './types.js';
 import { getShell } from './shell.js';
 import { generateUniqueName } from './repo.js';
-import { cloneRepo, ICloneRepo, getRepoTags, getRepoBranches, parseRepoUrl } from './repo.js';
+import { cloneRepo, ICloneRepo, getRepoTags, getRepoBranches, parseRepoUrl, sortTagsBySemver } from './repo.js';
 import { runWorkflow } from './runner.js';
 import { getEnvironmentStatus, performEnvironmentAction } from '../runners/environment.js';
 import { ProcessDescriptor, WorkflowStatus } from '../types/types.js';
@@ -69,6 +69,7 @@ export interface IWorkflowVersion {
   version: string | undefined; // github tag, undefined for local
   path: string;
   parent_id: string; // reference to parent workflow
+  sourceVersion?: string; // original catalogue version request ('latest' or specific tag)
 }
 
 class WorkflowVersion implements IWorkflowVersion {
@@ -78,14 +79,16 @@ class WorkflowVersion implements IWorkflowVersion {
   version: string | undefined;
   path: string;
   parent_id: string; // reference to parent workflow
+  sourceVersion?: string;
 
-  constructor({ id, name, type, version, path, parent_id }: IWorkflowVersion) {
+  constructor({ id, name, type, version, path, parent_id, sourceVersion }: IWorkflowVersion) {
     this.id = id;
     this.name = name;
     this.type = type;
     this.version = version;
     this.path = path;
     this.parent_id = parent_id;
+    this.sourceVersion = sourceVersion;
   }
 }
 
@@ -405,13 +408,22 @@ export class Collection {
         const versionPath = path.join(ownerPath, repo_and_version);
         const versionPostfix = version !== undefined ? `@${version}` : '';
         const type = this.determineWorkflowType(versionPath);
+        // Read persisted version metadata for @latest directories
+        let actualVersion = version;
+        if (version === 'latest') {
+          const metaFile = path.join(versionPath, '.glacier-version');
+          if (fs.existsSync(metaFile)) {
+            actualVersion = fs.readFileSync(metaFile, 'utf-8').trim();
+          }
+        }
         wf.versions.push({
           id: `${owner}/${repo}${versionPostfix}`,
           name: `${owner}/${repo}${versionPostfix}`,
           type: type,
-          version: version,
+          version: actualVersion,
           path: versionPath,
-          parent_id: wf.id
+          parent_id: wf.id,
+          sourceVersion: version === 'latest' ? 'latest' : undefined
         } as WorkflowVersion);
       }
     }
@@ -644,8 +656,8 @@ export class Collection {
     }
     let workflow_version;
     if (version === undefined || version === 'latest') {
-      // Local repository
-      workflow_version = workflow.versions[0];
+      workflow_version = workflow.versions.find((v) => v.sourceVersion === 'latest')
+        || workflow.versions[0];
     } else {
       workflow_version = workflow.versions.filter((v: any) => v.version === version)[0];
     }
@@ -1147,9 +1159,10 @@ export class Collection {
     return await getAvailableProfiles(local_instance);
   }
 
-  async cloneRepo(url: string, ver: string): Promise<IWorkflowVersion> {
+  async cloneRepo(url: string, ver: string, sourceVer?: string): Promise<IWorkflowVersion> {
     console.log(`Cloning repository ${url} version ${ver}`);
-    const repo: ICloneRepo = await cloneRepo(url, this.workflow_path, ver);
+    const isLatest = sourceVer === 'latest';
+    const repo: ICloneRepo = await cloneRepo(url, this.workflow_path, ver, isLatest ? 'latest' : undefined);
     const wf_id = `${repo.owner}/${repo.repo}`;
     // Create workflow if it doesn't already exist
     let wf = this.workflows.find((wf) => wf.id === wf_id);
@@ -1164,9 +1177,18 @@ export class Collection {
       } as IWorkflow);
       this.workflows.push(wf);
     }
-    // Check if version already exists
-    let version = wf.versions.find((v) => v.version === repo.version);
+    // Check if version already exists at this path
+    let version = wf.versions.find((v) => v.path === repo.path);
     if (version !== undefined) {
+      if (sourceVer && version.sourceVersion !== sourceVer) {
+        version.sourceVersion = sourceVer;
+      }
+      if (version.version !== repo.version) {
+        version.version = repo.version;
+      }
+      if (isLatest) {
+        fs.writeFileSync(path.join(repo.path, '.glacier-version'), repo.version);
+      }
       return version;
     }
     version = new WorkflowVersion({
@@ -1175,8 +1197,13 @@ export class Collection {
       type: this.determineWorkflowType(repo.path),
       version: repo.version,
       path: repo.path,
-      parent_id: wf.id
+      parent_id: wf.id,
+      sourceVersion: sourceVer || ver
     });
+    // Persist the actual version for @latest directories so it survives refresh
+    if (isLatest) {
+      fs.writeFileSync(path.join(repo.path, '.glacier-version'), repo.version);
+    }
     wf.versions.push(version);
     return version;
   }
@@ -1525,7 +1552,8 @@ export class Collection {
   async uninstallCatalogueWorkflow(
     catalogue_name: string,
     section_name: string,
-    workflow_name: string
+    workflow_name: string,
+    workflow_version?: string
   ) {
     // Keep the catalogue entry — only remove the installed files from disk
     const cat = this.catalogues.find((c) => c.name === catalogue_name);
@@ -1536,24 +1564,41 @@ export class Collection {
     if (!section) {
       throw new Error(`Section ${section_name} not found in catalogue ${catalogue_name}.`);
     }
-    const workflow_entry = section.workflows.find((w) => w.name === workflow_name);
+    const workflow_entry = section.workflows.find(
+      (w) => w.name === workflow_name && (workflow_version ? w.version === workflow_version : true)
+    );
     if (!workflow_entry) {
       throw new Error(
         `Workflow ${workflow_name} not found in section ${section_name} of catalogue ${catalogue_name}.`
       );
     }
-    // Delete workflow repo files from disk
+    // Delete workflow repo files from disk — only the matching version(s)
     const { owner: wf_owner, repo: wf_repo } = parseRepoUrl(workflow_entry.repo);
     const wf_id = `${wf_owner}/${wf_repo}`;
-    const wf_index = this.workflows.findIndex((w) => w.id === wf_id);
-    if (wf_index !== -1) {
-      const wf = this.workflows[wf_index];
-      for (const version of wf.versions) {
-        if (fs.existsSync(version.path)) {
-          fs.rmSync(version.path, { recursive: true, force: true });
-        }
+    const wf = this.workflows.find((w) => w.id === wf_id);
+    if (!wf) return;
+
+    let versionsToRemove: IWorkflowVersion[];
+    if (!workflow_entry.version || workflow_entry.version === 'latest') {
+      versionsToRemove = wf.versions.filter((v) => v.sourceVersion === 'latest');
+    } else {
+      versionsToRemove = wf.versions.filter(
+        (v) => v.version === workflow_entry.version && v.sourceVersion !== 'latest'
+      );
+    }
+
+    for (const version of versionsToRemove) {
+      if (fs.existsSync(version.path)) {
+        fs.rmSync(version.path, { recursive: true, force: true });
       }
-      this.workflows.splice(wf_index, 1);
+      const idx = wf.versions.indexOf(version);
+      if (idx !== -1) wf.versions.splice(idx, 1);
+    }
+
+    // Remove workflow entirely if no versions remain
+    if (wf.versions.length === 0) {
+      const wf_idx = this.workflows.indexOf(wf);
+      if (wf_idx !== -1) this.workflows.splice(wf_idx, 1);
     }
   }
 
@@ -1632,19 +1677,18 @@ export class Collection {
       throw new Error(`No tags or branches found for repository: ${workflow.repo}`);
     }
     let updated = false;
+    let availableVersion: string | null = null;
     if (workflow.version === 'latest') {
       const wf = this.workflows.find((w) => w.id === workflow.repo);
-      if (wf && wf.versions.length > 0) {
-        const installedPath = wf.versions[0].path;
-        if (installedPath) {
-          const timeoutMs = 15000;
-          const timeout = new Promise<{ status: 'ok'; updated: false }>((resolve) =>
-            setTimeout(() => resolve({ status: 'ok', updated: false }), timeoutMs)
-          );
-          const result = await Promise.race([syncRepo(installedPath), timeout]);
-          if (result.status === 'ok') {
-            updated = result.updated ?? false;
-          }
+      if (wf) {
+        const sortedTags = sortTagsBySemver(tags);
+        const newestTag = sortedTags.length > 0 ? sortedTags[sortedTags.length - 1] : null;
+        const installedVersion = wf.versions.find((v) => v.sourceVersion === 'latest');
+        if (newestTag && installedVersion && installedVersion.version !== newestTag) {
+          updated = true;
+          availableVersion = newestTag;
+        } else if (newestTag && !installedVersion) {
+          updated = false;
         }
       }
     } else if (!all_versions.includes(workflow.version || '')) {
@@ -1658,7 +1702,7 @@ export class Collection {
     fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
     // Refresh catalogues
     this.parseCatalogues();
-    return { updated };
+    return { updated, availableVersion };
   }
 
   async checkCatalogueWorkflowUpdates(catalogue_name: string) {
@@ -1672,7 +1716,7 @@ export class Collection {
     }
     this.parseCatalogues();
     // Check each workflow
-    const results: { name: string; updated: boolean; error?: string }[] = [];
+    const results: { name: string; updated: boolean; error?: string; availableVersion?: string }[] = [];
     const catRef = this.catalogues.find((c) => c.name === catalogue_name);
     if (!catRef) {
       throw new Error(`Catalogue ${catalogue_name} not found after refresh.`);
@@ -1681,26 +1725,33 @@ export class Collection {
       for (const workflow of section.workflows || []) {
         if (workflow.version === 'latest') {
           const wf = this.workflows.find((w) => w.id === workflow.repo);
-          if (wf && wf.versions.length > 0) {
-            const installedPath = wf.versions[0].path;
-            if (installedPath && fs.existsSync(installedPath)) {
+          if (wf) {
+            const installedVersion = wf.versions.find((v) => v.sourceVersion === 'latest');
+            if (installedVersion && installedVersion.path && fs.existsSync(installedVersion.path)) {
               try {
-                const timeoutMs = 20000;
-                const timeout = new Promise<{ status: 'ok'; updated: false }>((resolve) =>
-                  setTimeout(() => resolve({ status: 'ok', updated: false }), timeoutMs)
-                );
-                const syncResult: any = await Promise.race([syncRepo(installedPath), timeout]);
-                if (syncResult.status === 'ok') {
-                  results.push({
-                    name: workflow.name,
-                    updated: syncResult.updated ?? false
-                  });
+                const tags = await getRepoTags(workflow.repo);
+                const sortedTags = sortTagsBySemver(tags || []);
+                const newestTag = sortedTags.length > 0 ? sortedTags[sortedTags.length - 1] : null;
+                if (newestTag && installedVersion.version !== newestTag) {
+                  results.push({ name: workflow.name, updated: true, availableVersion: newestTag });
                 } else {
-                  results.push({
-                    name: workflow.name,
-                    updated: false,
-                    error: syncResult.message
-                  });
+                  const timeoutMs = 20000;
+                  const timeout = new Promise<{ status: 'ok'; updated: false }>((resolve) =>
+                    setTimeout(() => resolve({ status: 'ok', updated: false }), timeoutMs)
+                  );
+                  const syncResult: any = await Promise.race([syncRepo(installedVersion.path), timeout]);
+                  if (syncResult.status === 'ok') {
+                    results.push({
+                      name: workflow.name,
+                      updated: syncResult.updated ?? false
+                    });
+                  } else {
+                    results.push({
+                      name: workflow.name,
+                      updated: false,
+                      error: syncResult.message
+                    });
+                  }
                 }
               } catch (err: unknown) {
                 results.push({
@@ -1709,7 +1760,11 @@ export class Collection {
                   error: String(err)
                 });
               }
+            } else {
+              results.push({ name: workflow.name, updated: false });
             }
+          } else {
+            results.push({ name: workflow.name, updated: false });
           }
         } else {
           results.push({ name: workflow.name, updated: false });
@@ -1721,7 +1776,11 @@ export class Collection {
       updated: results.filter((r) => r.updated).length,
       upToDate: results.filter((r) => !r.updated && !r.error).length,
       errors: results.filter((r) => r.error).length,
-      errorDetails: results.filter((r) => r.error).map((r) => `${r.name}: ${r.error}`)
+      errorDetails: results.filter((r) => r.error).map((r) => `${r.name}: ${r.error}`),
+      updates: results.filter((r) => r.updated).map((r) => ({
+        name: r.name,
+        availableVersion: (r as any).availableVersion || ''
+      }))
     };
   }
 
@@ -1857,6 +1916,11 @@ export class Collection {
     this.parseCatalogues();
   }
 
+  async getRepoTags(url: string): Promise<string[]> {
+    const tags = await getRepoTags(url);
+    return tags || [];
+  }
+
   async getCatalogues() {
     // Max timeout of 10 seconds to wait for catalogues to be parsed
     const start = Date.now();
@@ -1876,12 +1940,11 @@ export class Collection {
       return '';
     }
     if (version === 'latest') {
-      // Any version installed
-      if (wf.versions.length > 0) {
-        return wf.versions[0].version || '';
-      } else {
-        return '';
+      const ver = wf.versions.find((v) => v.sourceVersion === 'latest');
+      if (ver) {
+        return ver.version || '';
       }
+      return '';
     }
     const ver = wf.versions.find((v) => v.version === version);
     if (ver) {
