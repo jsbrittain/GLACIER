@@ -20,6 +20,8 @@ import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import LibraryIcon from '@mui/icons-material/Apps';
 import InstancesIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemButton from '@mui/material/ListItemButton';
 import { useTranslation } from 'react-i18next';
@@ -56,6 +58,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [open, setOpen] = useState(false);
   const [item, setItem] = useState('');
   const [navigateToSettingsPage, setNavigateToSettingsPage] = useState('');
+  const [catalogueParseResults, setCatalogueParseResults] = useState([]);
+  const [showCatalogueParseErrors, setShowCatalogueParseErrors] = useState(false);
 
   const refreshInstancesList = async () => {
     API.listWorkflowInstances().then((result) => {
@@ -91,7 +95,15 @@ export default function MainPage({ darkMode, setDarkMode }) {
       });
       const r = await API.init();
       if (!r.ok) {
-        alert(t('error.parsing-catalogue') + ': ' + r.error.message);
+        console.error('Init failed:', r.error.message);
+      }
+      const parseResults = await API.getCatalogueParseResults();
+      if (parseResults.ok) {
+        const failures = parseResults.data.filter((res) => !res.success);
+        if (failures.length > 0) {
+          setCatalogueParseResults(parseResults.data);
+          setShowCatalogueParseErrors(true);
+        }
       }
       const pathResult = await API.getCollectionsPath();
       if (pathResult.ok) setCollectionsPath(pathResult.data);
@@ -157,9 +169,14 @@ export default function MainPage({ darkMode, setDarkMode }) {
     setCollectionsPath(pendingConfigPath);
     setDocumentsPath(pendingDocumentsPath);
     setShowPathDialog(false);
-    const r = await API.init();
-    if (!r.ok) {
-      alert(t('error.parsing-catalogue') + ': ' + r.error.message);
+    await API.init();
+    const parseResults = await API.getCatalogueParseResults();
+    if (parseResults.ok) {
+      const failures = parseResults.data.filter((res) => !res.success);
+      if (failures.length > 0) {
+        setCatalogueParseResults(parseResults.data);
+        setShowCatalogueParseErrors(true);
+      }
     }
     const pathResult = await API.getCollectionsPath();
     if (pathResult.ok) setCollectionsPath(pathResult.data);
@@ -377,6 +394,46 @@ export default function MainPage({ darkMode, setDarkMode }) {
           <Button onClick={handleDefaults}>{t('setup.defaults', 'Defaults')}</Button>
           <Button variant="contained" onClick={handleConfirmPaths} id="setup-continue-button">
             {t('setup.continue', 'Continue')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={showCatalogueParseErrors}
+        onClose={() => setShowCatalogueParseErrors(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>{t('error.parsing-catalogue')}</DialogTitle>
+        <DialogContent>
+          <List dense>
+            {catalogueParseResults.map((result, index) => (
+              <ListItem key={index}>
+                <ListItemIcon>
+                  {result.success ? (
+                    <CheckCircleIcon color="success" />
+                  ) : (
+                    <CancelIcon color="error" />
+                  )}
+                </ListItemIcon>
+                <ListItemText
+                  primary={result.source}
+                  secondary={
+                    result.success
+                      ? t('error.catalogue-parse-success', { source: result.source })
+                      : t('error.catalogue-parse-failure', {
+                          source: result.source,
+                          error: result.error
+                        })
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowCatalogueParseErrors(false)} variant="contained">
+            {t('common.close')}
           </Button>
         </DialogActions>
       </Dialog>

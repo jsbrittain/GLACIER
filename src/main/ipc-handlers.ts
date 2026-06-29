@@ -24,6 +24,7 @@ export function registerIpcHandlers(resourceRoot?: string) {
       : collection.init.bind(collection),
     'run-workflow': collection.runWorkflow.bind(collection),
     'get-catalogues': collection.getCatalogues.bind(collection),
+    'get-catalogue-parse-results': collection.getCatalogueParseResults.bind(collection),
     'refresh-catalogues': collection.refreshCatalogues.bind(collection),
     'add-catalogue': collection.addCatalogue.bind(collection),
     'remove-catalogue': collection.removeCatalogue.bind(collection),

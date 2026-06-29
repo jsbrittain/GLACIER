@@ -48,6 +48,11 @@ export interface CatalogueSection {
   hidden?: boolean;
 }
 
+export interface CatalogueParseError {
+  source: string;
+  error: string;
+}
+
 export interface CatalogueWorkflow {
   name: string;
   repo: string;
@@ -304,6 +309,7 @@ export class Collection {
   starting_up: boolean = true;
 
   catalogues: Catalogue[] = [];
+  catalogueParseErrors: CatalogueParseError[] = [];
   workflows: Workflow[] = [];
   workflow_instances: WorkflowInstance[] = [];
 
@@ -1421,10 +1427,9 @@ export class Collection {
   }
 
   async parseCatalogues() {
-    // Clear existing catalogues
     this.catalogues = [];
+    this.catalogueParseErrors = [];
 
-    // Read catalogues from catalogues path
     if (!fs.existsSync(this.catalogues_path)) {
       console.log(`Catalogues path ${this.catalogues_path} does not exist.`);
       return;
@@ -1437,18 +1442,30 @@ export class Collection {
       for (const repo of repoDirs) {
         const repoPath = path.join(ownerPath, repo);
         if (!fs.statSync(repoPath).isDirectory()) continue;
-        // Read catalogue.json
+
         const cat_file = path.join(repoPath, 'catalogue.json');
-        const cat_contents = fs.readFileSync(cat_file, 'utf-8');
-        let js = JSON.parse('{}');
+        let cat_contents: string;
+        try {
+          cat_contents = fs.readFileSync(cat_file, 'utf-8');
+        } catch (err) {
+          this.catalogueParseErrors.push({
+            source: `${owner}/${repo}`,
+            error: `Failed to read catalogue.json: ${err}`
+          });
+          continue;
+        }
+        let js: any;
         try {
           js = JSON.parse(cat_contents);
         } catch (err) {
-          throw new Error(`Failed to parse catalogue.json for ${owner}/${repo}: ${err}`);
+          this.catalogueParseErrors.push({
+            source: `${owner}/${repo}`,
+            error: `Failed to parse catalogue.json: ${err}`
+          });
+          continue;
         }
         js['source'] = `${owner}/${repo}`;
         js['base_dir'] = repoPath;
-        // Resolve scheme_url if provided
         if (js['scheme_url']) {
           try {
             const response = await fetch(js['scheme_url']);
@@ -1460,7 +1477,6 @@ export class Collection {
             console.error(`Failed to fetch scheme from ${js['scheme_url']}: ${err}`);
           }
         }
-        // Add to catalogues
         this.catalogues.push(js);
       }
     }
@@ -1921,6 +1937,17 @@ export class Collection {
   async getRepoTags(url: string): Promise<string[]> {
     const tags = await getRepoTags(url);
     return tags || [];
+  }
+
+  async getCatalogueParseResults() {
+    const results: { source: string; success: boolean; error?: string }[] = [];
+    for (const cat of this.catalogues) {
+      results.push({ source: cat.source, success: true });
+    }
+    for (const err of this.catalogueParseErrors) {
+      results.push({ source: err.source, success: false, error: err.error });
+    }
+    return results;
   }
 
   async getCatalogues() {
