@@ -82,8 +82,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getWorkflowParams: (repoPath: string) => ipcRenderer.invoke('get-workflow-params', repoPath),
   pickFile: (filters?: Electron.FileFilter[]) => ipcRenderer.invoke('pick-file', { filters }),
   pickDirectory: () => ipcRenderer.invoke('pick-directory'),
-  pickFileOrDirectory: (options: Electron.OpenDialogOptions) =>
-    ipcRenderer.invoke('pick-file-or-directory', options),
   getWorkflowSchema: (repoPath: string) => ipcRenderer.invoke('get-workflow-schema', repoPath),
   getInstallableReposList: () => ipcRenderer.invoke('get-installable-repos-list'),
   addInstallableRepo: (repoUrl: string) => ipcRenderer.invoke('add-installable-repo', repoUrl),
