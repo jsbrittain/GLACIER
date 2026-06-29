@@ -14,6 +14,11 @@ export async function getShell(): Promise<any> {
       openExternal: (url: string) =>
         new Promise<void>((resolve, reject) => {
           execFile(osCmd, [url], (err) => (err ? reject(err) : resolve()));
+        }),
+      openInEditor: (filePath: string) =>
+        new Promise<void>((resolve, reject) => {
+          const args = process.platform === 'darwin' ? ['-t', filePath] : [filePath];
+          execFile(osCmd, args, (err) => (err ? reject(err) : resolve()));
         })
     };
   }

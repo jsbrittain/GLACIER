@@ -184,6 +184,14 @@ app.post('/api/open-work-folder', async (req, res) =>
   post_response(res, call(collection.openWorkFolder.bind(collection), req.body.instance, req.body.workID))
 );
 
+app.post('/api/open-log-file', async (req, res) =>
+  post_response(res, call(collection.openLogFile.bind(collection), req.body.instance, req.body.logType))
+);
+
+app.post('/api/open-work-log-file', async (req, res) =>
+  post_response(res, call(collection.openWorkLogFile.bind(collection), req.body.instance, req.body.workID, req.body.logType))
+);
+
 app.post('/api/get-work-log', async (req, res) =>
   post_response(res, call(collection.getWorkLog.bind(collection), req.body.instance, req.body.workID, req.body.logType))
 );

@@ -19,6 +19,8 @@ const electronAPI = isElectron
       killWorkflowInstance: (instance) => window.electronAPI.killWorkflowInstance(instance),
       deleteWorkflowInstance: (instance) => window.electronAPI.deleteWorkflowInstance(instance),
       openResultsFolder: (instance) => window.electronAPI.openResultsFolder(instance),
+      openLogFile: (instance, logType) => window.electronAPI.openLogFile(instance, logType),
+      openWorkLogFile: (instance, workID, logType) => window.electronAPI.openWorkLogFile(instance, workID, logType),
       updateWorkflowInstanceStatus: (instance) =>
         window.electronAPI.updateWorkflowInstanceStatus(instance),
       getInstanceReportsList: (instance) => window.electronAPI.getInstanceReportsList(instance),
@@ -142,6 +144,10 @@ const httpAPI = {
     httpDispatch('/api/delete-workflow-instance', 'POST', { instance }),
   openResultsFolder: async (instance) =>
     httpDispatch('/api/open-results-folder', 'POST', { instance }),
+  openLogFile: async (instance, logType) =>
+    httpDispatch('/api/open-log-file', 'POST', { instance, logType }),
+  openWorkLogFile: async (instance, workID, logType) =>
+    httpDispatch('/api/open-work-log-file', 'POST', { instance, workID, logType }),
   updateWorkflowInstanceStatus: async (instance) =>
     httpDispatch('/api/update-workflow-instance-status', 'POST', { instance }),
   getInstanceReportsList: async (instance) =>

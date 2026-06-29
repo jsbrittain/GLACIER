@@ -31,7 +31,9 @@ export default function AnsiLog({ text }) {
         color: '#cccccc',
         fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
         whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
         overflow: 'auto',
+        maxWidth: '100%',
         padding: '12px',
         borderRadius: 8,
         height: '400px'

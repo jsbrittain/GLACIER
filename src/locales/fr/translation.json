@@ -199,7 +199,9 @@
       "run": "Exécuter",
       "shell": "Shell",
       "trace": "Trace",
-      "begin": "Début des journaux"
+      "begin": "Début des journaux",
+      "open-folder": "Ouvrir le dossier",
+      "open-in-editor": "Ouvrir dans l'éditeur"
     },
     "reports": "Rapports",
     "select-report": "Sélectionner le rapport",
@@ -228,6 +230,7 @@
       "view-log": "Voir le journal",
       "hide-log": "Masquer le journal",
       "open-folder": "Ouvrir le dossier",
+      "open-in-editor": "Ouvrir dans l'éditeur",
       "loading": "Chargement du progrès...",
       "waiting-for-report": "Chargement du rapport...",
       "no-logs": "Ce fichier journal est vide."

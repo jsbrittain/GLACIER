@@ -132,7 +132,14 @@ function CustomLabel({
     API.openWorkFolder(instance, work_folder).then((result) => {
       if (!result.ok) console.error(result.error.message);
     });
-    handleMenuClose(event);
+    if (event) handleMenuClose(event);
+  };
+
+  const handleOpenInEditor = (event) => {
+    API.openWorkLogFile(instance, work_folder, logType).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
+    if (event) handleMenuClose(event);
   };
 
   const handleViewLog = (event) => {
@@ -207,6 +214,7 @@ function CustomLabel({
             <MenuItem onClick={handleViewLog}>{t('monitor.progress.view-log')}</MenuItem>
           )}
           <MenuItem onClick={handleOpenFolder}>{t('monitor.progress.open-folder')}</MenuItem>
+          <MenuItem onClick={handleOpenInEditor}>{t('monitor.progress.open-in-editor')}</MenuItem>
         </Menu>
       </Box>
 
@@ -232,9 +240,17 @@ function CustomLabel({
                 );
               })}
             </Select>
-            <Button variant="outlined" size="small" onClick={handleHideLog} sx={{ ml: 2 }}>
-              {t('monitor.progress.hide-log')}
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button variant="outlined" size="small" onClick={() => handleOpenFolder()}>
+                {t('monitor.progress.open-folder')}
+              </Button>
+              <Button variant="outlined" size="small" onClick={() => handleOpenInEditor()}>
+                {t('monitor.progress.open-in-editor')}
+              </Button>
+              <Button variant="outlined" size="small" onClick={handleHideLog}>
+                {t('monitor.progress.hide-log')}
+              </Button>
+            </Box>
           </Box>
           <AnsiLog text={logText} />
         </Box>
@@ -404,11 +420,11 @@ export default function ProgressTracker({ instance }) {
 
   return (
     <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
-      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <Box>
-          <FormatWorkflowStatus workflowStatus={workflowStatus} isWorkflowRunning={isWorkflowRunning} />
-        </Box>
-        <Box sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
+          <Box>
+            <FormatWorkflowStatus workflowStatus={workflowStatus} isWorkflowRunning={isWorkflowRunning} />
+          </Box>
+          <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto' }}>
           {items?.length > 0 ? (
             <LogIDContext.Provider value={{ logID, setLogID }}>
               <GetInstanceContext.Provider value={{ instance, isWorkflowRunning }}>

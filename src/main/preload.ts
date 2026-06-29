@@ -26,6 +26,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('get-instance-reports-list', instance),
   openWorkFolder: (instance: any, work_id: string) =>
     ipcRenderer.invoke('open-work-folder', instance, work_id),
+  openLogFile: (instance: any, log_type: string) =>
+    ipcRenderer.invoke('open-log-file', instance, log_type),
+  openWorkLogFile: (instance: any, workID: string, logType: string) =>
+    ipcRenderer.invoke('open-work-log-file', instance, workID, logType),
   getWorkLog: (instance: any, workID: string, logType: string) =>
     ipcRenderer.invoke('get-work-log', instance, workID, logType),
   getAvailableProfiles: (instance: any) => ipcRenderer.invoke('get-available-profiles', instance),
