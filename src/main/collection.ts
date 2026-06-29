@@ -503,6 +503,7 @@ export class Collection {
     this.parseWorkflows();
     this.parseInstallableRepos();
     await this.parseCatalogues();
+    await this.revertOrphanedWorkflows();
     await this.parseInstances();
   }
 
@@ -1769,7 +1770,8 @@ export class Collection {
 
   async refreshCatalogues() {
     this.parseWorkflows();
-    return await this.parseCatalogues();
+    await this.parseCatalogues();
+    await this.revertOrphanedWorkflows();
   }
 
   async addCatalogue(url: string, version: string) {
@@ -2244,6 +2246,47 @@ export class Collection {
       results.push({ source: err.source, success: false, error: err.error });
     }
     return results;
+  }
+
+  async revertOrphanedWorkflows() {
+    const referencedRepos = new Set<string>();
+    for (const cat of this.catalogues) {
+      for (const section of cat.sections) {
+        for (const wf of section.workflows) {
+          referencedRepos.add(wf.repo);
+        }
+      }
+    }
+
+    const orphans = this.workflows.filter((wf) => !referencedRepos.has(wf.id));
+    if (orphans.length === 0) return;
+
+    let userCat = this.catalogues.find((c) => c.source === 'local');
+    if (!userCat) {
+      userCat = { name: 'User collection', source: 'local', sections: [] };
+      this.catalogues.push(userCat);
+    }
+
+    let section = userCat.sections.find((s) => s.name === 'My Workflows');
+    if (!section) {
+      section = { name: 'My Workflows', workflows: [] };
+      userCat.sections.push(section);
+    }
+
+    const existingRepos = new Set(section.workflows.map((w) => w.repo));
+    for (const wf of orphans) {
+      if (existingRepos.has(wf.id)) continue;
+      section.workflows.push({ name: wf.name, repo: wf.id, version: 'latest' });
+    }
+
+    const user_cat_path = path.join(
+      this.catalogues_path,
+      'user_collection',
+      'store',
+      'catalogue.json'
+    );
+    this.ensurePathExists(path.dirname(user_cat_path));
+    safeFs.writeFileSync(user_cat_path, JSON.stringify(userCat, null, 2));
   }
 
   async getCatalogues() {
