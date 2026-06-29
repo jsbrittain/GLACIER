@@ -11,6 +11,24 @@ export function buildUISchema(
 ): UISchemaElement {
   const showHidden = !!opts?.showHidden;
 
+  // Normalize help_text into description so all renderers (standard + custom)
+  // see the same text via ControlProps.description
+  function normalizeDescriptions(props: Record<string, any>) {
+    for (const k of Object.keys(props)) {
+      const p = props[k];
+      if (p && typeof p === 'object') {
+        p.description = p.description ?? p.help_text;
+      }
+    }
+  }
+  const defs = schema?.$defs || schema?.definitions || {};
+  for (const key of Object.keys(defs)) {
+    const def = defs[key];
+    if (def?.properties) normalizeDescriptions(def.properties);
+  }
+  normalizeDescriptions(schema?.properties ?? {});
+  normalizeDescriptions(schema?.['Launch settings'] ?? {});
+
   const categories = Object.entries(schema?.$defs || schema?.definitions || {})
     .map(([key, def]: [string, Record<string, any>]) => {
       let defKey = key.replace('#/definitions/', '');
