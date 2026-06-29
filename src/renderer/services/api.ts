@@ -43,6 +43,9 @@ const electronAPI = isElectron
         window.electronAPI.hideCatalogueSection(catalogue_name, section_name),
       removeCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
         window.electronAPI.removeCatalogueWorkflow(catalogue_name, section_name, workflow_name),
+      moveCatalogueWorkflowsToUser: (catalogue_name, workflows) =>
+        window.electronAPI.moveCatalogueWorkflowsToUser(catalogue_name, workflows),
+      getInstalledWorkflowIds: () => window.electronAPI.getInstalledWorkflowIds(),
       uninstallCatalogueWorkflow: (catalogue_name, section_name, workflow_name, workflow_version) =>
         window.electronAPI.uninstallCatalogueWorkflow(catalogue_name, section_name, workflow_name, workflow_version),
       updateCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
@@ -179,6 +182,8 @@ const httpAPI = {
       section_name,
       workflow_name
     }),
+  moveCatalogueWorkflowsToUser: async (catalogue_name, workflows) =>
+    httpDispatch('/api/move-catalogue-workflows-to-user', 'POST', { catalogue_name, workflows }),
   uninstallCatalogueWorkflow: async (catalogue_name, section_name, workflow_name, workflow_version) =>
     httpDispatch('/api/uninstall-catalogue-workflow', 'POST', {
       catalogue_name,
@@ -239,6 +244,7 @@ const httpAPI = {
   performEnvironmentAction: async (key, action) =>
     httpDispatch('/api/perform-environment-action', 'POST', { key, action }),
   getSystemResources: async () => httpDispatch('/api/get-system-resources', 'POST', {}),
+  getInstalledWorkflowIds: async () => httpDispatch('/api/get-installed-workflow-ids', 'POST', {}),
   pickFile: async (filters) => {
     const { showFileBrowser } = await import('./showFileBrowser.js');
     return showFileBrowser({ mode: 'file', filters });

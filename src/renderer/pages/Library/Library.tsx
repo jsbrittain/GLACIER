@@ -8,8 +8,12 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
+  List,
+  ListItem,
+  ListItemText,
   Paper,
   Stack,
+  Switch,
   Typography,
   Box,
   Grid,
@@ -710,6 +714,7 @@ export default function LibraryPage({
   const [progressValue, setProgressValue] = useState(0);
   const [uninstallTarget, setUninstallTarget] = useState(null);
   const [uninstallDialogOpen, setUninstallDialogOpen] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState(null);
   const [pendingInstallWorkflows, setPendingInstallWorkflows] = useState(null);
 
   const getCatalogues = async () => {
@@ -725,9 +730,42 @@ export default function LibraryPage({
   }, []);
 
   const deleteCatalogue = async (catalogue) => {
-    if (!window.confirm(t('library.confirm-remove-catalogue', { name: catalogue.name }))) {
-      return;
+    const installedResult = await API.getInstalledWorkflowIds();
+    const installedRepos = new Set(installedResult.ok ? installedResult.data : []);
+
+    const workflows = [];
+    const seenKeys = new Set<string>();
+    for (const section of catalogue.sections || []) {
+      for (const wf of section.workflows || []) {
+        if (!installedRepos.has(wf.repo)) continue;
+        const key = `${wf.repo}@${wf.version || 'latest'}`;
+        if (seenKeys.has(key)) continue;
+        seenKeys.add(key);
+        workflows.push({ section: section.name, name: wf.name, repo: wf.repo, version: wf.version, delete: true });
+      }
     }
+
+    const otherKeys = new Set<string>();
+    for (const otherCat of catalogues || []) {
+      if (otherCat.name === catalogue.name) continue;
+      for (const sec of otherCat.sections || []) {
+        for (const wf of sec.workflows || []) {
+          otherKeys.add(`${wf.repo}@${wf.version || 'latest'}`);
+        }
+      }
+    }
+
+    const uniqueWorkflows = workflows.filter((wf) => !otherKeys.has(`${wf.repo}@${wf.version || 'latest'}`));
+
+    if (uniqueWorkflows.length === 0 || catalogue.source === 'local') {
+      if (!window.confirm(t('library.confirm-remove-catalogue', { name: catalogue.name }))) return;
+      return doDeleteCatalogue(catalogue);
+    }
+
+    setDeleteDialog({ type: 'catalogue', catalogue, workflows: uniqueWorkflows });
+  };
+
+  const doDeleteCatalogue = async (catalogue) => {
     API.removeCatalogue(catalogue.name).then((result) => {
       if (result.ok) {
         logMessage(t('library.catalogue-removed-success', { name: catalogue.name }), 'success');
@@ -753,9 +791,51 @@ export default function LibraryPage({
   };
 
   const deleteSection = async (catalogue, section) => {
-    if (!window.confirm(t('library.confirm-remove-section', { name: section.name }))) {
-      return;
+    const installedResult = await API.getInstalledWorkflowIds();
+    const installedRepos = new Set(installedResult.ok ? installedResult.data : []);
+
+    const seenKeys = new Set<string>();
+    const workflows = (section.workflows || [])
+      .filter((wf) => {
+        if (!installedRepos.has(wf.repo)) return false;
+        const key = `${wf.repo}@${wf.version || 'latest'}`;
+        if (seenKeys.has(key)) return false;
+        seenKeys.add(key);
+        return true;
+      })
+      .map((wf) => ({
+      section: section.name, name: wf.name, repo: wf.repo, version: wf.version, delete: true
+    }));
+
+    const otherKeys = new Set<string>();
+    for (const otherCat of catalogues || []) {
+      if (otherCat.name === catalogue.name) {
+        for (const sec of otherCat.sections || []) {
+          if (sec.name === section.name) continue;
+          for (const wf of sec.workflows || []) {
+            otherKeys.add(`${wf.repo}@${wf.version || 'latest'}`);
+          }
+        }
+      } else {
+        for (const sec of otherCat.sections || []) {
+          for (const wf of sec.workflows || []) {
+            otherKeys.add(`${wf.repo}@${wf.version || 'latest'}`);
+          }
+        }
+      }
     }
+
+    const uniqueWorkflows = workflows.filter((wf) => !otherKeys.has(`${wf.repo}@${wf.version || 'latest'}`));
+
+    if (uniqueWorkflows.length === 0 || catalogue.source === 'local') {
+      if (!window.confirm(t('library.confirm-remove-section', { name: section.name }))) return;
+      return doDeleteSection(catalogue, section);
+    }
+
+    setDeleteDialog({ type: 'section', catalogue, section, workflows: uniqueWorkflows });
+  };
+
+  const doDeleteSection = async (catalogue, section) => {
     API.removeCatalogueSection(catalogue.name, section.name).then((result) => {
       if (result.ok) {
         logMessage(t('library.section-removed-success', { name: section.name }), 'success');
@@ -783,6 +863,51 @@ export default function LibraryPage({
   const uninstallWorkflow = (catalogue, section, workflow) => {
     setUninstallTarget({ catalogue, section, workflow });
     setUninstallDialogOpen(true);
+  };
+
+  const toggleWorkflow = (index) => {
+    if (!deleteDialog) return;
+    const workflows = [...deleteDialog.workflows];
+    workflows[index] = { ...workflows[index], delete: !workflows[index].delete };
+    setDeleteDialog({ ...deleteDialog, workflows });
+  };
+
+  const setAllWorkflows = (deleteValue) => {
+    if (!deleteDialog) return;
+    const workflows = deleteDialog.workflows.map((wf) => ({ ...wf, delete: deleteValue }));
+    setDeleteDialog({ ...deleteDialog, workflows });
+  };
+
+  const confirmDeleteDialog = async () => {
+    if (!deleteDialog) return;
+    const { type, catalogue, section, workflows } = deleteDialog;
+
+    const toDelete = workflows.filter((wf) => wf.delete);
+    for (const wf of toDelete) {
+      const version = wf.version || 'latest';
+      await API.uninstallCatalogueWorkflow(catalogue.name, wf.section, wf.name, version);
+    }
+
+    const toMigrate = workflows.filter((wf) => !wf.delete).map((wf) => ({
+      section: wf.section, name: wf.name
+    }));
+
+    if (toMigrate.length > 0) {
+      const result = await API.moveCatalogueWorkflowsToUser(catalogue.name, toMigrate);
+      if (result.ok) {
+        logMessage(t('library.workflows-moved-success', { count: result.data }), 'success');
+      } else {
+        logMessage(t('library.workflows-moved-failure'), 'error');
+      }
+    }
+
+    if (type === 'catalogue') {
+      await doDeleteCatalogue(catalogue);
+    } else {
+      await doDeleteSection(catalogue, section);
+    }
+
+    setDeleteDialog(null);
   };
 
   const confirmUninstall = async () => {
@@ -968,6 +1093,58 @@ export default function LibraryPage({
             {t('library.uninstall-repository')}
           </Button>
         </DialogActions>
+      </Dialog>
+      <Dialog open={deleteDialog !== null} onClose={() => setDeleteDialog(null)} maxWidth="sm" fullWidth>
+        {deleteDialog && (
+          <>
+            <DialogTitle>
+              {deleteDialog.type === 'catalogue'
+                ? t('library.delete-catalogue-title', { name: deleteDialog.catalogue.name })
+                : t('library.delete-section-title', { name: deleteDialog.section.name })}
+            </DialogTitle>
+            <DialogContent>
+              <Typography gutterBottom>{t('library.delete-workflow-prompt')}</Typography>
+              <List dense>
+                {deleteDialog.workflows.map((wf, i) => (
+                  <ListItem key={`${wf.repo}@${wf.version || 'latest'}`} disablePadding>
+                    <Switch
+                      checked={wf.delete}
+                      onChange={() => toggleWorkflow(i)}
+                      color="error"
+                    />
+                    <ListItemText
+                      primary={wf.name}
+                      secondary={`${wf.repo} @ ${wf.version}`}
+                      sx={{ ml: 1 }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+              <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                <Button size="small" onClick={() => setAllWorkflows(false)}>
+                  {t('library.all-migrate')}
+                </Button>
+                <Button size="small" onClick={() => setAllWorkflows(true)} color="error">
+                  {t('library.all-delete')}
+                </Button>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                {t('library.workflows-summary', {
+                  migrateCount: deleteDialog.workflows.filter((w) => !w.delete).length,
+                  deleteCount: deleteDialog.workflows.filter((w) => w.delete).length
+                })}
+              </Typography>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setDeleteDialog(null)}>{t('common.cancel')}</Button>
+              <Button onClick={confirmDeleteDialog} variant="contained" color="error">
+                {deleteDialog.type === 'catalogue'
+                  ? t('library.delete-catalogue')
+                  : t('library.delete-section')}
+              </Button>
+            </DialogActions>
+          </>
+        )}
       </Dialog>
     </Container>
   );

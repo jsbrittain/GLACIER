@@ -230,6 +230,17 @@ app.post('/api/remove-catalogue-section', async (req, res) =>
   )
 );
 
+app.post('/api/move-catalogue-workflows-to-user', async (req, res) =>
+  post_response(
+    res,
+    call(
+      collection.moveCatalogueWorkflowsToUser.bind(collection),
+      req.body.catalogue_name,
+      req.body.workflows
+    )
+  )
+);
+
 app.post('/api/hide-catalogue-workflow', async (req, res) =>
   post_response(
     res,
@@ -434,6 +445,10 @@ app.post('/api/perform-environment-action', async (req, res) =>
 
 app.post('/api/get-system-resources', async (req, res) =>
   post_response(res, call(collection.getSystemResources.bind(collection)))
+);
+
+app.post('/api/get-installed-workflow-ids', async (req, res) =>
+  post_response(res, call(collection.getInstalledWorkflowIds.bind(collection)))
 );
 
 app.post('/api/fs-mkdir', async (req, res) => {

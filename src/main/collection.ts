@@ -1892,6 +1892,64 @@ export class Collection {
     this.parseCatalogues();
   }
 
+  async moveCatalogueWorkflowsToUser(
+    catalogue_name: string,
+    workflows: Array<{ section: string; name: string }>
+  ): Promise<number> {
+    const cat = this.catalogues.find((c) => c.name === catalogue_name);
+    if (!cat) throw new Error(`Catalogue ${catalogue_name} not found.`);
+
+    const user_cat_path = path.join(
+      this.catalogues_path,
+      'user_collection',
+      'store',
+      'catalogue.json'
+    );
+    let user_catalogue: Catalogue;
+    if (safeFs.existsSync(user_cat_path)) {
+      const readResult = safeFs.readFileSync(user_cat_path);
+      if (readResult.ok) {
+        try {
+          user_catalogue = JSON.parse(readResult.data);
+        } catch {
+          user_catalogue = { name: 'User collection', source: 'local', sections: [] };
+        }
+      } else {
+        user_catalogue = { name: 'User collection', source: 'local', sections: [] };
+      }
+    } else {
+      user_catalogue = { name: 'User collection', source: 'local', sections: [] };
+    }
+
+    let moved = 0;
+    for (const ref of workflows) {
+      const srcSection = cat.sections.find((s) => s.name === ref.section);
+      if (!srcSection) continue;
+      const wf = srcSection.workflows.find((w) => w.name === ref.name);
+      if (!wf) continue;
+
+      let targetSection = user_catalogue.sections.find((s) => s.name === ref.section);
+      if (!targetSection) {
+        targetSection = { name: ref.section, workflows: [] };
+        user_catalogue.sections.push(targetSection);
+      }
+
+      const alreadyExists = targetSection.workflows.some((w) => w.repo === wf.repo);
+      if (!alreadyExists) {
+        targetSection.workflows.push({ name: wf.name, repo: wf.repo, version: wf.version });
+        moved++;
+      }
+    }
+
+    if (moved > 0) {
+      this.ensurePathExists(path.dirname(user_cat_path));
+      safeFs.writeFileSync(user_cat_path, JSON.stringify(user_catalogue, null, 2));
+      this.parseCatalogues();
+    }
+
+    return moved;
+  }
+
   async uninstallCatalogueWorkflow(
     catalogue_name: string,
     section_name: string,
@@ -2397,6 +2455,10 @@ export class Collection {
       totalMem: totalMem,
       freeMem: freeMem
     };
+  }
+
+  async getInstalledWorkflowIds(): Promise<string[]> {
+    return this.workflows.map((wf) => wf.id);
   }
 
   async importManifest(manifestPath: string) {
