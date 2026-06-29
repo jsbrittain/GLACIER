@@ -3,6 +3,7 @@
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
+import * as safeFs from './safe-fs.js';
 import { IRepo, IRepoVersions } from './types.js';
 import { getShell } from './shell.js';
 import { generateUniqueName } from './repo.js';
@@ -340,16 +341,19 @@ export class Collection {
     this.root_path = getConfigPath();
     this.documents_root_path = getDocumentsPath();
 
+    // Clean up stale temp files from previous crashes
+    this.cleanupTempFiles();
+
     // Check path existence BEFORE parseCollection (which auto-creates dirs)
     const missing: Record<string, boolean> = {
-      config: !this.root_path || !fs.existsSync(this.root_path),
-      documents: !this.documents_root_path || !fs.existsSync(this.documents_root_path)
+      config: !this.root_path || !safeFs.existsSync(this.root_path),
+      documents: !this.documents_root_path || !safeFs.existsSync(this.documents_root_path)
     };
 
-    if (process.versions?.electron !== undefined && !fs.existsSync(this.catalogues_path)) {
+    if (process.versions?.electron !== undefined && !safeFs.existsSync(this.catalogues_path)) {
       if (resourceRoot) {
         const manifestPath = path.join(resourceRoot, 'manifest.json');
-        if (fs.existsSync(manifestPath)) {
+        if (safeFs.existsSync(manifestPath)) {
           await this.importManifest(manifestPath);
         }
       }
@@ -357,6 +361,13 @@ export class Collection {
     await this.parseCollection();
     this.starting_up = false;
     return missing;
+  }
+
+  /** Remove stale .tmp files left behind by interrupted transactional writes */
+  private cleanupTempFiles() {
+    const dbPath = path.join(this.root_path, instance_database_file);
+    const tmpPath = dbPath + '.tmp';
+    safeFs.rmSync(tmpPath, { force: true });
   }
 
   getDefaultPaths(): Record<string, string> {
@@ -368,9 +379,124 @@ export class Collection {
 
   getMissingPaths(): Record<string, boolean> {
     return {
-      config: !this.root_path || !fs.existsSync(this.root_path),
-      documents: !this.documents_root_path || !fs.existsSync(this.documents_root_path)
+      config: !this.root_path || !safeFs.existsSync(this.root_path),
+      documents: !this.documents_root_path || !safeFs.existsSync(this.documents_root_path)
     };
+  }
+
+  /**
+   * Check the integrity of core paths and state, returning a list of issues.
+   * Does not mutate state — call repairState() to fix issues.
+   */
+  async integrityCheck(): Promise<{
+    ok: boolean;
+    issues: Array<{ severity: 'error' | 'warning'; message: string }>;
+  }> {
+    const issues: Array<{ severity: 'error' | 'warning'; message: string }> = [];
+
+    // Core paths
+    if (!this.root_path || !safeFs.existsSync(this.root_path)) {
+      issues.push({ severity: 'error', message: `Config path does not exist: ${this.root_path}` });
+    }
+    if (!this.documents_root_path || !safeFs.existsSync(this.documents_root_path)) {
+      issues.push({ severity: 'error', message: `Documents path does not exist: ${this.documents_root_path}` });
+    }
+    if (!safeFs.existsSync(this.workflow_path)) {
+      issues.push({ severity: 'warning', message: `Workflows path does not exist: ${this.workflow_path}` });
+    }
+    if (!safeFs.existsSync(this.instances_path)) {
+      issues.push({ severity: 'warning', message: `Instances path does not exist: ${this.instances_path}` });
+    }
+
+    // Instance database integrity
+    const dbPath = path.join(this.root_path, instance_database_file);
+    if (safeFs.existsSync(dbPath)) {
+      const raw = safeFs.readFileSync(dbPath);
+      if (!raw.ok) {
+        issues.push({ severity: 'error', message: `Cannot read instance database: ${raw.error.message}` });
+      } else {
+        try {
+          const db = JSON.parse(raw.data);
+          if (!db?.runs || !Array.isArray(db.runs)) {
+            issues.push({ severity: 'error', message: 'Instance database has invalid structure' });
+          }
+        } catch {
+          issues.push({ severity: 'error', message: 'Instance database is corrupt (invalid JSON)' });
+        }
+      }
+    }
+
+    // Orphaned .tmp files
+    const tmpPath = dbPath + '.tmp';
+    if (safeFs.existsSync(tmpPath)) {
+      issues.push({ severity: 'warning', message: `Stale temp file found: ${tmpPath}` });
+    }
+
+    // Running processes consistency
+    for (const inst of this.workflow_instances) {
+      if (inst.processes.length > 0) {
+        for (const desc of inst.processes) {
+          const alive = await this.verifyProcess(desc);
+          if (!alive) {
+            issues.push({ severity: 'warning', message: `Instance ${inst.id} has stale process (PID ${desc.pid})` });
+          }
+        }
+      }
+      if (!safeFs.existsSync(inst.path)) {
+        issues.push({ severity: 'warning', message: `Instance ${inst.id} path missing: ${inst.path}` });
+      }
+    }
+
+    return { ok: issues.filter((i) => i.severity === 'error').length === 0, issues };
+  }
+
+  /**
+   * Attempt to repair common state inconsistencies.
+   * Recreates missing core directories and cleans up stale temp files.
+   */
+  async repairState(): Promise<{ repaired: string[]; failed: string[] }> {
+    const repaired: string[] = [];
+    const failed: string[] = [];
+
+    // Recreate missing core directories
+    for (const [label, dir] of [
+      ['config', this.root_path],
+      ['documents', this.documents_root_path],
+      ['workflows', this.workflow_path],
+      ['instances', this.instances_path],
+      ['catalogues', this.catalogues_path]
+    ] as [string, string][]) {
+      if (dir && !safeFs.existsSync(dir)) {
+        const result = safeFs.mkdirSync(dir, { recursive: true });
+        if (result.ok) {
+          repaired.push(`Created ${label} directory: ${dir}`);
+        } else {
+          failed.push(`Failed to create ${label} directory ${dir}: ${result.error.message}`);
+        }
+      }
+    }
+
+    // Clean up .tmp files
+    const dbPath = path.join(this.root_path, instance_database_file);
+    const tmpPath = dbPath + '.tmp';
+    if (safeFs.existsSync(tmpPath)) {
+      const result = safeFs.rmSync(tmpPath, { force: true });
+      if (result.ok) {
+        repaired.push(`Removed stale temp file: ${tmpPath}`);
+      } else {
+        failed.push(`Failed to remove stale temp file ${tmpPath}: ${result.error.message}`);
+      }
+    }
+
+    // Re-parse collection to resync in-memory state with disk
+    try {
+      await this.parseCollection();
+      repaired.push('Re-parsed collection from disk');
+    } catch (err) {
+      failed.push(`Failed to re-parse collection: ${err}`);
+    }
+
+    return { repaired, failed };
   }
 
   async parseCollection() {
@@ -386,51 +512,67 @@ export class Collection {
     // Hierarchy: root_path/workflows/owner/repo@version/    with version=tag or branch
     this.ensurePathExists(this.workflow_path);
     console.log(`Parsing collection from path: ${this.workflow_path}`);
-    const owners = fs.readdirSync(this.workflow_path);
-    for (const owner of owners) {
-      const ownerPath = path.join(this.workflow_path, owner);
-      if (!fs.statSync(ownerPath).isDirectory()) continue;
-      const repoDirs = fs.readdirSync(ownerPath);
-      for (const repo_and_version of repoDirs) {
-        const version_path = path.join(ownerPath, repo_and_version);
-        if (!fs.statSync(version_path).isDirectory()) continue;
-        const repo = repo_and_version.split('@')[0];
-        const version = repo_and_version.split('@')[1];
-        // Check for existing workflow and create if not found
-        let wf = this.workflows.find((wf) => wf.id === `${owner}/${repo}`);
-        if (wf === undefined) {
-          wf = new Workflow({
-            id: `${owner}/${repo}`,
-            name: repo,
-            owner: owner,
-            repo: repo,
-            url: `${owner}/${repo}`,
-            versions: []
-          } as IWorkflow);
-          this.workflows.push(wf);
+    const owners = safeFs.readdirSync(this.workflow_path);
+    if (!owners.ok) {
+      console.warn(`Cannot read workflows directory: ${owners.error.message}`);
+      return;
+    }
+    for (const owner of owners.data) {
+      try {
+        const ownerPath = path.join(this.workflow_path, owner);
+        const ownerStat = safeFs.statSync(ownerPath);
+        if (!ownerStat.ok || !ownerStat.data.isDirectory()) continue;
+        const repoDirs = safeFs.readdirSync(ownerPath);
+        if (!repoDirs.ok) {
+          console.warn(`Cannot read directory ${ownerPath}: ${repoDirs.error.message}`);
+          continue;
         }
-
-        // Add version to workflow
-        const versionPath = path.join(ownerPath, repo_and_version);
-        const versionPostfix = version !== undefined ? `@${version}` : '';
-        const type = this.determineWorkflowType(versionPath);
-        // Read persisted version metadata for @latest directories
-        let actualVersion = version;
-        if (version === 'latest') {
-          const metaFile = path.join(versionPath, '.glacier-version');
-          if (fs.existsSync(metaFile)) {
-            actualVersion = fs.readFileSync(metaFile, 'utf-8').trim();
+        for (const repo_and_version of repoDirs.data) {
+          const version_path = path.join(ownerPath, repo_and_version);
+          const verStat = safeFs.statSync(version_path);
+          if (!verStat.ok || !verStat.data.isDirectory()) continue;
+          const repo = repo_and_version.split('@')[0];
+          const version = repo_and_version.split('@')[1];
+          // Check for existing workflow and create if not found
+          let wf = this.workflows.find((wf) => wf.id === `${owner}/${repo}`);
+          if (wf === undefined) {
+            wf = new Workflow({
+              id: `${owner}/${repo}`,
+              name: repo,
+              owner: owner,
+              repo: repo,
+              url: `${owner}/${repo}`,
+              versions: []
+            } as IWorkflow);
+            this.workflows.push(wf);
           }
+
+          // Add version to workflow
+          const versionPath = path.join(ownerPath, repo_and_version);
+          const versionPostfix = version !== undefined ? `@${version}` : '';
+          const type = this.determineWorkflowType(versionPath);
+          // Read persisted version metadata for @latest directories
+          let actualVersion = version;
+          if (version === 'latest') {
+            const metaFile = path.join(versionPath, '.glacier-version');
+            const metaResult = safeFs.readFileSync(metaFile);
+            if (metaResult.ok) {
+              actualVersion = metaResult.data.trim();
+            }
+          }
+          wf.versions.push({
+            id: `${owner}/${repo}${versionPostfix}`,
+            name: `${owner}/${repo}${versionPostfix}`,
+            type: type,
+            version: actualVersion,
+            path: versionPath,
+            parent_id: wf.id,
+            sourceVersion: version === 'latest' ? 'latest' : undefined
+          } as WorkflowVersion);
         }
-        wf.versions.push({
-          id: `${owner}/${repo}${versionPostfix}`,
-          name: `${owner}/${repo}${versionPostfix}`,
-          type: type,
-          version: actualVersion,
-          path: versionPath,
-          parent_id: wf.id,
-          sourceVersion: version === 'latest' ? 'latest' : undefined
-        } as WorkflowVersion);
+      } catch (err) {
+        console.warn(`Skipping malformed workflow entry ${owner}: ${err}`);
+        continue;
       }
     }
   }
@@ -443,45 +585,59 @@ export class Collection {
     // Hierarchy: root_path/instances/owner/repo@version/instance_id/
     this.ensurePathExists(this.instances_path);
     console.log(`Parsing instances from path: ${this.instances_path}`);
-    const owners = fs.readdirSync(this.instances_path);
-    for (const owner of owners) {
-      const ownerPath = path.join(this.instances_path, owner);
-      if (!fs.statSync(ownerPath).isDirectory()) continue;
-      const repoDirs = fs.readdirSync(ownerPath);
-      for (const repo_and_version of repoDirs) {
-        const version_path = path.join(ownerPath, repo_and_version);
-        if (!fs.statSync(version_path).isDirectory()) continue;
-        if (!repo_and_version.includes('@')) continue;
-        const repo = repo_and_version.split('@')[0];
-        const version = repo_and_version.split('@')[1];
-        console.log(`Parsing instances for workflow: ${owner}/${repo}@${version}`);
-        // Find the corresponding workflow version
-        const wf = this.workflows.find((wf) => wf.id === `${owner}/${repo}`);
-        if (wf === undefined) {
-          console.log(`Workflow ${owner}/${repo} not found for instances, skipping.`);
-          continue;
+    const owners = safeFs.readdirSync(this.instances_path);
+    if (!owners.ok) {
+      console.warn(`Cannot read instances directory: ${owners.error.message}`);
+      return;
+    }
+    for (const owner of owners.data) {
+      try {
+        const ownerPath = path.join(this.instances_path, owner);
+        const ownerStat = safeFs.statSync(ownerPath);
+        if (!ownerStat.ok || !ownerStat.data.isDirectory()) continue;
+        const repoDirs = safeFs.readdirSync(ownerPath);
+        if (!repoDirs.ok) continue;
+        for (const repo_and_version of repoDirs.data) {
+          const version_path = path.join(ownerPath, repo_and_version);
+          const verStat = safeFs.statSync(version_path);
+          if (!verStat.ok || !verStat.data.isDirectory()) continue;
+          if (!repo_and_version.includes('@')) continue;
+          const repo = repo_and_version.split('@')[0];
+          const version = repo_and_version.split('@')[1];
+          console.log(`Parsing instances for workflow: ${owner}/${repo}@${version}`);
+          // Find the corresponding workflow version
+          const wf = this.workflows.find((wf) => wf.id === `${owner}/${repo}`);
+          if (wf === undefined) {
+            console.log(`Workflow ${owner}/${repo} not found for instances, skipping.`);
+            continue;
+          }
+          const wf_version = wf.versions.find((v) => v.version === version);
+          if (wf_version === undefined) {
+            console.log(
+              `Workflow version ${owner}/${repo}@${version} not found for instances, skipping.`
+            );
+            continue;
+          }
+          // Parse instances
+          const versionPath = path.join(ownerPath, repo_and_version);
+          const instanceDirs = safeFs.readdirSync(versionPath);
+          if (!instanceDirs.ok) continue;
+          for (const instanceDir of instanceDirs.data) {
+            const instStat = safeFs.statSync(path.join(versionPath, instanceDir));
+            if (!instStat.ok || !instStat.data.isDirectory()) continue;
+            const instance = new WorkflowInstance({
+              id: instanceDir,
+              name: instanceDir,
+              workflow_version: wf_version,
+              path: path.join(versionPath, instanceDir),
+              params: {}
+            });
+            this.workflow_instances.push(instance);
+          }
         }
-        const wf_version = wf.versions.find((v) => v.version === version);
-        if (wf_version === undefined) {
-          console.log(
-            `Workflow version ${owner}/${repo}@${version} not found for instances, skipping.`
-          );
-          continue;
-        }
-        // Parse instances
-        const versionPath = path.join(ownerPath, repo_and_version);
-        const instanceDirs = fs.readdirSync(versionPath);
-        for (const instanceDir of instanceDirs) {
-          if (!fs.statSync(path.join(versionPath, instanceDir)).isDirectory()) continue;
-          const instance = new WorkflowInstance({
-            id: instanceDir,
-            name: instanceDir,
-            workflow_version: wf_version,
-            path: path.join(versionPath, instanceDir),
-            params: {}
-          });
-          this.workflow_instances.push(instance);
-        }
+      } catch (err) {
+        console.warn(`Skipping malformed instance entry ${owner}: ${err}`);
+        continue;
       }
     }
     // Now that the instance folder tree has been parsed, cross-reference with the
@@ -491,12 +647,31 @@ export class Collection {
 
   private async parseInstanceDatabase() {
     const db_path = path.join(this.root_path, instance_database_file);
-    if (!fs.existsSync(db_path)) {
+    if (!safeFs.existsSync(db_path)) {
       console.log('No instance database found.');
       return;
     }
+    const raw = safeFs.readFileSync(db_path);
+    if (!raw.ok) {
+      console.warn(`Cannot read instance database: ${raw.error.message}`);
+      return;
+    }
+    let db: any;
+    try {
+      db = JSON.parse(raw.data);
+    } catch (err) {
+      console.error(`Instance database is corrupt, backing up and resetting: ${err}`);
+      const backupPath = db_path + '.corrupt.' + Date.now();
+      safeFs.renameSync(db_path, backupPath);
+      return;
+    }
+    if (!db?.runs || !Array.isArray(db.runs)) {
+      console.warn('Instance database has no valid runs array, resetting.');
+      const backupPath = db_path + '.corrupt.' + Date.now();
+      safeFs.renameSync(db_path, backupPath);
+      return;
+    }
     let db_updated = false;
-    const db = JSON.parse(fs.readFileSync(db_path, 'utf-8'));
     for (const run of db.runs) {
       const instance = this.workflow_instances.find((inst) => inst.id === run.id);
       if (!instance) {
@@ -567,8 +742,32 @@ export class Collection {
       }
     }
     if (db_updated) {
-      fs.writeFileSync(db_path, JSON.stringify(db, null, 2));
+      this.writeInstanceDatabase(db, db_path);
     }
+  }
+
+  /** Atomic write to instances DB: write to temp file, then rename */
+  private writeInstanceDatabase(db: any, dbPath: string): boolean {
+    // Clean up stale temp files from previous crashes
+    const tmpPath = dbPath + '.tmp';
+    safeFs.rmSync(tmpPath, { force: true });
+    const result = safeFs.writeFileSync(tmpPath, JSON.stringify(db, null, 2));
+    if (!result.ok) {
+      // Try direct write as fallback
+      const fallback = safeFs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+      if (!fallback.ok) {
+        console.error(`Failed to write instance database: ${fallback.error.message}`);
+        return false;
+      }
+      return true;
+    }
+    const renameResult = safeFs.renameSync(tmpPath, dbPath);
+    if (!renameResult.ok) {
+      console.error(`Failed to atomically write instance database: ${renameResult.error.message}`);
+      safeFs.rmSync(tmpPath, { force: true });
+      return false;
+    }
+    return true;
   }
 
   /** Extract ProcessDescriptors from a DB run entry, handling both old and new schema */
@@ -608,13 +807,19 @@ export class Collection {
     }
   }
 
-  ensurePathExists(folder: string) {
+  ensurePathExists(folder: string): boolean {
     if (!this.root_path || !folder) {
-      throw new Error('Root path or workflow path is not set.');
+      console.error('Root path or workflow path is not set.');
+      return false;
     }
-    if (!fs.existsSync(folder)) {
-      fs.mkdirSync(folder, { recursive: true });
+    if (!safeFs.existsSync(folder)) {
+      const result = safeFs.mkdirSync(folder, { recursive: true });
+      if (!result.ok) {
+        console.error(`Failed to create directory ${folder}: ${result.error.message}`);
+        return false;
+      }
     }
+    return true;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -703,8 +908,11 @@ export class Collection {
     // Enrich instances with computed metadata
     const db_path = path.join(this.root_path, instance_database_file);
     let instanceDb: any = null;
-    if (fs.existsSync(db_path)) {
-      instanceDb = JSON.parse(fs.readFileSync(db_path, 'utf-8'));
+    if (safeFs.existsSync(db_path)) {
+      const raw = safeFs.readFileSync(db_path);
+      if (raw.ok) {
+        try { instanceDb = JSON.parse(raw.data); } catch { /* corrupt DB, ignore */ }
+      }
     }
     const visible: IWorkflowInstance[] = [];
     for (const instance of this.workflow_instances) {
@@ -739,12 +947,17 @@ export class Collection {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
     const filename = path.join(local_instance.path, 'glacier-params.json');
-    if (!fs.existsSync(filename)) {
+    const readResult = safeFs.readFileSync(filename);
+    if (!readResult.ok) {
       console.log(`Params file ${filename} does not exist.`);
       return {};
     }
-    const params = JSON.parse(fs.readFileSync(filename, 'utf-8'));
-    return params;
+    try {
+      return JSON.parse(readResult.data);
+    } catch {
+      console.warn(`Params file ${filename} is corrupt, returning empty.`);
+      return {};
+    }
   }
 
   async updateWorkflowInstanceStatus(instance: IWorkflowInstance): Promise<string> {
@@ -906,11 +1119,13 @@ export class Collection {
     if (!local_instance) {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
-    if (fs.existsSync(local_instance.path)) {
-      const entries = fs.readdirSync(local_instance.path);
-      for (const entry of entries) {
-        if (entry === 'glacier-params.json') continue;
-        fs.rmSync(path.join(local_instance.path, entry), { recursive: true, force: true });
+    if (safeFs.existsSync(local_instance.path)) {
+      const entries = safeFs.readdirSync(local_instance.path);
+      if (entries.ok) {
+        for (const entry of entries.data) {
+          if (entry === 'glacier-params.json') continue;
+          safeFs.rmSync(path.join(local_instance.path, entry), { recursive: true, force: true });
+        }
       }
     }
     local_instance.status = WorkflowStatus.Created;
@@ -960,17 +1175,24 @@ export class Collection {
       await this.killWorkflowInstance(instance);
     }
     // Delete folder
-    if (fs.existsSync(local_instance.path)) {
-      fs.rmSync(local_instance.path, { recursive: true, force: true });
+    if (safeFs.existsSync(local_instance.path)) {
+      safeFs.rmSync(local_instance.path, { recursive: true, force: true });
     }
     // Remove from collection
     this.workflow_instances.splice(local_instance_index, 1);
     // Update database
     const db_path = path.join(this.root_path, instance_database_file);
-    if (fs.existsSync(db_path)) {
-      let db = JSON.parse(fs.readFileSync(db_path, 'utf-8'));
-      db.runs = db.runs.filter((r: any) => r.id !== instance.id);
-      fs.writeFileSync(db_path, JSON.stringify(db, null, 2));
+    if (safeFs.existsSync(db_path)) {
+      const readResult = safeFs.readFileSync(db_path);
+      if (readResult.ok) {
+        try {
+          const db = JSON.parse(readResult.data);
+          db.runs = db.runs.filter((r: any) => r.id !== instance.id);
+          this.writeInstanceDatabase(db, db_path);
+        } catch (err) {
+          console.error(`Failed to update instance database: ${err}`);
+        }
+      }
     }
   }
 
@@ -980,7 +1202,7 @@ export class Collection {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
     const folderPath = local_instance.path;
-    if (fs.existsSync(folderPath)) {
+    if (safeFs.existsSync(folderPath)) {
       const s = await getShell();
       return s.openPath(folderPath);
     } else {
@@ -994,18 +1216,22 @@ export class Collection {
       throw new Error(`Instance ${instance.id} not found in collection.`);
     }
     const folderPath = local_instance.path;
-    if (!fs.existsSync(folderPath)) {
+    if (!safeFs.existsSync(folderPath)) {
       return 0;
     }
     let totalSize = 0;
     const walkDir = (dir: string) => {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      for (const entry of entries) {
+      const entries = safeFs.readdirWithFileTypesSync(dir);
+      if (!entries.ok) return;
+      for (const entry of entries.data) {
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
           walkDir(fullPath);
         } else if (entry.isFile()) {
-          totalSize += fs.statSync(fullPath).size;
+          const statResult = safeFs.statSync(fullPath);
+          if (statResult.ok) {
+            totalSize += statResult.data.size;
+          }
         }
       }
     };
@@ -1020,8 +1246,8 @@ export class Collection {
     const count = orphans.length;
     for (const inst of orphans) {
       // Remove from filesystem if folder exists
-      if (fs.existsSync(inst.path)) {
-        fs.rmSync(inst.path, { recursive: true, force: true });
+      if (safeFs.existsSync(inst.path)) {
+        safeFs.rmSync(inst.path, { recursive: true, force: true });
       }
       // Remove from collection
       const idx = this.workflow_instances.indexOf(inst);
@@ -1031,11 +1257,18 @@ export class Collection {
     }
     // Clean up database
     const db_path = path.join(this.root_path, instance_database_file);
-    if (fs.existsSync(db_path)) {
-      const db = JSON.parse(fs.readFileSync(db_path, 'utf-8'));
-      const orphanIds = new Set(orphans.map((o) => o.id));
-      db.runs = db.runs.filter((r: any) => !orphanIds.has(r.id));
-      fs.writeFileSync(db_path, JSON.stringify(db, null, 2));
+    if (safeFs.existsSync(db_path)) {
+      const readResult = safeFs.readFileSync(db_path);
+      if (readResult.ok) {
+        try {
+          const db = JSON.parse(readResult.data);
+          const orphanIds = new Set(orphans.map((o) => o.id));
+          db.runs = db.runs.filter((r: any) => !orphanIds.has(r.id));
+          this.writeInstanceDatabase(db, db_path);
+        } catch (err) {
+          console.error(`Failed to update instance database: ${err}`);
+        }
+      }
     }
     return count;
   }
@@ -1049,12 +1282,19 @@ export class Collection {
     local_instance.processes = [];
     // Persist hidden flag in DB
     const db_path = path.join(this.root_path, instance_database_file);
-    if (fs.existsSync(db_path)) {
-      const db = JSON.parse(fs.readFileSync(db_path, 'utf-8'));
-      const run = db.runs.find((r: any) => r.id === local_instance.id);
-      if (run) {
-        run.hidden = true;
-        fs.writeFileSync(db_path, JSON.stringify(db, null, 2));
+    if (safeFs.existsSync(db_path)) {
+      const readResult = safeFs.readFileSync(db_path);
+      if (readResult.ok) {
+        try {
+          const db = JSON.parse(readResult.data);
+          const run = db.runs.find((r: any) => r.id === local_instance.id);
+          if (run) {
+            run.hidden = true;
+            this.writeInstanceDatabase(db, db_path);
+          }
+        } catch (err) {
+          console.error(`Failed to update instance database: ${err}`);
+        }
       }
     }
   }
@@ -1066,12 +1306,19 @@ export class Collection {
     }
     local_instance.hidden = false;
     const db_path = path.join(this.root_path, instance_database_file);
-    if (fs.existsSync(db_path)) {
-      const db = JSON.parse(fs.readFileSync(db_path, 'utf-8'));
-      const run = db.runs.find((r: any) => r.id === local_instance.id);
-      if (run) {
-        delete run.hidden;
-        fs.writeFileSync(db_path, JSON.stringify(db, null, 2));
+    if (safeFs.existsSync(db_path)) {
+      const readResult = safeFs.readFileSync(db_path);
+      if (readResult.ok) {
+        try {
+          const db = JSON.parse(readResult.data);
+          const run = db.runs.find((r: any) => r.id === local_instance.id);
+          if (run) {
+            delete run.hidden;
+            this.writeInstanceDatabase(db, db_path);
+          }
+        } catch (err) {
+          console.error(`Failed to update instance database: ${err}`);
+        }
       }
     }
   }
@@ -1093,11 +1340,15 @@ export class Collection {
     const prefix = match[1];
     const short_hash = match[2];
     const workFolder = path.join(local_instance.path, 'work', prefix);
-    if (!fs.existsSync(workFolder)) {
+    if (!safeFs.existsSync(workFolder)) {
       throw new Error(`Work folder ${workFolder} does not exist.`);
     }
     // Find matching folders
-    const candidates = fs.readdirSync(workFolder).filter((f) => f.startsWith(short_hash));
+    const readResult = safeFs.readdirSync(workFolder);
+    if (!readResult.ok) {
+      throw new Error(`Cannot read work folder ${workFolder}: ${readResult.error.message}`);
+    }
+    const candidates = readResult.data.filter((f) => f.startsWith(short_hash));
     if (candidates.length === 0) {
       throw new Error(`No work folders found matching ID: ${word_id}`);
     } else if (candidates.length > 1) {
@@ -1137,11 +1388,15 @@ export class Collection {
     const prefix = match[1];
     const short_hash = match[2];
     const workFolder = path.join(local_instance.path, 'work', prefix);
-    if (!fs.existsSync(workFolder)) {
+    if (!safeFs.existsSync(workFolder)) {
       throw new Error(`Work folder ${workFolder} does not exist.`);
     }
     // Find matching folders
-    const candidates = fs.readdirSync(workFolder).filter((f) => f.startsWith(short_hash));
+    const readResult = safeFs.readdirSync(workFolder);
+    if (!readResult.ok) {
+      throw new Error(`Cannot read work folder ${workFolder}: ${readResult.error.message}`);
+    }
+    const candidates = readResult.data.filter((f) => f.startsWith(short_hash));
     if (candidates.length === 0) {
       throw new Error(`No work folders found matching ID: ${workID}`);
     } else if (candidates.length > 1) {
@@ -1149,8 +1404,9 @@ export class Collection {
     }
     const folderPath = path.join(workFolder, candidates[0]);
     const logFile = path.join(folderPath, `${log_filename}`);
-    if (fs.existsSync(logFile)) {
-      return fs.readFileSync(logFile, 'utf-8');
+    const logResult = safeFs.readFileSync(logFile);
+    if (logResult.ok) {
+      return logResult.data;
     } else {
       console.log(`Log file ${logFile} does not exist.`);
       return '';
@@ -1193,7 +1449,7 @@ export class Collection {
         version.version = repo.version;
       }
       if (isLatest) {
-        fs.writeFileSync(path.join(repo.path, '.glacier-version'), repo.version);
+        safeFs.writeFileSync(path.join(repo.path, '.glacier-version'), repo.version);
       }
       return version;
     }
@@ -1208,7 +1464,7 @@ export class Collection {
     });
     // Persist the actual version for @latest directories so it survives refresh
     if (isLatest) {
-      fs.writeFileSync(path.join(repo.path, '.glacier-version'), repo.version);
+      safeFs.writeFileSync(path.join(repo.path, '.glacier-version'), repo.version);
     }
     wf.versions.push(version);
     return version;
@@ -1268,8 +1524,12 @@ export class Collection {
     // Read database from glacier root
     const db_path = path.join(this.root_path, instance_database_file);
     let db: any = { runs: [] };
-    if (fs.existsSync(db_path)) {
-      db = JSON.parse(fs.readFileSync(db_path, 'utf-8'));
+    if (safeFs.existsSync(db_path)) {
+      const raw = safeFs.readFileSync(db_path);
+      if (raw.ok) {
+        try { db = JSON.parse(raw.data); } catch { /* corrupt DB, start fresh */ }
+        if (!db?.runs || !Array.isArray(db.runs)) db = { runs: [] };
+      }
     }
     // Build the run entry with both new structured processes and legacy pids
     const entry = {
@@ -1293,7 +1553,7 @@ export class Collection {
       });
     }
     // Write DB
-    fs.writeFileSync(db_path, JSON.stringify(db, null, 2));
+    this.writeInstanceDatabase(db, db_path);
   }
 
   syncRepo(path: string) {
@@ -1314,8 +1574,9 @@ export class Collection {
 
   getWorkflowInstanceLogs(instance: IWorkflowInstance, log_type: string): string {
     const logFile = path.join(instance.path, `${log_type}.log`);
-    if (fs.existsSync(logFile)) {
-      return fs.readFileSync(logFile, 'utf-8');
+    const logResult = safeFs.readFileSync(logFile);
+    if (logResult.ok) {
+      return logResult.data;
     } else {
       console.log(`Log file ${logFile} does not exist.`);
       return '';
@@ -1366,10 +1627,16 @@ export class Collection {
 
     // Read schema file
     const schemaFile = path.join(instance.path, 'nextflow_schema.json');
-    if (fs.existsSync(schemaFile)) {
-      const schema = JSON.parse(fs.readFileSync(schemaFile, 'utf-8'));
-      title = schema.title || instance.name;
-      description = schema.description || '';
+    const schemaResult = safeFs.readFileSync(schemaFile);
+    if (schemaResult.ok) {
+      try {
+        const schema = JSON.parse(schemaResult.data);
+        title = schema.title || instance.name;
+        description = schema.description || '';
+      } catch {
+        title = instance.name;
+        description = '';
+      }
     } else {
       title = instance.name;
       description = '';
@@ -1386,8 +1653,9 @@ export class Collection {
       return 'Invalid workflow instance.';
     }
     const readmeFile = path.join(instance.workflow_version.path, 'README.md');
-    if (fs.existsSync(readmeFile)) {
-      return fs.readFileSync(readmeFile, 'utf-8');
+    const readResult = safeFs.readFileSync(readmeFile);
+    if (readResult.ok) {
+      return readResult.data;
     } else {
       throw new Error('No README.md file found for this workflow.');
     }
@@ -1398,8 +1666,9 @@ export class Collection {
       return 'Invalid workflow instance.';
     }
     const licenseFile = path.join(instance.workflow_version.path, 'LICENSE');
-    if (fs.existsSync(licenseFile)) {
-      return fs.readFileSync(licenseFile, 'utf-8');
+    const readResult = safeFs.readFileSync(licenseFile);
+    if (readResult.ok) {
+      return readResult.data;
     } else {
       throw new Error('No LICENSE file found for this workflow.');
     }
@@ -1430,54 +1699,70 @@ export class Collection {
     this.catalogues = [];
     this.catalogueParseErrors = [];
 
-    if (!fs.existsSync(this.catalogues_path)) {
+    if (!safeFs.existsSync(this.catalogues_path)) {
       console.log(`Catalogues path ${this.catalogues_path} does not exist.`);
       return;
     }
-    const owners = fs.readdirSync(this.catalogues_path);
-    for (const owner of owners) {
-      const ownerPath = path.join(this.catalogues_path, owner);
-      if (!fs.statSync(ownerPath).isDirectory()) continue;
-      const repoDirs = fs.readdirSync(ownerPath);
-      for (const repo of repoDirs) {
-        const repoPath = path.join(ownerPath, repo);
-        if (!fs.statSync(repoPath).isDirectory()) continue;
-
-        const cat_file = path.join(repoPath, 'catalogue.json');
-        let cat_contents: string;
-        try {
-          cat_contents = fs.readFileSync(cat_file, 'utf-8');
-        } catch (err) {
-          this.catalogueParseErrors.push({
-            source: `${owner}/${repo}`,
-            error: `Failed to read catalogue.json: ${err}`
-          });
-          continue;
-        }
-        let js: any;
-        try {
-          js = JSON.parse(cat_contents);
-        } catch (err) {
-          this.catalogueParseErrors.push({
-            source: `${owner}/${repo}`,
-            error: `Failed to parse catalogue.json: ${err}`
-          });
-          continue;
-        }
-        js['source'] = `${owner}/${repo}`;
-        js['base_dir'] = repoPath;
-        if (js['scheme_url']) {
+    const owners = safeFs.readdirSync(this.catalogues_path);
+    if (!owners.ok) {
+      console.warn(`Cannot read catalogues directory: ${owners.error.message}`);
+      return;
+    }
+    for (const owner of owners.data) {
+      try {
+        const ownerPath = path.join(this.catalogues_path, owner);
+        const ownerStat = safeFs.statSync(ownerPath);
+        if (!ownerStat.ok || !ownerStat.data.isDirectory()) continue;
+        const repoDirs = safeFs.readdirSync(ownerPath);
+        if (!repoDirs.ok) continue;
+        for (const repo of repoDirs.data) {
           try {
-            const response = await fetch(js['scheme_url']);
-            if (response.ok) {
-              const remoteScheme = await response.json();
-              js['scheme'] = { ...remoteScheme, ...js['scheme'] };
+            const repoPath = path.join(ownerPath, repo);
+            const repoStat = safeFs.statSync(repoPath);
+            if (!repoStat.ok || !repoStat.data.isDirectory()) continue;
+
+            const cat_file = path.join(repoPath, 'catalogue.json');
+            const catRead = safeFs.readFileSync(cat_file);
+            if (!catRead.ok) {
+              this.catalogueParseErrors.push({
+                source: `${owner}/${repo}`,
+                error: `Failed to read catalogue.json: ${catRead.error.message}`
+              });
+              continue;
             }
+            let cat_contents = catRead.data;
+            let js: any;
+            try {
+              js = JSON.parse(cat_contents);
+            } catch (err) {
+              this.catalogueParseErrors.push({
+                source: `${owner}/${repo}`,
+                error: `Failed to parse catalogue.json: ${err}`
+              });
+              continue;
+            }
+            js['source'] = `${owner}/${repo}`;
+            js['base_dir'] = repoPath;
+            if (js['scheme_url']) {
+              try {
+                const response = await fetch(js['scheme_url']);
+                if (response.ok) {
+                  const remoteScheme = await response.json();
+                  js['scheme'] = { ...remoteScheme, ...js['scheme'] };
+                }
+              } catch (err) {
+                console.error(`Failed to fetch scheme from ${js['scheme_url']}: ${err}`);
+              }
+            }
+            this.catalogues.push(js);
           } catch (err) {
-            console.error(`Failed to fetch scheme from ${js['scheme_url']}: ${err}`);
+            console.warn(`Skipping malformed catalogue repo ${owner}/${repo}: ${err}`);
+            continue;
           }
         }
-        this.catalogues.push(js);
+      } catch (err) {
+        console.warn(`Skipping malformed catalogue owner ${owner}: ${err}`);
+        continue;
       }
     }
   }
@@ -1496,8 +1781,11 @@ export class Collection {
     }
     const repo: ICloneRepo = await cloneRepo(url, this.catalogues_path, version);
     const cat_file = path.join(repo.path, 'catalogue.json');
-    const contents = fs.readFileSync(cat_file, 'utf-8');
-    const js = JSON.parse(contents);
+    const catRead = safeFs.readFileSync(cat_file);
+    if (!catRead.ok) {
+      throw new Error(`Failed to read catalogue.json from ${repo.path}: ${catRead.error.message}`);
+    }
+    const js = JSON.parse(catRead.data);
     js['source'] = url;
     js['base_dir'] = repo.path;
     this.parseCatalogues(); // update catalogue
@@ -1512,7 +1800,7 @@ export class Collection {
     const owner = cat.source.split('/')[0];
     const repo = cat.source.split('/')[1];
     const cat_path = path.join(this.catalogues_path, owner, repo);
-    fs.rmSync(cat_path, { recursive: true, force: true });
+    safeFs.rmSync(cat_path, { recursive: true, force: true });
     // Refresh catalogues
     this.parseCatalogues();
   }
@@ -1606,8 +1894,8 @@ export class Collection {
     }
 
     for (const version of versionsToRemove) {
-      if (fs.existsSync(version.path)) {
-        fs.rmSync(version.path, { recursive: true, force: true });
+      if (safeFs.existsSync(version.path)) {
+        safeFs.rmSync(version.path, { recursive: true, force: true });
       }
       const idx = wf.versions.indexOf(version);
       if (idx !== -1) wf.versions.splice(idx, 1);
@@ -1901,10 +2189,18 @@ export class Collection {
       'catalogue.json'
     );
     let user_catalogue: Catalogue;
-    if (fs.existsSync(user_cat_path)) {
+    if (safeFs.existsSync(user_cat_path)) {
       // Read existing catalogue
-      const contents = fs.readFileSync(user_cat_path, 'utf-8');
-      user_catalogue = JSON.parse(contents);
+      const readResult = safeFs.readFileSync(user_cat_path);
+      if (readResult.ok) {
+        try {
+          user_catalogue = JSON.parse(readResult.data);
+        } catch {
+          user_catalogue = { name: 'User collection', source: 'local', sections: [] };
+        }
+      } else {
+        user_catalogue = { name: 'User collection', source: 'local', sections: [] };
+      }
     } else {
       // Create new catalogue
       user_catalogue = {
@@ -1929,7 +2225,7 @@ export class Collection {
     });
     // Save to catalogues path
     this.ensurePathExists(path.dirname(user_cat_path));
-    fs.writeFileSync(user_cat_path, JSON.stringify(user_catalogue, null, 2));
+    safeFs.writeFileSync(user_cat_path, JSON.stringify(user_catalogue, null, 2));
     // Refresh catalogues
     this.parseCatalogues();
   }
@@ -1996,8 +2292,18 @@ export class Collection {
   }
 
   async importManifest(manifestPath: string) {
-    const contents = fs.readFileSync(manifestPath, 'utf-8');
-    const manifest = JSON.parse(contents);
+    const raw = safeFs.readFileSync(manifestPath);
+    if (!raw.ok) {
+      console.error(`Failed to read manifest: ${raw.error.message}`);
+      return;
+    }
+    let manifest: any;
+    try {
+      manifest = JSON.parse(raw.data);
+    } catch (err) {
+      console.error(`Failed to parse manifest: ${err}`);
+      return;
+    }
     if (manifest.catalogues && Array.isArray(manifest.catalogues)) {
       for (const cat of manifest.catalogues) {
         const url = cat.url;

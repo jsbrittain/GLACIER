@@ -168,9 +168,9 @@ describe('Collection', () => {
       expect(() => collection.ensurePathExists(dir)).not.toThrow();
     });
 
-    it('throws if root_path is empty', () => {
+    it('returns false if root_path is empty', () => {
       collection.root_path = '';
-      expect(() => collection.ensurePathExists('/some/path')).toThrow('Root path');
+      expect(collection.ensurePathExists('/some/path')).toBe(false);
     });
   });
 
