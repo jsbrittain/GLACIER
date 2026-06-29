@@ -37,6 +37,7 @@ export function registerIpcHandlers() {
     'check-catalogue-workflow-updates': collection.checkCatalogueWorkflowUpdates.bind(collection),
     'add-user-workflow': collection.addUserWorkflow.bind(collection),
     'clone-repo': collection.cloneRepo.bind(collection),
+    'get-repo-tags': collection.getRepoTags.bind(collection),
     'is-repo-installed': collection.isRepoInstalled.bind(collection),
     'is-valid-workflow-repo': collection.isValidWorkflowRepo.bind(collection),
     'get-system-resources': collection.getSystemResources.bind(collection),

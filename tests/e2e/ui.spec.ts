@@ -38,14 +38,14 @@ test('clone a repository', async ({ page }) => {
   expect(fs.existsSync(glacier_path)).toBe(false);
   const library_path = path.resolve(path.join(glacier_path, 'library'));
   fs.mkdirSync(library_path, { recursive: true }); // rebuild
-  await page.fill('#settings-collections-path', `${library_path}`);
-  await page.locator('#settings-collections-path').blur();
-
-  // Set documents path to a temporary folder
   const docs_path = path.resolve(path.join(glacier_path, 'docs'));
   fs.mkdirSync(docs_path, { recursive: true });
-  await page.fill('#settings-documents-path', `${docs_path}`);
-  await page.locator('#settings-documents-path').blur();
+
+  // Open the path setup dialog
+  await page.click('#settings-reopen-setup');
+  await page.fill('#setup-config-folder', `${library_path}`);
+  await page.fill('#setup-documents-folder', `${docs_path}`);
+  await page.click('#setup-continue-button');
 
   // Ensure repositories and catalogues can be modified in settings
   await page.check('#settings-permit-add-catalogues');
@@ -109,14 +109,14 @@ test('launch local workflow', async ({ page }) => {
 
   // Get the library path
   await page.click('#settings-general-panel');
-  await page.fill('#settings-collections-path', `${local_collections_path}`);
-  await page.locator('#settings-collections-path').blur();
 
-  // Set documents path to a temporary folder
+  // Open the path setup dialog
   const docs_path = path.resolve(path.join(os.tmpdir(), 'GLACIER-docs-' + Date.now().toString()));
   fs.mkdirSync(docs_path, { recursive: true });
-  await page.fill('#settings-documents-path', `${docs_path}`);
-  await page.locator('#settings-documents-path').blur();
+  await page.click('#settings-reopen-setup');
+  await page.fill('#setup-config-folder', `${local_collections_path}`);
+  await page.fill('#setup-documents-folder', `${docs_path}`);
+  await page.click('#setup-continue-button');
 
   // --- Navigate to Library page
   await page.click('#sidebar-library-button');

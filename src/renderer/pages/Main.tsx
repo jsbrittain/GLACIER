@@ -75,16 +75,16 @@ export default function MainPage({ darkMode, setDarkMode }) {
         if (result.ok) setDarkMode(result.data);
       });
       API.settingsGet(SettingsKey.PermitAddCatalogues).then((result) => {
-        if (result.ok) setPermitAddCatalogues(result.data);
+        if (result.ok && result.data !== undefined) setPermitAddCatalogues(result.data);
       });
       API.settingsGet(SettingsKey.PermitCatalogueModifications).then((result) => {
-        if (result.ok) setPermitCatalogueModifications(result.data);
+        if (result.ok && result.data !== undefined) setPermitCatalogueModifications(result.data);
       });
       API.settingsGet(SettingsKey.PermitImportShards).then((result) => {
-        if (result.ok) setPermitImportShards(result.data);
+        if (result.ok && result.data !== undefined) setPermitImportShards(result.data);
       });
       API.settingsGet(SettingsKey.PermitAddRepos).then((result) => {
-        if (result.ok) setPermitAddRepos(result.data);
+        if (result.ok && result.data !== undefined) setPermitAddRepos(result.data);
       });
       API.settingsGet(SettingsKey.ShowLogPanel).then((result) => {
         if (result.ok) setShowLogPanel(result.data);
@@ -101,8 +101,13 @@ export default function MainPage({ darkMode, setDarkMode }) {
 
       const missing = r.data || {};
       if (missing.config || missing.documents) {
-        setPendingConfigPath(pathResult.ok ? pathResult.data : '');
-        setPendingDocumentsPath(dPathResult.ok ? dPathResult.data : '');
+        const defaultPaths = await API.getDefaultPaths();
+        setPendingConfigPath(
+          missing.config && defaultPaths.ok ? defaultPaths.data.config : (pathResult.ok ? pathResult.data : '')
+        );
+        setPendingDocumentsPath(
+          missing.documents && defaultPaths.ok ? defaultPaths.data.documents : (dPathResult.ok ? dPathResult.data : '')
+        );
         setShowPathDialog(true);
       }
 
@@ -280,9 +285,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 darkMode={darkMode}
                 setDarkMode={setDarkMode}
                 collectionsPath={collectionsPath}
-                setCollectionsPath={setCollectionsPath}
                 documentsPath={documentsPath}
-                setDocumentsPath={setDocumentsPath}
                 permitAddCatalogues={permitAddCatalogues}
                 setPermitAddCatalogues={setPermitAddCatalogues}
                 permitCatalogueModifications={permitCatalogueModifications}
@@ -297,6 +300,11 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 onShowLogPanelChange={handleShowLogPanel}
                 navigateToPage={navigateToSettingsPage}
                 setNavigateToPage={setNavigateToSettingsPage}
+                onReopenSetup={() => {
+                  setPendingConfigPath(collectionsPath);
+                  setPendingDocumentsPath(documentsPath);
+                  setShowPathDialog(true);
+                }}
               />
             ) : null}
           </Paper>
@@ -337,6 +345,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <TextField
+              id="setup-config-folder"
               label={t('setup.config-folder', 'Config folder')}
               value={pendingConfigPath}
               onChange={(e) => setPendingConfigPath(e.target.value)}
@@ -349,6 +358,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
             <TextField
+              id="setup-documents-folder"
               label={t('setup.documents-folder', 'Documents folder')}
               value={pendingDocumentsPath}
               onChange={(e) => setPendingDocumentsPath(e.target.value)}

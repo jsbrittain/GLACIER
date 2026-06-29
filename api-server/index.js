@@ -193,7 +193,11 @@ app.post('/api/get-available-profiles', async (req, res) =>
 );
 
 app.post('/api/clone-repo', async (req, res) =>
-  post_response(res, call(collection.cloneRepo.bind(collection), req.body.repoUrl, req.body.ver))
+  post_response(res, call(collection.cloneRepo.bind(collection), req.body.repoUrl, req.body.ver, req.body.sourceVer))
+);
+
+app.post('/api/get-repo-tags', async (req, res) =>
+  post_response(res, call(collection.getRepoTags.bind(collection), req.body.repoUrl))
 );
 
 app.post('/api/is-repo-installed', async (req, res) =>
@@ -264,7 +268,8 @@ app.post('/api/uninstall-catalogue-workflow', async (req, res) =>
       collection.uninstallCatalogueWorkflow.bind(collection),
       req.body.catalogue_name,
       req.body.section_name,
-      req.body.workflow_name
+      req.body.workflow_name,
+      req.body.workflow_version
     )
   )
 );

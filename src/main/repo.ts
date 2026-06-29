@@ -44,10 +44,29 @@ export function parseRepoUrl(repoUrl: string): { owner: string; repo: string; ur
   return { owner, repo, url };
 }
 
+export function sortTagsBySemver(tags: string[]): string[] {
+  const parseSemver = (tag: string): number[] => {
+    const start = tag.match(/\d/);
+    if (!start) return [0];
+    const cleaned = tag.slice(start.index);
+    return cleaned.split('.').map((p) => parseInt(p.match(/^\d+/)?.[0] || '0', 10));
+  };
+  return [...tags].sort((a, b) => {
+    const pa = parseSemver(a);
+    const pb = parseSemver(b);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const diff = (pa[i] || 0) - (pb[i] || 0);
+      if (diff !== 0) return diff;
+    }
+    return 0;
+  });
+}
+
 export async function cloneRepo(
   repoUrl: string,
   workflowDir: string,
-  ver: string | null = null
+  ver: string | null = null,
+  dirSuffix?: string
 ): Promise<ICloneRepo> {
   const { owner, repo, url } = parseRepoUrl(repoUrl);
 
@@ -58,20 +77,27 @@ export async function cloneRepo(
     if (tags.length === 0) {
       version = 'main';
     } else {
-      version = tags[0];
+      const sorted = sortTagsBySemver(tags);
+      version = sorted[sorted.length - 1];
     }
   }
 
   // Determine and create the target directory
-  const targetDir = path.join(workflowDir, owner, repo + '@' + version);
+  const suffix = dirSuffix || version;
+  const targetDir = path.join(workflowDir, owner, repo + '@' + suffix);
   if (fs.existsSync(targetDir)) {
-    return {
-      owner: owner,
-      repo: repo,
-      version: version,
-      url: url,
-      path: targetDir
-    } as ICloneRepo;
+    if (dirSuffix === 'latest') {
+      // Remove and re-clone to switch to the selected version
+      fs.rmSync(targetDir, { recursive: true, force: true });
+    } else {
+      return {
+        owner: owner,
+        repo: repo,
+        version: version,
+        url: url,
+        path: targetDir
+      } as ICloneRepo;
+    }
   }
   fs.mkdirSync(targetDir, { recursive: true });
 

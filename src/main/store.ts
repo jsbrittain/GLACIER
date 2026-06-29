@@ -1,3 +1,4 @@
+import path from 'path';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
@@ -23,6 +24,7 @@ function getInstance() {
   if (_instance === null) {
     try {
       const { default: Store }: any = require('electron-store');
+      const { app: electronApp } = require('electron');
       _instance = new Store({
         schema: {
           configPath: { type: 'string', default: '' },
@@ -37,7 +39,9 @@ function getInstance() {
           instanceSortDir: { type: 'string', default: 'asc' },
           showLogPanel: { type: 'boolean', default: false }
         },
-        name: 'GLACIER'
+        name: 'config',
+        projectName: 'GLACIER',
+        cwd: path.join(electronApp.getPath('userData'), 'Library')
       });
     } catch {
       const data = new Map<string, any>();
@@ -60,6 +64,9 @@ const store = {
   },
   set<K extends keyof StoreSchema>(key: K, value: StoreSchema[K]): void {
     getInstance().set(key, value);
+  },
+  get path(): string | undefined {
+    return getInstance().path;
   }
 };
 
