@@ -282,6 +282,22 @@ function countProcesses(groups: any[]): { total: number; completed: number } {
   return { total: allProcesses.size, completed };
 }
 
+function findStoreDirKey(schema: Record<string, any>): string | null {
+  const storeDirKeys = ['store_dir', 'storedir', 'store-dir'];
+  const props = schema?.properties ?? {};
+  for (const key of storeDirKeys) {
+    if (key in props) return key;
+  }
+  const defs = schema?.$defs || schema?.definitions || {};
+  for (const defKey of Object.keys(defs)) {
+    const defProps = defs[defKey]?.properties ?? {};
+    for (const key of storeDirKeys) {
+      if (key in defProps) return key;
+    }
+  }
+  return null;
+}
+
 // Singleton class
 export class Collection {
   // --- Class management --------------------------------------------------------------
@@ -863,7 +879,7 @@ export class Collection {
     await this.parseCollection();
   }
 
-  createWorkflowInstance(workflow_id: string, version: string): IWorkflowInstance {
+  async createWorkflowInstance(workflow_id: string, version: string): Promise<IWorkflowInstance> {
     const { owner, repo } = parseRepoUrl(workflow_id);
     const workflow = this.workflows.find((wf) => wf.id === `${owner}/${repo}`);
     if (!workflow) {
@@ -885,6 +901,19 @@ export class Collection {
     const instance_id = instance_name;
     const instance_path = path.join(this.instances_path, owner, repo_and_version, instance_name);
     this.ensurePathExists(instance_path);
+
+    // Auto-set store_dir if the setting is enabled and the workflow schema has it
+    if (this.settingsGet('autoStoreDir')) {
+      const schema = await getWorkflowSchema(workflow_version.path);
+      const storeDirKey = findStoreDirKey(schema);
+      if (storeDirKey) {
+        const storeDirPath = path.join(getDocumentsPath(), 'store_dir');
+        const paramsFile = path.join(instance_path, 'glacier-params.json');
+        safeFs.writeFileSync(paramsFile, JSON.stringify({ [storeDirKey]: storeDirPath }, null, 2));
+        safeFs.mkdirSync(storeDirPath, { recursive: true });
+      }
+    }
+
     const instance = new WorkflowInstance({
       id: instance_id,
       name: instance_name,

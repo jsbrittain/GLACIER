@@ -58,6 +58,7 @@ Action buttons on this tab allow you to:
 |---------|-------------|
 | **Disable schema validation** | Bypass `nextflow_schema.json` validation when launching workflows. Use this if a workflow has a malformed schema. |
 | **Show hidden params** | Display parameters that the workflow schema marks as hidden. |
+| **Auto-resolve store_dir** | When creating an instance of a workflow that defines a `store_dir`, `storedir`, or `store-dir` parameter, automatically set it to `{documentsPath}/store_dir` and create the directory. The parameter is overwritten even if it carries a default from the schema. Note: this is a custom parameter convention, *not* Nextflow's built-in `storeDir` process directive. |
 
 ## Licenses
 

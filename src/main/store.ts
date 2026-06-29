@@ -16,6 +16,7 @@ export interface StoreSchema {
   instanceSortBy: string;
   instanceSortDir: string;
   showLogPanel: boolean;
+  autoStoreDir: boolean;
 }
 
 let _instance: any = null;
@@ -37,7 +38,8 @@ function getInstance() {
           disableSchemaValidation: { type: 'boolean', default: false },
           instanceSortBy: { type: 'string', default: 'name' },
           instanceSortDir: { type: 'string', default: 'asc' },
-          showLogPanel: { type: 'boolean', default: false }
+          showLogPanel: { type: 'boolean', default: false },
+          autoStoreDir: { type: 'boolean', default: true }
         },
         name: 'config',
         projectName: 'GLACIER',
