@@ -92,25 +92,18 @@ function InnerFilePathControl(props: ControlProps) {
     }
   })();
 
-  const pick = async () => {
+  const pickFile = async () => {
     const accept = (uischema as any)?.options?.accept as string | undefined;
-    const filters = picker === 'directory' ? undefined : toFilters(accept);
+    const filters = toFilters(accept);
+    const result = await API.pickFile(filters);
 
-    let result;
-
-    switch (picker) {
-      case 'directory':
-        result = await API.pickDirectory();
-        break;
-
-      case 'file':
-        result = await API.pickFile(filters);
-        break;
-
-      case 'both':
-        result = await API.pickFileOrDirectory({ filters });
-        break;
+    if (result?.ok && result.data) {
+      handleChange(path, result.data);
     }
+  };
+
+  const pickFolder = async () => {
+    const result = await API.pickDirectory();
 
     if (result?.ok && result.data) {
       handleChange(path, result.data);
@@ -152,9 +145,24 @@ function InnerFilePathControl(props: ControlProps) {
           />
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-          <IconButton onClick={pick} disabled={!enabled}>
-            {picker === 'directory' ? <FolderOpenIcon /> : <FileOpenIcon />}
-          </IconButton>
+          {picker === 'both' ? (
+            <>
+              <IconButton onClick={pickFile} disabled={!enabled} title="Select file">
+                <FileOpenIcon />
+              </IconButton>
+              <IconButton onClick={pickFolder} disabled={!enabled} title="Select folder">
+                <FolderOpenIcon />
+              </IconButton>
+            </>
+          ) : (
+            <IconButton
+              onClick={picker === 'directory' ? pickFolder : pickFile}
+              disabled={!enabled}
+              title={picker === 'directory' ? 'Select folder' : 'Select file'}
+            >
+              {picker === 'directory' ? <FolderOpenIcon /> : <FileOpenIcon />}
+            </IconButton>
+          )}
         </Box>
       </Stack>
       <FormHelperText error={!isValid && !showDescription}>

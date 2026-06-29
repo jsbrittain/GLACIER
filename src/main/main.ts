@@ -126,16 +126,6 @@ ipcMain.handle('pick-directory', async () => {
   });
 });
 
-ipcMain.handle('pick-file-or-directory', async (_, options) => {
-  return call(async () => {
-    const result = await dialog.showOpenDialog({
-      properties: ['openFile', 'openDirectory', 'createDirectory'],
-      filters: options?.filters
-    });
-    return result.canceled ? null : (result.filePaths[0] ?? null);
-  });
-});
-
 ipcMain.handle('show-save-dialog', async (_evt, opts) => {
   return call(async () => {
     const res = await dialog.showSaveDialog(win!, opts);

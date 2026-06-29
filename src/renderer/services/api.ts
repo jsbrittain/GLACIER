@@ -88,7 +88,6 @@ const electronAPI = isElectron
       getSystemResources: () => window.electronAPI.getSystemResources(),
       pickFile: (filters) => window.electronAPI.pickFile(filters),
       pickDirectory: () => window.electronAPI.pickDirectory(),
-      pickFileOrDirectory: (options) => window.electronAPI.pickFileOrDirectory(options),
       showSaveDialog: (opts) => window.electronAPI.showSaveDialog(opts),
       writeTextFile: (filePath, content) => window.electronAPI.writeTextFile(filePath, content),
       readTextFile: (filePath) => window.electronAPI.readTextFile(filePath),
@@ -246,10 +245,6 @@ const httpAPI = {
   pickDirectory: async () => {
     const { showFileBrowser } = await import('./showFileBrowser.js');
     return showFileBrowser({ mode: 'directory' });
-  },
-  pickFileOrDirectory: async (options) => {
-    const { showFileBrowser } = await import('./showFileBrowser.js');
-    return showFileBrowser({ mode: 'both', filters: options?.filters });
   },
   showSaveDialog: async (opts) => {
     const { showFileBrowser } = await import('./showFileBrowser.js');
