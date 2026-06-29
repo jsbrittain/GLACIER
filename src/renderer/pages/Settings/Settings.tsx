@@ -96,16 +96,16 @@ export default function SettingsPage({
 
   useEffect(() => {
     API.settingsGet(SettingsKey.PermitAddCatalogues).then((result) => {
-      if (result.ok) setPermitAddCatalogues(result.data);
+      if (result.ok && result.data !== undefined) setPermitAddCatalogues(result.data);
     });
     API.settingsGet(SettingsKey.PermitCatalogueModifications).then((result) => {
-      if (result.ok) setPermitCatalogueModifications(result.data);
+      if (result.ok && result.data !== undefined) setPermitCatalogueModifications(result.data);
     });
     API.settingsGet(SettingsKey.PermitImportShards).then((result) => {
-      if (result.ok) setPermitImportShards(result.data);
+      if (result.ok && result.data !== undefined) setPermitImportShards(result.data);
     });
     API.settingsGet(SettingsKey.PermitAddRepos).then((result) => {
-      if (result.ok) setPermitAddRepos(result.data);
+      if (result.ok && result.data !== undefined) setPermitAddRepos(result.data);
     });
     API.settingsGet(SettingsKey.DisableSchemaValidation).then((result) => {
       if (result.ok) setDisableSchemaValidation(result.data);
@@ -189,7 +189,7 @@ export default function SettingsPage({
             <Switch
               id="settings-permit-add-catalogues"
               checked={permitAddCatalogues}
-              onChange={() => handlePermitAddCatalogues(!permitAddCatalogues)}
+              onChange={(_, checked) => handlePermitAddCatalogues(checked)}
             />
           }
           label={t('settings.permit-add-catalogues')}
@@ -199,7 +199,7 @@ export default function SettingsPage({
             <Switch
               id="settings-permit-catalogue-modifications"
               checked={permitCatalogueModifications}
-              onChange={() => handlePermitCatalogueModifications(!permitCatalogueModifications)}
+              onChange={(_, checked) => handlePermitCatalogueModifications(checked)}
             />
           }
           label={t('settings.permit-catalogue-modifications')}
@@ -209,7 +209,7 @@ export default function SettingsPage({
             <Switch
               id="settings-permit-import-shards"
               checked={permitImportShards}
-              onChange={() => handlePermitImportShards(!permitImportShards)}
+              onChange={(_, checked) => handlePermitImportShards(checked)}
             />
           }
           label={t('settings.permit-import-shards')}
@@ -219,7 +219,7 @@ export default function SettingsPage({
             <Switch
               id="settings-permit-add-repos"
               checked={permitAddRepos}
-              onChange={() => handlePermitAddRepos(!permitAddRepos)}
+              onChange={(_, checked) => handlePermitAddRepos(checked)}
             />
           }
           label={t('settings.permit-add-repos')}
@@ -229,7 +229,7 @@ export default function SettingsPage({
       <TabPanel value={tabValue} index={1}>
         <Stack spacing={2}>
           <FormControlLabel
-            control={<Switch checked={darkMode} onChange={() => handleDarkMode(!darkMode)} />}
+            control={<Switch checked={darkMode} onChange={(_, checked) => handleDarkMode(checked)} />}
             label={t('settings.dark-mode')}
           />
           <FormControlLabel
@@ -268,7 +268,7 @@ export default function SettingsPage({
             control={
               <Switch
                 checked={disableSchemaValidation}
-                onChange={() => handleDisableSchemaValidation(!disableSchemaValidation)}
+                onChange={(_, checked) => handleDisableSchemaValidation(checked)}
               />
             }
             label={t('settings.disable-schema-validation')}

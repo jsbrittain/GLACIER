@@ -75,16 +75,16 @@ export default function MainPage({ darkMode, setDarkMode }) {
         if (result.ok) setDarkMode(result.data);
       });
       API.settingsGet(SettingsKey.PermitAddCatalogues).then((result) => {
-        if (result.ok) setPermitAddCatalogues(result.data);
+        if (result.ok && result.data !== undefined) setPermitAddCatalogues(result.data);
       });
       API.settingsGet(SettingsKey.PermitCatalogueModifications).then((result) => {
-        if (result.ok) setPermitCatalogueModifications(result.data);
+        if (result.ok && result.data !== undefined) setPermitCatalogueModifications(result.data);
       });
       API.settingsGet(SettingsKey.PermitImportShards).then((result) => {
-        if (result.ok) setPermitImportShards(result.data);
+        if (result.ok && result.data !== undefined) setPermitImportShards(result.data);
       });
       API.settingsGet(SettingsKey.PermitAddRepos).then((result) => {
-        if (result.ok) setPermitAddRepos(result.data);
+        if (result.ok && result.data !== undefined) setPermitAddRepos(result.data);
       });
       API.settingsGet(SettingsKey.ShowLogPanel).then((result) => {
         if (result.ok) setShowLogPanel(result.data);
