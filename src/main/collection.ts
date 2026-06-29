@@ -1619,6 +1619,64 @@ export class Collection {
     }
   }
 
+  async openLogFile(instance: IWorkflowInstance, log_type: string) {
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    const logFile = path.join(local_instance.path, `${log_type}.log`);
+    if (safeFs.existsSync(logFile)) {
+      const s = await getShell();
+      return s.openInEditor(logFile);
+    }
+  }
+
+  async openWorkLogFile(instance: IWorkflowInstance, workID: string, log_type: string) {
+    const local_instance = this.workflow_instances.find((inst) => inst.id === instance.id);
+    if (!local_instance) {
+      throw new Error(`Instance ${instance.id} not found in collection.`);
+    }
+    const log_filenames: Record<string, string> = {
+      stdout: '.command.out',
+      stderr: '.command.err',
+      log: '.command.log',
+      run: '.command.run',
+      shell: '.command.sh',
+      trace: '.command.trace',
+      begin: '.command.begin'
+    };
+    const log_filename = log_filenames[log_type];
+    if (!log_filename) {
+      throw new Error(`Unknown log type: ${log_type}`);
+    }
+    const match = workID.match(/^([a-f0-9]{2})\/([a-f0-9]{6})$/);
+    if (!match) {
+      throw new Error(`Invalid work ID format: ${workID}`);
+    }
+    const prefix = match[1];
+    const short_hash = match[2];
+    const workFolder = path.join(local_instance.path, 'work', prefix);
+    if (!safeFs.existsSync(workFolder)) {
+      throw new Error(`Work folder ${workFolder} does not exist.`);
+    }
+    const readResult = safeFs.readdirSync(workFolder);
+    if (!readResult.ok) {
+      throw new Error(`Cannot read work folder ${workFolder}: ${readResult.error.message}`);
+    }
+    const candidates = readResult.data.filter((f) => f.startsWith(short_hash));
+    if (candidates.length === 0) {
+      throw new Error(`No work folders found matching ID: ${workID}`);
+    } else if (candidates.length > 1) {
+      console.warn(`Multiple work folders found matching ID: ${workID}, using first match.`);
+    }
+    const folderPath = path.join(workFolder, candidates[0]);
+    const logFile = path.join(folderPath, log_filename);
+    if (safeFs.existsSync(logFile)) {
+      const s = await getShell();
+      return s.openInEditor(logFile);
+    }
+  }
+
   getInstanceReportsList(instance: IWorkflowInstance): Record<string, string>[] {
     return locateReports(instance.path);
   }

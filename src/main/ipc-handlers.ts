@@ -133,6 +133,14 @@ export function registerIpcHandlers(resourceRoot?: string) {
     return call(collection.openWorkFolder.bind(collection), instance, work_id);
   });
 
+  ipcMain.handle('open-log-file', async (event, instance: any, log_type: string) => {
+    return call(collection.openLogFile.bind(collection), instance, log_type);
+  });
+
+  ipcMain.handle('open-work-log-file', async (event, instance: any, workID: string, logType: string) => {
+    return call(collection.openWorkLogFile.bind(collection), instance, workID, logType);
+  });
+
   ipcMain.handle('get-work-log', async (event, instance: any, workID: string, logType: string) => {
     return call(collection.getWorkLog.bind(collection), instance, workID, logType);
   });

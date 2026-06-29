@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Box, Tabs, Tab, Paper } from '@mui/material';
+import { Box, Button, Tabs, Tab, Paper, Stack } from '@mui/material';
 import AnsiLog from './AnsiLog.js';
 import { useTranslation } from 'react-i18next';
 import { API } from '../../services/api.js';
@@ -45,18 +45,37 @@ const ShowLog = ({ instance, log_type }: { instance: any; log_type: string }) =>
 export default function LogsPage({ instance }: { instance: any }) {
   const { t } = useTranslation();
   const [tabSelected, setTabSelected] = React.useState(0);
+  const logTypes = ['stdout', 'stderr', 'nextflow'];
 
   const handleTabChange = (event, newValue) => {
     setTabSelected(newValue);
   };
 
+  const handleOpenFolder = () => {
+    API.openResultsFolder(instance);
+  };
+
+  const handleOpenInEditor = () => {
+    API.openLogFile(instance, logTypes[tabSelected]);
+  };
+
   return (
     <Paper>
-      <Tabs value={tabSelected} onChange={handleTabChange}>
-        <Tab label={t('monitor.logs.stdout')} />
-        <Tab label={t('monitor.logs.stderr')} />
-        <Tab label={t('monitor.logs.nextflow-log')} />
-      </Tabs>
+      <Stack direction="row" alignItems="center" sx={{ width: '100%' }}>
+        <Tabs value={tabSelected} onChange={handleTabChange} sx={{ flex: 1 }}>
+          <Tab label={t('monitor.logs.stdout')} />
+          <Tab label={t('monitor.logs.stderr')} />
+          <Tab label={t('monitor.logs.nextflow-log')} />
+        </Tabs>
+        <Box sx={{ display: 'flex', gap: 1, px: 1 }}>
+          <Button size="small" variant="outlined" onClick={handleOpenFolder}>
+            {t('monitor.logs.open-folder')}
+          </Button>
+          <Button size="small" variant="outlined" onClick={handleOpenInEditor}>
+            {t('monitor.logs.open-in-editor')}
+          </Button>
+        </Box>
+      </Stack>
       <TabPanel value={tabSelected} index={0}>
         <ShowLog instance={instance} log_type="stdout" />
       </TabPanel>

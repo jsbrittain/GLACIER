@@ -196,7 +196,9 @@
       "run": "Run",
       "shell": "Shell",
       "trace": "Trace",
-      "begin": "Begin Log"
+      "begin": "Begin Log",
+      "open-folder": "Open Folder",
+      "open-in-editor": "Open in Editor"
     },
     "reports": "Reports",
     "select-report": "Select Report",
@@ -225,6 +227,7 @@
       "view-log": "View Log",
       "hide-log": "Hide Log",
       "open-folder": "Open Folder",
+      "open-in-editor": "Open in Editor",
       "loading": "Loading...",
       "waiting-for-report": "Loading report...",
       "no-logs": "This log file is empty."
