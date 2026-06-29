@@ -324,7 +324,10 @@ export default function ParametersPage({
 
       <TabPanel value={tabSelected} index={2}>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+          <Paper
+            variant="outlined"
+            sx={{ p: 2, mb: 2, '& .MuiCardContent-root > div > * + *': { mt: 1.5 } }}
+          >
             {!isEmpty(schema) ? (
               <JsonForms
                 schema={schema}

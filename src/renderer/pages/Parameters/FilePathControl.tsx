@@ -1,12 +1,26 @@
 // FilePathControl.tsx
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import { withJsonFormsControlProps } from '@jsonforms/react';
 import { ControlProps, isDescriptionHidden } from '@jsonforms/core';
-import { TextField, IconButton, Stack } from '@mui/material';
+import {
+  FormControl,
+  InputLabel,
+  OutlinedInput,
+  IconButton,
+  Stack,
+  FormHelperText
+} from '@mui/material';
 import { Box } from '@mui/system';
 import FileOpenIcon from '@mui/icons-material/FileOpen';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import { API } from '../../services/api.js';
+
+function useFocus(): [boolean, () => void, () => void] {
+  const [focused, setFocused] = useState(false);
+  const onFocus = useCallback(() => setFocused(true), []);
+  const onBlur = useCallback(() => setFocused(false), []);
+  return [focused, onFocus, onBlur];
+}
 
 const toFilters = (accept?: string): Electron.FileFilter[] | undefined => {
   // accept like ".csv,.fastq,.fastq.gz,application/json"
@@ -32,6 +46,7 @@ function InnerFilePathControl(props: ControlProps) {
     handleChange,
     path,
     label,
+    description,
     required,
     visible = true,
     enabled = true,
@@ -44,10 +59,23 @@ function InnerFilePathControl(props: ControlProps) {
 
   if (!visible) return null;
 
-  const description =
-    (uischema as any)?.options?.description ?? schema?.description ?? (schema as any)?.help_text;
-
-  const showDesc = !isDescriptionHidden(visible, description, config);
+  const [focused, onFocus, onBlur] = useFocus();
+  const isValid = errors.length === 0;
+  const appliedUiSchemaOptions = { ...(config as any), ...(uischema as any)?.options };
+  const showUnfocusedDescription = appliedUiSchemaOptions.showUnfocusedDescription;
+  const hideRequiredAsterisk = appliedUiSchemaOptions.hideRequiredAsterisk;
+  const showDescription = !isDescriptionHidden(
+    visible,
+    description,
+    focused,
+    showUnfocusedDescription
+  );
+  const firstFormHelperText = showDescription
+    ? description
+    : !isValid
+    ? errors
+    : null;
+  const secondFormHelperText = showDescription && !isValid ? errors : null;
 
   type PickerMode = 'file' | 'directory' | 'both';
 
@@ -90,35 +118,52 @@ function InnerFilePathControl(props: ControlProps) {
   };
 
   return (
-    <Stack
-      direction="row"
-      spacing={1}
-      sx={{ opacity: enabled ? 1 : 0.6 }}
-      alignItems="flex-start" // top-align the children
+    <FormControl
+      size="small"
+      error={!isValid}
+      disabled={!enabled}
+      required={required}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      id={id}
+      fullWidth
     >
-      {/* Left: field + helper text */}
-      <Box sx={{ flexGrow: 1 }}>
-        <TextField
-          id={id}
-          label={label}
-          value={data ?? ''}
-          required={required}
-          InputProps={{ readOnly: true }}
-          disabled={!enabled}
-          error={Boolean(errors)}
-          helperText={errors || (showDesc ? description : undefined)}
-          size="small"
-          fullWidth
-        />
-      </Box>
-
-      {/* Right: icon, top-aligned with the field */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-        <IconButton onClick={pick} disabled={!enabled}>
-          {picker === 'directory' ? <FolderOpenIcon /> : <FileOpenIcon />}
-        </IconButton>
-      </Box>
-    </Stack>
+      <InputLabel
+        htmlFor={`${id}-input`}
+        error={!isValid}
+        required={required && !hideRequiredAsterisk}
+      >
+        {label}
+      </InputLabel>
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{ opacity: enabled ? 1 : 0.6 }}
+        alignItems="flex-start"
+      >
+        <Box sx={{ flexGrow: 1 }}>
+          <OutlinedInput
+            id={`${id}-input`}
+            value={data ?? ''}
+            readOnly
+            label={label}
+            size="small"
+            fullWidth
+          />
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+          <IconButton onClick={pick} disabled={!enabled}>
+            {picker === 'directory' ? <FolderOpenIcon /> : <FileOpenIcon />}
+          </IconButton>
+        </Box>
+      </Stack>
+      <FormHelperText error={!isValid && !showDescription}>
+        {firstFormHelperText}
+      </FormHelperText>
+      {secondFormHelperText && (
+        <FormHelperText error>{secondFormHelperText}</FormHelperText>
+      )}
+    </FormControl>
   );
 }
 
