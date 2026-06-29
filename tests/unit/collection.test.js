@@ -685,6 +685,63 @@ describe('Collection', () => {
 
       expect(collection.catalogues).toEqual([]);
     });
+
+    it('skips non-directory entries at top level (e.g. .DS_Store alongside owner dirs)', async () => {
+      const catDir = path.join(tmpDir, 'catalogues', 'owner', 'cat-repo');
+      fs.mkdirSync(catDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(catDir, 'catalogue.json'),
+        JSON.stringify({ name: 'Test Cat', sections: [] }),
+        'utf8'
+      );
+      fs.writeFileSync(path.join(tmpDir, 'catalogues', '.DS_Store'), '', 'utf8');
+
+      await collection.parseCatalogues();
+
+      expect(collection.catalogues).toHaveLength(1);
+      expect(collection.catalogues[0].name).toBe('Test Cat');
+      expect(collection.catalogues[0].source).toBe('owner/cat-repo');
+    });
+
+    it('skips non-directory entries at owner level (e.g. .DS_Store alongside repo dirs)', async () => {
+      const catDir = path.join(tmpDir, 'catalogues', 'owner', 'cat-repo');
+      fs.mkdirSync(catDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(catDir, 'catalogue.json'),
+        JSON.stringify({ name: 'Test Cat', sections: [] }),
+        'utf8'
+      );
+      fs.writeFileSync(path.join(tmpDir, 'catalogues', 'owner', '.DS_Store'), '', 'utf8');
+
+      await collection.parseCatalogues();
+
+      expect(collection.catalogues).toHaveLength(1);
+      expect(collection.catalogues[0].name).toBe('Test Cat');
+    });
+
+    it('skips non-directory entries at all levels alongside valid catalogues', async () => {
+      const catDir = path.join(tmpDir, 'catalogues', 'owner', 'cat-repo');
+      fs.mkdirSync(catDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(catDir, 'catalogue.json'),
+        JSON.stringify({ name: 'Test Cat', sections: [] }),
+        'utf8'
+      );
+      fs.writeFileSync(path.join(tmpDir, 'catalogues', '.DS_Store'), '', 'utf8');
+      fs.writeFileSync(path.join(tmpDir, 'catalogues', 'owner', '.DS_Store'), '', 'utf8');
+      fs.writeFileSync(path.join(catDir, '.DS_Store'), '', 'utf8');
+      const anotherDir = path.join(tmpDir, 'catalogues', 'anotherOwner', 'another-repo');
+      fs.mkdirSync(anotherDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(anotherDir, 'catalogue.json'),
+        JSON.stringify({ name: 'Another Cat', sections: [] }),
+        'utf8'
+      );
+
+      await collection.parseCatalogues();
+
+      expect(collection.catalogues).toHaveLength(2);
+    });
   });
 
   describe('addCatalogue', () => {

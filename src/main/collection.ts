@@ -1449,9 +1449,11 @@ export class Collection {
     const owners = fs.readdirSync(this.catalogues_path);
     for (const owner of owners) {
       const ownerPath = path.join(this.catalogues_path, owner);
+      if (!fs.statSync(ownerPath).isDirectory()) continue;
       const repoDirs = fs.readdirSync(ownerPath);
       for (const repo of repoDirs) {
         const repoPath = path.join(ownerPath, repo);
+        if (!fs.statSync(repoPath).isDirectory()) continue;
         // Read catalogue.json
         const cat_file = path.join(repoPath, 'catalogue.json');
         const cat_contents = fs.readFileSync(cat_file, 'utf-8');
