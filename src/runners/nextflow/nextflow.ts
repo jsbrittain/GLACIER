@@ -136,31 +136,33 @@ export async function runWorkflow(
   if (is_windows) {
     const args = [
       'nextflow',
+      '-log',
+      toPosixPath(path.join(instancePath, 'nextflow.log')),
       'run',
       resolvePath(projectPath, 'main.nf'),
       '-work-dir',
       toPosixPath(workPath),
       '-profile',
       profile,
-      '-params-file',
-      toPosixPath(paramsFile),
-      '-name',
-      name
-    ];
-    if (resume) {
-      args.push('-resume');
-    }
-    const cmd = args.join(' ');
+    '-params-file',
+    toPosixPath(paramsFile),
+    '-name',
+    name
+  ];
+  if (resume) {
+    args.push('-resume');
+  }
+  const cmd = args.join(' ');
 
-    const bashArgs = [
-      cmd,
-      '>',
-      resolvePath(instancePath, 'stdout.log'),
-      '2>',
-      resolvePath(instancePath, 'stderr.log'),
-      '<',
-      '/dev/null'
-    ];
+  const bashArgs = [
+    cmd,
+    '>',
+    resolvePath(instancePath, 'stdout.log'),
+    '2>',
+    resolvePath(instancePath, 'stderr.log'),
+    '<',
+    '/dev/null'
+  ];
     const bashCmd = bashArgs.join(' ');
 
     console.log(`Spawning nextflow with command: ${cmd} from ${instancePath}`);
@@ -192,6 +194,8 @@ export async function runWorkflow(
 
   // Unix / macOS launcher
   const cmd = [
+    '-log',
+    resolvePath(instancePath, 'nextflow.log'),
     'run',
     resolvePath(projectPath, 'main.nf'),
     '-work-dir',
