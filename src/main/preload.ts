@@ -61,6 +61,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('hide-catalogue-section', catalogue_name, section_name),
   removeCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string) =>
     ipcRenderer.invoke('remove-catalogue-workflow', catalogue_name, section_name, workflow_name),
+  moveCatalogueWorkflowsToUser: (catalogue_name: string, workflows: Array<{ section: string; name: string }>) =>
+    ipcRenderer.invoke('move-catalogue-workflows-to-user', catalogue_name, workflows),
   uninstallCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string, workflow_version?: string) =>
     ipcRenderer.invoke('uninstall-catalogue-workflow', catalogue_name, section_name, workflow_name, workflow_version),
   updateCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string) =>
@@ -73,6 +75,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('show-catalogue-workflows', catalogue_name),
   showCatalogueSections: (catalogue_name: string) =>
     ipcRenderer.invoke('show-catalogue-sections', catalogue_name),
+  getInstalledWorkflowIds: () => ipcRenderer.invoke('get-installed-workflow-ids'),
   getCatalogues: () => ipcRenderer.invoke('get-catalogues'),
   getCatalogueParseResults: () => ipcRenderer.invoke('get-catalogue-parse-results'),
   refreshCatalogues: () => ipcRenderer.invoke('refresh-catalogues'),
