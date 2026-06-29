@@ -13,7 +13,11 @@ export default function HtmlReports({ instance }) {
 
   useEffect(() => {
     API.getInstanceReportsList(instance).then((result) => {
-      if (result.ok) setReportsList(result.data || []);
+      if (result.ok) {
+        const list = result.data || [];
+        setReportsList(list);
+        if (list.length > 0) setSelected(list[0]);
+      }
     });
   }, [instance]);
 
