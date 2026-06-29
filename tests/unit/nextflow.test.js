@@ -204,7 +204,7 @@ describe('nextflow', () => {
       const pid = await runWorkflow(makeInstance(), {});
 
       expect(pid.pid).toBe(12345);
-      expect(pid.cmd).toContain('nextflow run');
+      expect(pid.cmd).toContain('-log');
     });
 
     it('calls unref on the child process', async () => {
@@ -353,7 +353,7 @@ describe('nextflow', () => {
       const pid = await winRunWorkflow(makeInstance({ path: 'C:\\test' }), {});
 
       expect(pid.pid).toBe(999);
-      expect(pid.cmd).toContain('nextflow run');
+      expect(pid.cmd).toContain('-log');
     });
 
     it('throws when wsl process has no pid', async () => {
