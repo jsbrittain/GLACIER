@@ -98,7 +98,10 @@ const electronAPI = isElectron
       deleteOrphanedInstances: () => window.electronAPI.deleteOrphanedInstances(),
       hideWorkflowInstance: (instance) => window.electronAPI.hideWorkflowInstance(instance),
       unhideWorkflowInstance: (instance) => window.electronAPI.unhideWorkflowInstance(instance),
-      listHiddenInstances: () => window.electronAPI.listHiddenInstances()
+      listHiddenInstances: () => window.electronAPI.listHiddenInstances(),
+      exportCatalogue: (name, path) => window.electronAPI.exportCatalogue(name, path),
+      createCatalogueFromFile: (filePath) =>
+        window.electronAPI.createCatalogueFromFile(filePath)
     }
   : null;
 
@@ -264,7 +267,11 @@ const httpAPI = {
     httpDispatch('/api/hide-workflow-instance', 'POST', { instance }),
   unhideWorkflowInstance: async (instance) =>
     httpDispatch('/api/unhide-workflow-instance', 'POST', { instance }),
-  listHiddenInstances: async () => httpDispatch('/api/list-hidden-instances', 'POST', {})
+  listHiddenInstances: async () => httpDispatch('/api/list-hidden-instances', 'POST', {}),
+  exportCatalogue: async (name, path) =>
+    httpDispatch('/api/export-catalogue', 'POST', { name, path }),
+  createCatalogueFromFile: async (filePath) =>
+    httpDispatch('/api/create-catalogue-from-file', 'POST', { filePath })
 };
 
 export const API = isElectron ? electronAPI : httpAPI;

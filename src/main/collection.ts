@@ -2304,6 +2304,27 @@ export class Collection {
     safeFs.writeFileSync(user_cat_path, JSON.stringify(userCat, null, 2));
   }
 
+  async exportCatalogue(catalogueName: string, destPath: string): Promise<string> {
+    const cat = this.catalogues.find((c) => c.name === catalogueName);
+    if (!cat) throw new Error(`Catalogue ${catalogueName} not found.`);
+    const { source: _source, base_dir: _base_dir, ...exportData } = cat;
+    safeFs.writeFileSync(destPath, JSON.stringify(exportData, null, 2));
+    return destPath;
+  }
+
+  async createCatalogueFromFile(filePath: string): Promise<string> {
+    const raw = safeFs.readFileSync(filePath);
+    if (!raw.ok) throw new Error(`Cannot read file: ${raw.error.message}`);
+    const cat = JSON.parse(raw.data);
+    if (!cat?.sections || !cat?.name) throw new Error('Invalid catalogue JSON: missing name or sections');
+    const dest = path.join(this.catalogues_path, 'local', cat.name);
+    const destFile = path.join(dest, 'catalogue.json');
+    this.ensurePathExists(dest);
+    safeFs.writeFileSync(destFile, JSON.stringify(cat, null, 2));
+    await this.parseCatalogues();
+    return cat.name;
+  }
+
   async getCatalogues() {
     // Max timeout of 10 seconds to wait for catalogues to be parsed
     const start = Date.now();

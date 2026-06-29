@@ -35,6 +35,13 @@
     "add-repository": "Ajouter un dépôt",
     "remove-repository": "Supprimer le dépôt",
     "uninstall-repository": "Désinstaller le dépôt",
+    "export-catalogue": "Exporter le catalogue",
+    "export-catalogue-success": "Catalogue {{name}} exporté vers {{path}}",
+    "export-catalogue-failure": "Échec de l'exportation du catalogue: {{error}}",
+    "add-catalogue-from-file": "Ajouter un catalogue depuis un fichier",
+
+    "create-catalogue-from-file-success": "Catalogue {{name}} créé depuis un fichier",
+    "create-catalogue-from-file-failure": "Échec de la création du catalogue: {{error}}",
     "hide-repository": "Masquer le dépôt",
     "show-workflows": "Afficher les flux de travail",
     "show-all-sections": "Afficher toutes les sections",
