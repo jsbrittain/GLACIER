@@ -64,7 +64,7 @@ export default function LogsPage({ instance }: { instance: any }) {
         <ShowLog instance={instance} log_type="stderr" />
       </TabPanel>
       <TabPanel value={tabSelected} index={2}>
-        <ShowLog instance={instance} log_type=".nextflow" />
+        <ShowLog instance={instance} log_type="nextflow" />
       </TabPanel>
     </Paper>
   );

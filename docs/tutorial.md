@@ -87,7 +87,7 @@ Switch to the **Logs** tab for live-updating streams:
 
 - **stdout** — Nextflow's standard output (refreshes every 1 second).
 - **stderr** — Nextflow's standard error.
-- **.nextflow.log** — Nextflow's internal log file.
+- **nextflow.log** — Nextflow's internal log file.
 
 ### Reports tab
 
@@ -114,7 +114,7 @@ You can inspect the instance directory on disk at:
 <documentsPath>/instances/artic-network/raccoon-nf@latest/<instance_name>/
 ```
 
-This contains `params.json`, `stdout.log`, `stderr.log`, `.nextflow.log`, the `work/` directory, and any reports.
+This contains `params.json`, `stdout.log`, `stderr.log`, `nextflow.log`, the `work/` directory, and any reports.
 
 ## Summary
 

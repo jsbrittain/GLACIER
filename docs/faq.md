@@ -44,7 +44,7 @@ The instance was created but never launched. Open the **Instances** page, click 
 
 ### My workflow failed — where do I look for errors?
 
-1. **Monitor → Logs** tab — check `stderr` and `.nextflow.log` for error messages.
+1. **Monitor → Logs** tab — check `stderr` and `nextflow.log` for error messages.
 2. **Monitor → Progress** tab — look for process nodes with red error icons.
 3. Click the **⋮** menu on a failed process and inspect `.command.err` and `.command.out` for task-level errors.
 

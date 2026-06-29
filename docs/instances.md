@@ -42,7 +42,7 @@ Each instance is stored at:
 params.json        -- Parameters used for the run
 stdout.log         -- Nextflow standard output
 stderr.log         -- Nextflow standard error
-.nextflow.log      -- Nextflow internal log
+nextflow.log       -- Nextflow internal log
 work/              -- Nextflow work directory (per-task outputs)
 <reports>          -- HTML report files (e.g. articMinIONReport.html)
 ```

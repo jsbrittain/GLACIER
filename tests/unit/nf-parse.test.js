@@ -15,7 +15,7 @@ afterEach(() => {
 });
 
 function createLogFile(content) {
-  const logPath = join(tmpDir, '.nextflow.log');
+  const logPath = join(tmpDir, 'nextflow.log');
   writeFileSync(logPath, content, 'utf8');
   return logPath;
 }

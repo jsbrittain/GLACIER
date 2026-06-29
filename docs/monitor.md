@@ -58,6 +58,6 @@ Three sub-tabs provide live-updating logs:
 |-----|--------|--------------|
 | **stdout** | `stdout.log` (Nextflow's standard output). | 1 second |
 | **stderr** | `stderr.log` (Nextflow's standard error). | 1 second |
-| **.nextflow.log** | Nextflow's internal log file. | 1 second |
+| **nextflow.log** | Nextflow's internal log file. | 1 second |
 
 Log content is rendered with ANSI colour support for readability.

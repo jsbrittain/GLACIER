@@ -66,4 +66,4 @@ java -jar nextflow.jar run <repo> \
   -name <instance_name>
 ```
 
-Standard output and error are captured to `stdout.log` and `stderr.log` in the instance directory. Nextflow's own log goes to `.nextflow.log`.
+Standard output and error are captured to `stdout.log` and `stderr.log` in the instance directory. Nextflow's own log goes to `nextflow.log`.

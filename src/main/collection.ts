@@ -182,12 +182,12 @@ class WorkflowInstance implements IWorkflowInstance {
   }
 
   async getProgress(): Promise<Record<string, any>> {
-    // Read the most recent .nextflow.log (handles rotation: .nextflow.log, .nextflow.log.1, ...)
-    let logFile = path.join(this.path, '.nextflow.log');
+    // Read the most recent nextflow.log (handles rotation: nextflow.log, nextflow.log.1, ...)
+    let logFile = path.join(this.path, 'nextflow.log');
     if (fs.existsSync(this.path)) {
       const candidates = fs
         .readdirSync(this.path)
-        .filter((f) => f.startsWith('.nextflow.log'))
+        .filter((f) => f.startsWith('nextflow.log'))
         .map((f) => ({
           name: f,
           mtime: fs.statSync(path.join(this.path, f)).mtimeMs

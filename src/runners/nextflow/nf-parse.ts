@@ -4,7 +4,7 @@ import * as readline from 'readline';
 import path from 'path';
 import { WorkflowStatus } from '../../types/types.js';
 
-const file = process.argv[2] ?? '.nextflow.log';
+const file = process.argv[2] ?? 'nextflow.log';
 
 // Simple timestamp prefix (optional) — grabs everything up to the first "]" block or start of line
 const tsRe = /^(.*?)\s*(?:\[[^\]]+\]\s*)?/;
