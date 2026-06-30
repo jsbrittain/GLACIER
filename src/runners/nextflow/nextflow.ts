@@ -115,7 +115,7 @@ export async function runWorkflow(
   // Save parameters to a file in the instance folder
   const paramsFile = path.resolve(instancePath, 'glacier-params.json');
   if (!resume && !restart) {
-    fs.writeFile(paramsFile, JSON.stringify(params, null, 2), 'utf8');
+    await fs.writeFile(paramsFile, JSON.stringify(params, null, 2), 'utf8');
   }
 
   // Clear logs and set to append
