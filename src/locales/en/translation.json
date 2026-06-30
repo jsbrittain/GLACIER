@@ -240,7 +240,8 @@
       "open-folder": "Open Folder",
       "open-in-editor": "Open in Editor",
       "loading": "Loading...",
-      "waiting-for-report": "Loading report...",
+      "waiting-for-report": "Waiting for report...",
+      "workflow-failure": "Workflow failure. See Logs for details.",
       "no-logs": "This log file is empty."
     },
     "open-results-folder": "Open Results Folder"
