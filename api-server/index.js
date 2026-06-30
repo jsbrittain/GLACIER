@@ -504,6 +504,16 @@ app.post('/api/create-catalogue-from-file', async (req, res) =>
   post_response(res, call(collection.createCatalogueFromFile.bind(collection), req.body.filePath))
 );
 
+app.post('/api/get-theme', async (req, res) => {
+  const manifestPath = path.join(__dirname, '../bundle/manifest.json');
+  post_response(res, call(async () => {
+    if (!fs.existsSync(manifestPath)) return null;
+    const raw = fs.readFileSync(manifestPath, 'utf-8');
+    const manifest = JSON.parse(raw);
+    return manifest.theme || null;
+  }));
+});
+
 const PORT = process.env.PORT || 3030;
 app.listen(PORT, () => {
   console.log(`✅ API server listening on http://localhost:${PORT}`);

@@ -225,7 +225,10 @@ export default function MainPage({ darkMode, setDarkMode }) {
             '& .MuiListItemButton-root.Mui-selected': {
               boxShadow: `inset 4px 0 0 ${theme.palette.primary.main}`,
               '& .MuiListItemIcon-root': {
-                color: theme.palette.primary.main
+                color: theme.palette.text.primary
+              },
+              '& .MuiListItemText-root': {
+                color: theme.palette.text.primary
               },
               '&:hover': {
                 backgroundColor: theme.palette.action.selected

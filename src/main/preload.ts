@@ -114,5 +114,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   listHiddenInstances: () => ipcRenderer.invoke('list-hidden-instances'),
   exportCatalogue: (name: string, path: string) => ipcRenderer.invoke('export-catalogue', name, path),
   createCatalogueFromFile: (filePath: string) =>
-    ipcRenderer.invoke('create-catalogue-from-file', filePath)
+    ipcRenderer.invoke('create-catalogue-from-file', filePath),
+  getTheme: () => ipcRenderer.invoke('get-theme')
 });
