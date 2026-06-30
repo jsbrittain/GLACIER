@@ -394,10 +394,26 @@ export default function ProgressTracker({ instance }) {
       API.getInstanceProgress(instance).then((result) => {
         if (!result.ok) return;
         const report = result.data;
-        // Determine if workflow is still active before ascending process statuses
-        const workflow_status =
-          (report?.workflow[report.workflow.length - 1]?.status as WorkflowStatus) ||
-          WorkflowStatus.Undefined;
+        // Determine if workflow is still active before ascending process statuses.
+        // Backward-scan to match updateWorkflowInstanceStatus logic: if the last event
+        // is 'completed' but an earlier event was 'failed', report 'failed'.
+        const workflowEvents = report?.workflow;
+        let workflow_status = WorkflowStatus.Undefined;
+        if (workflowEvents && workflowEvents.length > 0) {
+          let s: string = WorkflowStatus.Created;
+          for (let i = workflowEvents.length - 1; i >= 0; i--) {
+            if (
+              s === WorkflowStatus.Completed &&
+              workflowEvents[i].status !== WorkflowStatus.Completed
+            ) {
+              s = workflowEvents[i].status;
+              break;
+            } else {
+              s = workflowEvents[i].status;
+            }
+          }
+          workflow_status = s as WorkflowStatus;
+        }
         setWorkflowStatus(workflow_status);
 
         const isRunning =
@@ -431,6 +447,8 @@ export default function ProgressTracker({ instance }) {
                 <RichTreeView items={items} slots={{ item: CustomTreeItem }} />
               </GetInstanceContext.Provider>
             </LogIDContext.Provider>
+          ) : workflowStatus === WorkflowStatus.Failed ? (
+            <Typography color="error">{t('monitor.progress.workflow-failure')}</Typography>
           ) : (
             <Typography>{t('monitor.progress.waiting-for-report')}</Typography>
           )}
