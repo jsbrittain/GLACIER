@@ -43,6 +43,12 @@ afterEach(() => {
   if (origPlatform) {
     Object.defineProperty(process, 'platform', origPlatform);
   }
+  // Cleanup Windows-paths-that-are-relative on non-Windows runners
+  ['C:\\Users\\test', 'C:\\test'].forEach((p) => {
+    if (fs.existsSync(p)) {
+      fs.rmSync(p, { recursive: true, force: true });
+    }
+  });
   vi.restoreAllMocks();
 });
 
@@ -321,6 +327,14 @@ describe('nextflow', () => {
       if (origPlatformWin) {
         Object.defineProperty(process, 'platform', origPlatformWin);
       }
+      // On non-Windows, the Windows paths 'C:\\Users\\test' and 'C:\\test'
+      // are treated as relative paths and created under CWD by the real fs
+      // calls inside runWorkflow. Clean them up to avoid untracked files.
+      ['C:\\Users\\test', 'C:\\test'].forEach((p) => {
+        if (fs.existsSync(p)) {
+          fs.rmSync(p, { recursive: true, force: true });
+        }
+      });
     });
 
     it('spawns wsl.exe with bash wrapper', async () => {
