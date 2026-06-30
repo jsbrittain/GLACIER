@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, Typography, Alert } from '@mui/material';
 import { Select } from '@mui/material';
 import { Button } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
@@ -19,6 +19,7 @@ import DoneIcon from '@mui/icons-material/Done';
 import CancelIcon from '@mui/icons-material/Cancel';
 import PendingIcon from '@mui/icons-material/Pending';
 import AnsiLog from './AnsiLog.js';
+import { findErrorHint } from './errorHints.js';
 
 const SECOND = 1000;
 
@@ -383,6 +384,7 @@ export default function ProgressTracker({ instance }) {
     WorkflowStatus.Undefined
   );
   const [items, setItems] = React.useState<any[]>([]);
+  const [hintKey, setHintKey] = React.useState<string | undefined>(undefined);
   const [logID, setLogID] = React.useState<string>('');
   const itemIdRef = React.useRef(0);
 
@@ -416,6 +418,18 @@ export default function ProgressTracker({ instance }) {
         }
         setWorkflowStatus(workflow_status);
 
+        let hint: string | undefined;
+        if (workflow_status === WorkflowStatus.Failed && workflowEvents) {
+          const failedEvent = workflowEvents.find(
+            (e: any) => e.status === WorkflowStatus.Failed
+          );
+          const cause: string | undefined = failedEvent?.cause;
+          if (cause) {
+            hint = findErrorHint(cause);
+          }
+        }
+        setHintKey(hint);
+
         const isRunning =
           workflow_status !== WorkflowStatus.Completed && workflow_status !== WorkflowStatus.Failed;
 
@@ -439,6 +453,11 @@ export default function ProgressTracker({ instance }) {
         <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
           <Box>
             <FormatWorkflowStatus workflowStatus={workflowStatus} isWorkflowRunning={isWorkflowRunning} />
+            {hintKey && (
+              <Alert severity="warning" sx={{ mt: 1 }}>
+                {t(hintKey)}
+              </Alert>
+            )}
           </Box>
           <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto' }}>
           {items?.length > 0 ? (

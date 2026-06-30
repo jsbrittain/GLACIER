@@ -9,6 +9,21 @@
           "name": "sleep",
           "repo": "glacier/sleep",
           "version": "main"
+        },
+        {
+          "name": "exit1",
+          "repo": "glacier/exit1",
+          "version": "main"
+        },
+        {
+          "name": "oom",
+          "repo": "glacier/oom",
+          "version": "main"
+        },
+        {
+          "name": "timeout",
+          "repo": "glacier/timeout",
+          "version": "main"
         }
       ]
     }
