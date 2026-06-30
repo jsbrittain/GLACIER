@@ -47,11 +47,42 @@ export async function readNextflowLog(path: string) {
     group: []
   };
 
-  for await (const line0 of rl) {
-    const line = line0.replace(/\x1b\[[0-9;]*m/g, ''); // strip ANSI color codes if present
+  const addProcess = (obj: any, key: string) => {
+    const process_hierarchy = key.split(':');
+    const last = process_hierarchy[process_hierarchy.length - 1];
+    const bracketMatch = last.match(/(.*)\s*\(([^)]+)\)/);
+    if (bracketMatch) {
+      process_hierarchy[process_hierarchy.length - 1] = bracketMatch[1].trim();
+      process_hierarchy.push(bracketMatch[2]);
+    }
+
+    for (const part of process_hierarchy) {
+      obj = obj['group'];
+      const obj_present = obj.find((o: any) => o.name === part);
+      if (obj_present) {
+        obj = obj_present;
+      } else {
+        obj.push({
+          name: part,
+          process: [],
+          group: []
+        });
+        obj = obj[obj.length - 1];
+      }
+    }
+    return obj;
+  };
+
+  const lines = rl[Symbol.asyncIterator]();
+  let nextResult = await lines.next();
+
+  while (!nextResult.done) {
+    const line0 = nextResult.value;
+    const line = line0.replace(/\x1b\[[0-9;]*m/g, '');
     const ts = line.split('[', 1)[0].trim();
 
     let matched = false;
+    let errorBlockParsed = false;
 
     for (const r of RES) {
       const m = r.re.exec(line);
@@ -61,40 +92,10 @@ export async function readNextflowLog(path: string) {
 
       const process_label = m[1];
 
-      // Strip trailing brackets from process names (e.g. "foo (2)" -> "foo")
       let process_group = '';
       if (process_label) {
-        // process_label can be empty for wf_done
         process_group = process_label.replace(/\s*\(.*\)$/, '');
       }
-
-      const addProcess = (obj: any, key: string) => {
-        // Convert key to a hierarchy
-        const process_hierarchy = key.split(':');
-        const last = process_hierarchy[process_hierarchy.length - 1];
-        const bracketMatch = last.match(/(.*)\s*\(([^)]+)\)/);
-        if (bracketMatch) {
-          process_hierarchy[process_hierarchy.length - 1] = bracketMatch[1].trim();
-          process_hierarchy.push(bracketMatch[2]);
-        }
-
-        // Traverse the hierarchy, creating objects as needed
-        for (const part of process_hierarchy) {
-          obj = obj['group'];
-          const obj_present = obj.find((o: any) => o.name === part);
-          if (obj_present) {
-            obj = obj_present;
-          } else {
-            obj.push({
-              name: part,
-              process: [],
-              group: []
-            });
-            obj = obj[obj.length - 1];
-          }
-        }
-        return obj;
-      };
 
       switch (r.t) {
         case 'created':
@@ -114,11 +115,9 @@ export async function readNextflowLog(path: string) {
         case 'submitted':
           let obj = addProcess(progress, m[2]);
 
-          // Duplicate submit jobs can exist with the same name - subset by work ID
           const old_process_label = obj.process.filter((p: any) => p.work !== undefined)[0]?.work;
           if (old_process_label && old_process_label !== process_label) {
             if (obj.group.length === 0) {
-              // Move old work entries to a subgroup by work ID
               obj.group.push({
                 name: old_process_label,
                 process: [],
@@ -139,7 +138,6 @@ export async function readNextflowLog(path: string) {
           }
 
           const last_update = await lastUpdateTime(root_path, process_label, 'log');
-          // m[1] = work ID, m[2] = process name — full_name must use process name
           const submitted_full_name = m[2].replace(/\s*\(.*\)$/, '');
           obj.process.push({
             time: ts,
@@ -157,13 +155,71 @@ export async function readNextflowLog(path: string) {
             status: 'completed'
           });
           break;
-        case 'error':
-          addProcess(progress, process_label).process.push({
+        case 'error': {
+          errorBlockParsed = true;
+
+          const entry: any = {
             time: ts,
             full_name: process_group,
             status: 'error'
-          });
+          };
+
+          let exitStatus: string | undefined;
+          let commandError: string[] = [];
+          let cause: string | undefined;
+          let inCommandError = false;
+          let pendingField: 'cause' | 'exitStatus' | null = null;
+
+          while (!(nextResult = await lines.next()).done) {
+            const raw = nextResult.value.replace(/\x1b\[[0-9;]*m/g, '');
+            const trimmed = raw.trim();
+            if (!trimmed) continue;
+
+            if (trimmed === 'Work dir:' || trimmed.startsWith('Work dir:')) break;
+
+            if (trimmed === 'Caused by:') {
+              pendingField = 'cause';
+              inCommandError = false;
+              continue;
+            }
+
+            if (trimmed === 'Command exit status:') {
+              pendingField = 'exitStatus';
+              inCommandError = false;
+              continue;
+            }
+
+            if (trimmed === 'Command error:' || trimmed === 'Command error (stderr):') {
+              pendingField = null;
+              inCommandError = true;
+              continue;
+            }
+
+            if (inCommandError) {
+              commandError.push(trimmed);
+              continue;
+            }
+
+            if (pendingField === 'cause' && !cause) {
+              cause = trimmed;
+              pendingField = null;
+              continue;
+            }
+
+            if (pendingField === 'exitStatus' && !exitStatus) {
+              exitStatus = trimmed;
+              pendingField = null;
+              continue;
+            }
+          }
+
+          if (exitStatus) entry.exitStatus = exitStatus;
+          if (cause) entry.cause = cause;
+          if (commandError.length > 0) entry.commandError = commandError.join('\n');
+
+          addProcess(progress, process_label).process.push(entry);
           break;
+        }
         case 'aborted':
           progress['workflow'].push({ time: ts, status: WorkflowStatus.Failed, cause: m[1] });
           break;
@@ -171,12 +227,15 @@ export async function readNextflowLog(path: string) {
           progress['workflow'].push({ time: ts, status: WorkflowStatus.Completed });
           break;
       }
-      break; // one event per line is enough
+      break;
     }
 
     if (!matched && DEBUG) {
-      // Helps debug when patterns miss a line you expected to match
       console.error('UNMATCHED:', line);
+    }
+
+    if (!errorBlockParsed) {
+      nextResult = await lines.next();
     }
   }
 

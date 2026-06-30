@@ -236,7 +236,10 @@
       "open-in-editor": "Ouvrir dans l'éditeur",
       "loading": "Chargement du progrès...",
       "waiting-for-report": "Chargement du rapport...",
-      "no-logs": "Ce fichier journal est vide."
+      "no-logs": "Ce fichier journal est vide.",
+      "command-error": "Erreur de commande",
+      "exit-status": "Code de sortie : {{code}}",
+      "oom-killed": "Processus tué (mémoire insuffisante)"
     },
     "open-results-folder": "Ouvrir le dossier des résultats"
   },
