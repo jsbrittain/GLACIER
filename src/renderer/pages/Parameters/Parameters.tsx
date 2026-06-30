@@ -40,6 +40,7 @@ export default function ParametersPage({
   showHiddenParams,
   logMessage,
   onEditComplete,
+  onLaunchSuccess,
   startOnParamsTab
 }) {
   const { t } = useTranslation();
@@ -80,6 +81,7 @@ export default function ParametersPage({
     }
     logMessage(`Launched workflow ${instance.name}`);
     refreshInstancesList();
+    if (onLaunchSuccess) onLaunchSuccess(instance.id);
     if (onEditComplete) onEditComplete();
   };
 
@@ -122,6 +124,7 @@ export default function ParametersPage({
     }
     logMessage(`Launched test workflow ${instance.name}`);
     refreshInstancesList();
+    if (onLaunchSuccess) onLaunchSuccess(instance.id);
   };
 
   useEffect(() => {

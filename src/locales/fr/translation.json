@@ -190,6 +190,7 @@
     "test-launch-workflow": "Exécuter"
   },
   "monitor": {
+    "banner": "Les workflows s'exécutent indépendamment en arrière-plan. Vous pouvez fermer et rouvrir GLACIER pour vérifier la progression, mais ne redémarrez pas votre ordinateur tant que le workflow n'est pas terminé.",
     "logs": {
       "title": "Journaux",
       "stdout": "Sortie standard",

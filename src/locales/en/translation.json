@@ -197,6 +197,7 @@
     "no-valid-workflow": "No workflow files found in repository"
   },
   "monitor": {
+    "banner": "Workflows run independently in the background. You may close and reopen GLACIER to check progress, but do not restart your computer until the workflow finishes.",
     "logs": {
       "title": "Logs",
       "stdout": "Standard Output",

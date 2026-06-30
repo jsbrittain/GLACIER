@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Tabs, Tab, Paper } from '@mui/material';
+import { Box, Tabs, Tab, Paper, Alert } from '@mui/material';
 import HtmlReports from './HtmlReports.js';
 import LogsPage from './Logs.js';
 import { useTranslation } from 'react-i18next';
@@ -41,9 +41,31 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-export default function MonitorPage({ instance, logMessage, onRestart, initialTab = 0 }) {
+export default function MonitorPage({
+  instance,
+  logMessage,
+  onRestart,
+  initialTab = 0,
+  showLaunchBanner = false,
+  onLaunchBannerDismissed
+}) {
   const { t } = useTranslation();
   const [tabSelected, setTabSelected] = React.useState(initialTab);
+  const [bannerOpen, setBannerOpen] = React.useState(showLaunchBanner);
+
+  React.useEffect(() => {
+    if (!bannerOpen) return;
+    const timer = setTimeout(() => {
+      setBannerOpen(false);
+      if (onLaunchBannerDismissed) onLaunchBannerDismissed();
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [bannerOpen]);
+
+  const handleDismissBanner = () => {
+    setBannerOpen(false);
+    if (onLaunchBannerDismissed) onLaunchBannerDismissed();
+  };
 
   const handleTabChange = (event, newValue) => {
     setTabSelected(newValue);
@@ -52,6 +74,11 @@ export default function MonitorPage({ instance, logMessage, onRestart, initialTa
   return (
     <Paper sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <HeaderMenu instance={instance} logMessage={logMessage} onRestart={onRestart} />
+      {bannerOpen && (
+        <Alert severity="info" onClose={handleDismissBanner} sx={{ mx: 2, mt: 1 }}>
+          {t('monitor.banner')}
+        </Alert>
+      )}
       <Tabs value={tabSelected} onChange={handleTabChange}>
         <Tab label={t('monitor.progress.title')} />
         <Tab label={t('monitor.reports')} />
