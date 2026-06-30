@@ -51,6 +51,8 @@
     "show-all-workflows": "Show All Workflows",
     "install-all-workflows": "Install All Workflows",
     "check-for-updates": "Check for Updates",
+    "update-available": "Update available: {{version}}",
+    "updates-available": "{{count}} update(s) available",
     "select-version": "Select version",
     "confirm-remove-catalogue": "Are you sure you want to remove this catalogue? All workflows and workflow instances will remain installed.",
     "catalogue-removed-success": "Catalogue removed successfully",

@@ -50,6 +50,8 @@
     "show-all-workflows": "Afficher tous les flux de travail",
     "install-all-workflows": "Installer tous les flux de travail",
     "check-for-updates": "Vérifier les mises à jour",
+    "update-available": "Mise à jour disponible : {{version}}",
+    "updates-available": "{{count}} mise(s) à jour disponible(s)",
     "confirm-remove-catalogue": "Êtes-vous sûr de vouloir supprimer ce catalogue ? Tous les flux de travail et instances de flux de travail resteront installés.",
     "catalogue-removed-success": "Catalogue supprimé avec succès",
     "catalogue-removed-failure": "Échec de la suppression du catalogue",
