@@ -1,0 +1,35 @@
+{
+  "palette": {
+    "mode": "light",
+    "primary": {
+      "main": "#29383A",
+      "contrastText": "#DCDDD8"
+    },
+    "secondary": {
+      "main": "#016E85",
+      "contrastText": "#DAE3E2"
+    },
+    "background": {
+      "default": "#eef0ed",
+      "paper": "#f8f9f7"
+    },
+    "divider": "#B4BA9D",
+    "text": {
+      "primary": "#29383A",
+      "secondary": "#1C1B29",
+      "disabled": "#B4BA9D"
+    },
+    "error": {
+      "main": "#D95A47"
+    },
+    "warning": {
+      "main": "#F6A14C"
+    },
+    "info": {
+      "main": "#68A3BB"
+    },
+    "success": {
+      "main": "#40847D"
+    }
+  }
+}

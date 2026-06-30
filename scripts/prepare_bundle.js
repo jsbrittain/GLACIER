@@ -184,26 +184,37 @@ async function main() {
 
     // Move build config to bundle folder (pre-configures catalogue list)
 
-    // remove existing manifest, if one exists
-    const existingManifest = path.join(bundleDir, 'manifest.json');
-    if (fileExists(existingManifest)) {
-      fs.unlinkSync(existingManifest);
+    // Load default theme
+    let manifestData = {};
+    const defaultThemePath = path.join(repoRoot, 'build-configs', 'default-theme.json');
+    if (fileExists(defaultThemePath)) {
+      const themeRaw = fs.readFileSync(defaultThemePath, 'utf-8');
+      manifestData.theme = JSON.parse(themeRaw);
+    } else {
+      log('Warning: default theme file not found at', defaultThemePath);
     }
 
-    // Check environment variable GLACIER_MANIFEST and include build config if specified
+    // Check environment variable GLACIER_MANIFEST and merge build config if specified
     const manifest = process.env.GLACIER_MANIFEST || null;
     if (manifest) {
       const configPath = path.join(repoRoot, 'build-configs', `${manifest}.json`);
       if (fileExists(configPath)) {
-        fs.copyFileSync(configPath, path.join(bundleDir, 'manifest.json'));
+        const configRaw = fs.readFileSync(configPath, 'utf-8');
+        const configData = JSON.parse(configRaw);
+        manifestData = { ...configData, theme: manifestData.theme };
         log(`Using build config for manifest "${manifest}".`);
       } else {
         err(`Build config for manifest "${manifest}" not found at ${configPath}.`);
         return 1;
       }
     } else {
-      log('No manifest specified.');
+      log('No manifest specified. Using default theme only.');
     }
+
+    // Write manifest (always includes theme, optionally catalogues)
+    const existingManifest = path.join(bundleDir, 'manifest.json');
+    fs.writeFileSync(existingManifest, JSON.stringify(manifestData, null, 2));
+    log('Manifest written to', existingManifest);
 
     // Detect OS; match original behavior: check RUNNER_OS env or uname
     const RUNNER_OS = process.env.RUNNER_OS || os.type(); // e.g. 'Linux', 'Darwin', or 'Windows_NT'

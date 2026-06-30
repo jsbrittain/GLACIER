@@ -1,4 +1,6 @@
 import { ipcMain } from 'electron';
+import path from 'path';
+import fs from 'fs';
 import { Collection } from './collection.js';
 import { StoreSchema } from './settings.js';
 import { Result } from '../types/types.js';
@@ -233,5 +235,16 @@ export function registerIpcHandlers(resourceRoot?: string) {
 
   ipcMain.handle('perform-environment-action', async (event, key, action) => {
     return call(collection.performEnvironmentAction.bind(collection), key, action);
+  });
+
+  ipcMain.handle('get-theme', async () => {
+    return call(() => {
+      if (!resourceRoot) return null;
+      const manifestPath = path.join(resourceRoot, 'manifest.json');
+      if (!fs.existsSync(manifestPath)) return null;
+      const raw = fs.readFileSync(manifestPath, 'utf-8');
+      const manifest = JSON.parse(raw);
+      return manifest.theme || null;
+    });
   });
 }
