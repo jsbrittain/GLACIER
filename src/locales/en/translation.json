@@ -242,6 +242,10 @@
       "loading": "Loading...",
       "waiting-for-report": "Waiting for report...",
       "workflow-failure": "Workflow failure. See Logs for details.",
+      "hint-oom": "This error usually indicates the process ran out of memory (OOM). Try increasing the memory allocation.",
+      "hint-disk": "This error usually indicates the process ran out of disk space. Try freeing up storage or increasing the disk allocation.",
+      "hint-timeout": "This error usually indicates the process exceeded the time limit. Try increasing the timeout or optimising the workflow.",
+      "hint-permission": "This error usually indicates a permissions issue. Check file and directory permissions.",
       "no-logs": "This log file is empty."
     },
     "open-results-folder": "Open Results Folder"

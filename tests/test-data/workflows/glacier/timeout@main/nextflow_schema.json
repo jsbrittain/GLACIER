@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Timeout Test Pipeline Parameters",
+  "type": "object",
+  "properties": {
+    "sleep_time": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 30,
+      "description": "Number of seconds to sleep (process.timeout is 5s in nextflow.config)."
+    }
+  },
+  "additionalProperties": false
+}

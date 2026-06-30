@@ -161,6 +161,68 @@ describe('nf-parse', () => {
       expect(result.workflow[0].status).toBe('failed');
       expect(result.workflow[0].cause).toBe('Some error');
     });
+
+    it('captures OOM cause from exit code 137', async () => {
+      const content =
+        "2024-01-01 12:00:00.123 Session aborted -- Cause: Process 'foo' terminated with exit code 137\n";
+      const logPath = createLogFile(content);
+      const result = await parseNextflowLog(logPath);
+
+      expect(result.workflow[0].cause).toBe(
+        "Process 'foo' terminated with exit code 137"
+      );
+    });
+
+    it('captures OOM cause from OutOfMemoryError', async () => {
+      const content =
+        '2024-01-01 12:00:00.123 Session aborted -- Cause: Java.lang.OutOfMemoryError: Java heap space\n';
+      const logPath = createLogFile(content);
+      const result = await parseNextflowLog(logPath);
+
+      expect(result.workflow[0].cause).toBe(
+        'Java.lang.OutOfMemoryError: Java heap space'
+      );
+    });
+
+    it('captures disk full cause', async () => {
+      const content =
+        '2024-01-01 12:00:00.123 Session aborted -- Cause: No space left on device\n';
+      const logPath = createLogFile(content);
+      const result = await parseNextflowLog(logPath);
+
+      expect(result.workflow[0].cause).toBe('No space left on device');
+    });
+
+    it('captures timeout cause', async () => {
+      const content =
+        "2024-01-01 12:00:00.123 Session aborted -- Cause: Process 'foo' terminated with exit code 124\n";
+      const logPath = createLogFile(content);
+      const result = await parseNextflowLog(logPath);
+
+      expect(result.workflow[0].cause).toBe(
+        "Process 'foo' terminated with exit code 124"
+      );
+    });
+
+    it('captures permission denied cause', async () => {
+      const content =
+        '2024-01-01 12:00:00.123 Session aborted -- Cause: Permission denied\n';
+      const logPath = createLogFile(content);
+      const result = await parseNextflowLog(logPath);
+
+      expect(result.workflow[0].cause).toBe('Permission denied');
+    });
+
+    it('captures cause with exit code and process name', async () => {
+      const content =
+        "2024-01-01 12:00:00.123 Session aborted -- Cause: Process 'foo' terminated with an error exit code -- Check the process logs\n";
+      const logPath = createLogFile(content);
+      const result = await parseNextflowLog(logPath);
+
+      expect(result.workflow[0].cause).toBe(
+        "Process 'foo' terminated with an error exit code -- Check the process logs"
+      );
+    });
   });
 
   describe('wf_done event', () => {
