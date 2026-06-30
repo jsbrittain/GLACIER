@@ -1,5 +1,5 @@
 // FilePathControl.tsx
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { withJsonFormsControlProps } from '@jsonforms/react';
 import { ControlProps, isDescriptionHidden } from '@jsonforms/core';
 import {
@@ -8,11 +8,13 @@ import {
   OutlinedInput,
   IconButton,
   Stack,
-  FormHelperText
+  FormHelperText,
+  Typography
 } from '@mui/material';
 import { Box } from '@mui/system';
 import FileOpenIcon from '@mui/icons-material/FileOpen';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import CloudUploadOutlined from '@mui/icons-material/CloudUploadOutlined';
 import { API } from '../../services/api.js';
 
 function useFocus(): [boolean, () => void, () => void] {
@@ -92,6 +94,52 @@ function InnerFilePathControl(props: ControlProps) {
     }
   })();
 
+  const [isDragOver, setIsDragOver] = useState(false);
+  const dragCounter = useRef(0);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.items?.length > 0) {
+      setIsDragOver(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragOver(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+      dragCounter.current = 0;
+
+      if (!enabled) return;
+
+      const files = e.dataTransfer.files;
+      if (!files?.length) return;
+
+      const droppedPath = (files[0] as any).path ?? files[0].name;
+      if (droppedPath) {
+        handleChange(path, droppedPath);
+      }
+    },
+    [enabled, handleChange, path]
+  );
+
   const pickFile = async () => {
     const accept = (uischema as any)?.options?.accept as string | undefined;
     const filters = toFilters(accept);
@@ -128,43 +176,81 @@ function InnerFilePathControl(props: ControlProps) {
       >
         {label}
       </InputLabel>
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{ opacity: enabled ? 1 : 0.6 }}
-        alignItems="flex-start"
+      <Box
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        sx={{
+          position: 'relative',
+          borderRadius: '4px',
+          border: isDragOver ? '2px dashed' : '2px solid transparent',
+          borderColor: isDragOver ? 'primary.main' : 'transparent',
+          bgcolor: isDragOver ? 'action.hover' : 'transparent',
+          transition: 'border-color 0.15s, background-color 0.15s',
+        }}
       >
-        <Box sx={{ flexGrow: 1 }}>
-          <OutlinedInput
-            id={`${id}-input`}
-            value={data ?? ''}
-            readOnly
-            label={label}
-            size="small"
-            fullWidth
-          />
-        </Box>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
-          {picker === 'both' ? (
-            <>
-              <IconButton onClick={pickFile} disabled={!enabled} title="Select file">
-                <FileOpenIcon />
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ opacity: enabled ? 1 : 0.6 }}
+          alignItems="flex-start"
+        >
+          <Box sx={{ flexGrow: 1 }}>
+            <OutlinedInput
+              id={`${id}-input`}
+              value={data ?? ''}
+              readOnly
+              label={label}
+              size="small"
+              fullWidth
+            />
+          </Box>
+          <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+            {picker === 'both' ? (
+              <>
+                <IconButton onClick={pickFile} disabled={!enabled} title="Select file">
+                  <FileOpenIcon />
+                </IconButton>
+                <IconButton onClick={pickFolder} disabled={!enabled} title="Select folder">
+                  <FolderOpenIcon />
+                </IconButton>
+              </>
+            ) : (
+              <IconButton
+                onClick={picker === 'directory' ? pickFolder : pickFile}
+                disabled={!enabled}
+                title={picker === 'directory' ? 'Select folder' : 'Select file'}
+              >
+                {picker === 'directory' ? <FolderOpenIcon /> : <FileOpenIcon />}
               </IconButton>
-              <IconButton onClick={pickFolder} disabled={!enabled} title="Select folder">
-                <FolderOpenIcon />
-              </IconButton>
-            </>
-          ) : (
-            <IconButton
-              onClick={picker === 'directory' ? pickFolder : pickFile}
-              disabled={!enabled}
-              title={picker === 'directory' ? 'Select folder' : 'Select file'}
-            >
-              {picker === 'directory' ? <FolderOpenIcon /> : <FileOpenIcon />}
-            </IconButton>
-          )}
-        </Box>
-      </Stack>
+            )}
+          </Box>
+        </Stack>
+        {isDragOver && (
+          <Box
+            sx={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 0.5,
+              pointerEvents: 'none',
+              zIndex: 1,
+            }}
+          >
+            <CloudUploadOutlined color="primary" fontSize="small" />
+            <Typography variant="body2" color="primary">
+              {picker === 'file'
+                ? 'Drop file'
+                : picker === 'directory'
+                  ? 'Drop folder'
+                  : 'Drop file or folder'}
+            </Typography>
+          </Box>
+        )}
+      </Box>
       <FormHelperText error={!isValid && !showDescription}>
         {firstFormHelperText}
       </FormHelperText>
