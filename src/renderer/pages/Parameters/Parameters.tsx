@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Paper, Stack, Tabs, Tab, Typography, Button, Menu, MenuItem, Tooltip } from '@mui/material';
+import { Box, Paper, Stack, Tabs, Tab, Typography, Button, Tooltip } from '@mui/material';
 import { JsonForms } from '@jsonforms/react';
 import Ajv, { ErrorObject } from 'ajv'; // ajv is also used by jsonforms
 import { buildUISchema } from './buildUISchema';
@@ -53,7 +53,6 @@ export default function ParametersPage({
   const [allProfiles, setAllProfiles] = useState<string[]>([]);
   const [tabSelected, setTabSelected] = React.useState(startOnParamsTab ? 2 : 0);
   const [readme, setReadme] = useState<string>('');
-  const [paramsMenuAnchor, setParamsMenuAnchor] = useState<null | HTMLElement>(null);
   const [license, setLicense] = useState<string>('');
   const [isValidWorkflow, setIsValidWorkflow] = useState<boolean>(true);
 
@@ -237,14 +236,6 @@ export default function ParametersPage({
     setTabSelected(newValue);
   };
 
-  const handleParamsMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setParamsMenuAnchor(event.currentTarget);
-  };
-
-  const handleParamsMenuClose = () => {
-    setParamsMenuAnchor(null);
-  };
-
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center">
@@ -252,39 +243,9 @@ export default function ParametersPage({
           [{instance.name}] {instance.workflow_version.name}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Button
-            id="params-file-menu-button"
-            aria-controls={paramsMenuAnchor ? 'params-file-menu' : undefined}
-            aria-haspopup="true"
-            aria-expanded={paramsMenuAnchor ? 'true' : undefined}
-            onClick={handleParamsMenuOpen}
-            variant="outlined"
-          >
+          <Button variant="outlined" onClick={() => setTabSelected(2)}>
             {t('parameters.params-menu')}
           </Button>
-          <Menu
-            id="params-file-menu"
-            anchorEl={paramsMenuAnchor}
-            open={Boolean(paramsMenuAnchor)}
-            onClose={handleParamsMenuClose}
-          >
-            <MenuItem
-              onClick={() => {
-                handleParamsMenuClose();
-                onLoadParams();
-              }}
-            >
-              {t('parameters.load-params')}
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                handleParamsMenuClose();
-                onSaveParams();
-              }}
-            >
-              {t('parameters.save-params')}
-            </MenuItem>
-          </Menu>
           <Tooltip
             title={!isValidWorkflow ? t('parameters.no-valid-workflow') : ''}
             disableHoverListener={isValidWorkflow}
@@ -304,15 +265,27 @@ export default function ParametersPage({
         </Box>
       </Box>
 
-      <Tabs value={tabSelected} onChange={handleTabChange}>
-        <Tab label={t('parameters.info.title')} id="parameters-info-tab" />
-        <Tab
-          label={t('parameters.license.title')}
-          id="parameters-license-tab"
-          disabled={isEmpty(license)}
-        />
-        <Tab label={t('parameters.params.title')} id="parameters-params-tab" />
-      </Tabs>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Tabs value={tabSelected} onChange={handleTabChange} sx={{ flex: 1 }}>
+          <Tab label={t('parameters.info.title')} id="parameters-info-tab" />
+          <Tab
+            label={t('parameters.license.title')}
+            id="parameters-license-tab"
+            disabled={isEmpty(license)}
+          />
+          <Tab label={t('parameters.params.title')} id="parameters-params-tab" />
+        </Tabs>
+        {tabSelected === 2 && (
+          <Box sx={{ display: 'flex', gap: 1, pr: 2 }}>
+            <Button variant="outlined" size="small" onClick={onLoadParams}>
+              {t('parameters.load-params')}
+            </Button>
+            <Button variant="outlined" size="small" onClick={onSaveParams}>
+              {t('parameters.save-params')}
+            </Button>
+          </Box>
+        )}
+      </Box>
 
       <TabPanel value={tabSelected} index={0}>
         <MarkdownRenderer content={readme} basePath={instance.workflow_version.path} />
