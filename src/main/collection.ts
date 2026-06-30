@@ -2184,13 +2184,16 @@ export class Collection {
     }
     this.parseCatalogues();
     // Check each workflow
-    const results: { name: string; updated: boolean; error?: string; availableVersion?: string }[] = [];
+    const results: { name: string; repo: string; updated: boolean; error?: string; availableVersion?: string }[] = [];
     const catRef = this.catalogues.find((c) => c.name === catalogue_name);
     if (!catRef) {
       throw new Error(`Catalogue ${catalogue_name} not found after refresh.`);
     }
+    const seenRepos = new Set<string>();
     for (const section of catRef.sections || []) {
       for (const workflow of section.workflows || []) {
+        if (seenRepos.has(workflow.repo)) continue;
+        seenRepos.add(workflow.repo);
         if (workflow.version === 'latest') {
           const wf = this.workflows.find((w) => w.id === workflow.repo);
           if (wf) {
@@ -2201,7 +2204,7 @@ export class Collection {
                 const sortedTags = sortTagsBySemver(tags || []);
                 const newestTag = sortedTags.length > 0 ? sortedTags[sortedTags.length - 1] : null;
                 if (newestTag && installedVersion.version !== newestTag) {
-                  results.push({ name: workflow.name, updated: true, availableVersion: newestTag });
+                  results.push({ name: workflow.name, repo: workflow.repo, updated: true, availableVersion: newestTag });
                 } else {
                   const timeoutMs = 20000;
                   const timeout = new Promise<{ status: 'ok'; updated: false }>((resolve) =>
@@ -2211,11 +2214,13 @@ export class Collection {
                   if (syncResult.status === 'ok') {
                     results.push({
                       name: workflow.name,
+                      repo: workflow.repo,
                       updated: syncResult.updated ?? false
                     });
                   } else {
                     results.push({
                       name: workflow.name,
+                      repo: workflow.repo,
                       updated: false,
                       error: syncResult.message
                     });
@@ -2224,18 +2229,19 @@ export class Collection {
               } catch (err: unknown) {
                 results.push({
                   name: workflow.name,
+                  repo: workflow.repo,
                   updated: false,
                   error: String(err)
                 });
               }
             } else {
-              results.push({ name: workflow.name, updated: false });
+              results.push({ name: workflow.name, repo: workflow.repo, updated: false });
             }
           } else {
-            results.push({ name: workflow.name, updated: false });
+            results.push({ name: workflow.name, repo: workflow.repo, updated: false });
           }
         } else {
-          results.push({ name: workflow.name, updated: false });
+          results.push({ name: workflow.name, repo: workflow.repo, updated: false });
         }
       }
     }
@@ -2247,9 +2253,67 @@ export class Collection {
       errorDetails: results.filter((r) => r.error).map((r) => `${r.name}: ${r.error}`),
       updates: results.filter((r) => r.updated).map((r) => ({
         name: r.name,
+        repo: r.repo,
         availableVersion: (r as any).availableVersion || ''
       }))
     };
+  }
+
+  async checkWorkflowUpdates(): Promise<
+    Record<
+      string,
+      { name: string; currentVersion: string; availableVersion: string }
+    >
+  > {
+    // Read-only check: fetch tags for all 'latest' workflows and compare
+    // without syncing repos or writing to disk.
+    const checkTargets: {
+      repo: string;
+      name: string;
+      currentVersion: string;
+    }[] = [];
+    for (const cat of this.catalogues) {
+      for (const section of cat.sections || []) {
+        for (const wf of section.workflows || []) {
+          if (wf.version === 'latest') {
+            const installed = this.workflows.find((w) => w.id === wf.repo);
+            if (installed) {
+              const ver = installed.versions.find(
+                (v) => v.sourceVersion === 'latest'
+              );
+              if (ver?.version) {
+                checkTargets.push({
+                  repo: wf.repo,
+                  name: wf.name,
+                  currentVersion: ver.version
+                });
+              }
+            }
+          }
+        }
+      }
+    }
+    const updates: Record<
+      string,
+      { name: string; currentVersion: string; availableVersion: string }
+    > = {};
+    for (const target of checkTargets) {
+      try {
+        const tags = await getRepoTags(target.repo);
+        const sorted = sortTagsBySemver(tags || []);
+        const newest = sorted.length > 0 ? sorted[sorted.length - 1] : null;
+        if (newest && target.currentVersion !== newest) {
+          updates[target.repo] = {
+            name: target.name,
+            currentVersion: target.currentVersion,
+            availableVersion: newest
+          };
+        }
+      } catch {
+        // Skip errors (offline, invalid repo, etc.)
+      }
+    }
+    return updates;
   }
 
   async showCatalogueSectionWorkflows(catalogue_name: string, section_name: string) {

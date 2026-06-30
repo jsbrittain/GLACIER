@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useTheme } from '@mui/material/styles';
 import {
   Button,
+  Chip,
   Container,
   Dialog,
   DialogActions,
@@ -57,7 +58,8 @@ function WorkflowCard({
   createWorkflowInstance,
   refresh,
   requestInstallWorkflows,
-  logMessage
+  logMessage,
+  updateMap
 }) {
   const { t } = useTranslation();
 
@@ -254,6 +256,11 @@ function WorkflowCard({
         {workflow.version}{' '}
         {isRepoInstalled && workflow.version === 'latest' && `(${versionInstalled})`}
       </Typography>
+      {isRepoInstalled && workflow.version === 'latest' && updateMap?.[workflow.repo] && (
+        <Typography variant="caption" color="warning.main">
+          {t('library.update-available', { version: updateMap[workflow.repo].availableVersion })}
+        </Typography>
+      )}
       <Box sx={{ flex: 1 }} />
       {!isRepoInstalled && (
         <Stack direction="row" spacing={1}>
@@ -307,7 +314,8 @@ function SectionCard({
   permitCatalogueModifications,
   refresh,
   requestInstallWorkflows,
-  logMessage
+  logMessage,
+  updateMap
 }) {
   const { t } = useTranslation();
   const [anchorEl, setAnchorEl] = useState(null);
@@ -435,6 +443,7 @@ function SectionCard({
                 refresh={refresh}
                 requestInstallWorkflows={requestInstallWorkflows}
                 logMessage={logMessage}
+                updateMap={updateMap}
               />
             </Grid>
           ))}
@@ -458,7 +467,8 @@ function CatalogueCard({
   refresh,
   requestInstallWorkflows,
   logMessage,
-  getCatalogues
+  getCatalogues,
+  updateMap
 }) {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -641,6 +651,21 @@ function CatalogueCard({
           {catalogue.description && (
             <Typography variant="subtitle1">{catalogue.description}</Typography>
           )}
+          {updateMap && (() => {
+            const count = Object.keys(updateMap).filter((repo) =>
+              (catalogue.sections || []).some((s) =>
+                (s.workflows || []).some((w) => w.repo === repo)
+              )
+            ).length;
+            return count > 0 ? (
+              <Chip
+                label={t('library.updates-available', { count })}
+                color="warning"
+                size="small"
+                sx={{ ml: 1 }}
+              />
+            ) : null;
+          })()}
         </Box>
         {permitCatalogueModifications && (
           <>
@@ -682,6 +707,7 @@ function CatalogueCard({
               refresh={refresh}
               requestInstallWorkflows={requestInstallWorkflows}
               logMessage={logMessage}
+              updateMap={updateMap}
             />
           ))}
       </Stack>
@@ -709,6 +735,7 @@ export default function LibraryPage({
   const { t } = useTranslation();
   const [catalogues, setCatalogues] = useState(null);
   const [refresh, setRefresh] = useState(false);
+  const [updateMap, setUpdateMap] = useState({});
 
   const [progressCount, setProgressCount] = useState(0);
   const [progressValue, setProgressValue] = useState(0);
@@ -721,6 +748,12 @@ export default function LibraryPage({
     API.getCatalogues().then((result) => {
       if (result.ok) {
         setCatalogues(result.data);
+        // Non-blocking update check — never blocks catalogue rendering
+        API.checkWorkflowUpdates().then((updateResult) => {
+          if (updateResult.ok) {
+            setUpdateMap(updateResult.data || {});
+          }
+        });
       }
     });
   };
@@ -988,6 +1021,7 @@ export default function LibraryPage({
       logMessage(`${t('library.install-workflows-completed-with-errors')}: ${failed_str}`, 'error');
     }
     setRefresh(!refresh);
+    getCatalogues();
   };
 
   const requestInstallWorkflows = (workflows) => {
@@ -1061,6 +1095,7 @@ export default function LibraryPage({
             requestInstallWorkflows={requestInstallWorkflows}
             logMessage={logMessage}
             getCatalogues={getCatalogues}
+            updateMap={updateMap}
           />
         ))}
       </Stack>

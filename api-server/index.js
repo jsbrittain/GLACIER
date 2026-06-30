@@ -315,6 +315,13 @@ app.post('/api/check-catalogue-workflow-updates', async (req, res) =>
   )
 );
 
+app.post('/api/check-workflow-updates', async (req, res) =>
+  post_response(
+    res,
+    call(collection.checkWorkflowUpdates.bind(collection))
+  )
+);
+
 app.post('/api/show-catalogue-section-workflows', async (req, res) =>
   post_response(
     res,
