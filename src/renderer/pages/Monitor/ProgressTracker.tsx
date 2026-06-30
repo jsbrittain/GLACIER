@@ -18,8 +18,12 @@ import { getDateLocale } from '../../../locales';
 import DoneIcon from '@mui/icons-material/Done';
 import CancelIcon from '@mui/icons-material/Cancel';
 import PendingIcon from '@mui/icons-material/Pending';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import Collapse from '@mui/material/Collapse';
 import AnsiLog from './AnsiLog.js';
 import { findErrorHint } from './errorHints.js';
+import Chip from '@mui/material/Chip';
 
 const SECOND = 1000;
 
@@ -59,6 +63,8 @@ type TreeItemWithLabel = {
   status: ProcessStatus;
   progress: number;
   work_folder?: string;
+  exitStatus?: string;
+  commandError?: string;
 };
 
 interface CustomLabelProps {
@@ -70,6 +76,8 @@ interface CustomLabelProps {
   status: ProcessStatus;
   progress: number;
   work_folder?: string;
+  exitStatus?: string;
+  commandError?: string;
 }
 
 function CustomLabel({
@@ -80,13 +88,16 @@ function CustomLabel({
   logs_available,
   status,
   progress,
-  work_folder
+  work_folder,
+  exitStatus,
+  commandError
 }: CustomLabelProps) {
   const { t } = useTranslation();
   const [showLog, setShowLog] = useState(false);
   const [logText, setLogText] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const [logType, setLogType] = useState(log_types[0]);
+  const [showError, setShowError] = useState(true);
   const { logID, setLogID } = React.useContext(LogIDContext);
   const ctx = React.useContext(GetInstanceContext);
   const instance = ctx?.instance;
@@ -256,6 +267,74 @@ function CustomLabel({
           <AnsiLog text={logText} />
         </Box>
       )}
+
+      {/* Command error display — collapsible, expanded by default */}
+      {status === ProcessStatus.Error && commandError && (
+        <Box
+          sx={{
+            border: '1px solid #d32f2f',
+            borderRadius: '4px',
+            mt: 1,
+            width: '100%',
+            bgcolor: 'rgba(211, 47, 47, 0.04)'
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              p: 1.5,
+              pb: showError ? 0 : 1.5,
+              cursor: 'pointer',
+              userSelect: 'none'
+            }}
+            onClick={() => setShowError(!showError)}
+          >
+            <IconButton size="small" sx={{ p: 0 }}>
+              {showError ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            </IconButton>
+            <Typography variant="subtitle2" color="error">
+              {t('monitor.progress.command-error')}
+            </Typography>
+            {exitStatus === '137' && (
+              <Chip
+                label={t('monitor.progress.oom-killed')}
+                size="small"
+                color="error"
+                variant="outlined"
+              />
+            )}
+            {exitStatus && exitStatus !== '137' && (
+              <Chip
+                label={t('monitor.progress.exit-status', { code: exitStatus })}
+                size="small"
+                color="error"
+                variant="outlined"
+              />
+            )}
+          </Box>
+          <Collapse in={showError}>
+            <Box
+              component="pre"
+              sx={{
+                m: 0,
+                p: 1.5,
+                pt: 1,
+                bgcolor: 'rgba(0,0,0,0.06)',
+                borderRadius: '2px',
+                fontSize: '0.8rem',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                maxHeight: '200px',
+                overflow: 'auto'
+              }}
+            >
+              {commandError}
+            </Box>
+          </Collapse>
+        </Box>
+      )}
     </Box>
   );
 }
@@ -279,7 +358,9 @@ const CustomTreeItem = React.forwardRef(function CustomTreeItem(
           logs_available: item?.logs_available,
           status: item?.status,
           progress: item?.progress,
-          work_folder: item?.work_folder
+          work_folder: item?.work_folder,
+          exitStatus: item?.exitStatus,
+          commandError: item?.commandError
         } as CustomLabelProps
       }}
     />
@@ -306,6 +387,23 @@ const FormatWorkflowStatus = ({ workflowStatus, isWorkflowRunning }: { workflowS
   );
 };
 
+const collectErrorPaths = (items: any[]): string[] => {
+  const ids = new Set<string>();
+  const walk = (nodes: any[], ancestorIds: string[]) => {
+    for (const node of nodes) {
+      const path = [...ancestorIds, node.id];
+      if (node.status === ProcessStatus.Error) {
+        path.forEach((id) => ids.add(id));
+      }
+      if (node.children?.length) {
+        walk(node.children, path);
+      }
+    }
+  };
+  walk(items, []);
+  return Array.from(ids);
+};
+
 const addGroup = (parent, group, itemIdRef) => {
   parent.push({
     id: String(itemIdRef.current++),
@@ -322,9 +420,14 @@ const addGroup = (parent, group, itemIdRef) => {
   group?.group.forEach((subgroup) => {
     addGroup(item.children, subgroup, itemIdRef);
   });
-  // Extract last process state
+  // Extract last process state and error details
   if (group?.process.length > 0) {
-    item.status = group.process[group.process.length - 1].status;
+    const lastProcess = group.process[group.process.length - 1];
+    item.status = lastProcess.status;
+    if (lastProcess.status === 'error') {
+      item.exitStatus = lastProcess.exitStatus;
+      item.commandError = lastProcess.commandError;
+    }
   }
   // Extract work folder
   const work_folders = group?.process.filter((process) => process.work !== undefined);
@@ -384,6 +487,7 @@ export default function ProgressTracker({ instance }) {
     WorkflowStatus.Undefined
   );
   const [items, setItems] = React.useState<any[]>([]);
+  const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
   const [hintKey, setHintKey] = React.useState<string | undefined>(undefined);
   const [logID, setLogID] = React.useState<string>('');
   const itemIdRef = React.useRef(0);
@@ -439,6 +543,8 @@ export default function ProgressTracker({ instance }) {
         report?.group.forEach((group) => addGroup(items, group, itemIdRef));
         // Ascend leaf status to parent groups, and calculate progress
         items.forEach((group) => ascendStatus(group, isRunning));
+        // Auto-expand tree to show errored processes
+        setExpandedItems(collectErrorPaths(items));
         setItems(items);
       });
     };
@@ -463,7 +569,12 @@ export default function ProgressTracker({ instance }) {
           {items?.length > 0 ? (
             <LogIDContext.Provider value={{ logID, setLogID }}>
               <GetInstanceContext.Provider value={{ instance, isWorkflowRunning }}>
-                <RichTreeView items={items} slots={{ item: CustomTreeItem }} />
+                <RichTreeView
+                  items={items}
+                  slots={{ item: CustomTreeItem }}
+                  expandedItems={expandedItems}
+                  onExpandedItemsChange={setExpandedItems}
+                />
               </GetInstanceContext.Provider>
             </LogIDContext.Provider>
           ) : workflowStatus === WorkflowStatus.Failed ? (
