@@ -25,7 +25,7 @@ const __dirname = path.dirname(__filename);
 const bundle_full_jre = false;
 const JAVA_VERSION = process.env.JAVA_VERSION || '21';
 const NXF_URL =
-  process.env.NXF_URL || 'https://www.nextflow.io/releases/v25.10.2/nextflow-25.10.2-one.jar';
+  process.env.NXF_URL || 'https://www.nextflow.io/releases/v26.04.4/nextflow-26.04.4-one.jar';
 
 const log = (...args) => console.log(...args);
 const err = (...args) => console.error(...args);
@@ -132,7 +132,9 @@ async function ensureJdk(version, jdkDir) {
     const jlinkPath = execSync('which jlink', { encoding: 'utf8' }).toString().trim();
     if (jlinkPath) {
       const jdkBin = path.dirname(jlinkPath);
-      const javaVer = execSync(`"${path.join(jdkBin, 'java')}" -version 2>&1`, { encoding: 'utf8' }).toString();
+      const javaVer = execSync(`"${path.join(jdkBin, 'java')}" -version 2>&1`, {
+        encoding: 'utf8'
+      }).toString();
       if (javaVer.includes('Temurin')) {
         log('System jlink is from Temurin -- using system JDK.');
         return null;
@@ -150,7 +152,7 @@ async function ensureJdk(version, jdkDir) {
   if (!url) {
     throw new Error(
       `Unsupported platform: ${os.type()} ${process.arch}. ` +
-      'Please install Temurin JDK 21+ manually and ensure it is on PATH.'
+        'Please install Temurin JDK 21+ manually and ensure it is on PATH.'
     );
   }
 
@@ -162,7 +164,9 @@ async function ensureJdk(version, jdkDir) {
   fs.mkdirSync(jdkDir, { recursive: true });
   run(`tar xzf "${archive}" --strip-components=1 -C "${jdkDir}"`);
 
-  try { fs.unlinkSync(archive); } catch {}
+  try {
+    fs.unlinkSync(archive);
+  } catch {}
 
   log(`Temurin JDK ${version} installed at ${jdkDir}`);
   return jdkDir;
@@ -314,44 +318,17 @@ async function main() {
 
         log('Preparing minimal Java runtime...');
 
-        const jdkDir = await ensureJdk(JAVA_VERSION, path.join(repoRoot, '.temurin', `jdk${JAVA_VERSION}`));
+        const jdkDir = await ensureJdk(
+          JAVA_VERSION,
+          path.join(repoRoot, '.temurin', `jdk${JAVA_VERSION}`)
+        );
         if (jdkDir) {
           process.env.PATH = `${path.join(jdkDir, 'bin')}:${process.env.PATH}`;
         }
         console.log('Using java at:', runOutput('which java').trim());
 
-        log('Determining Java dependencies (jdeps)...');
-
-        // Run jdeps similar to: jdeps --multi-release $JAVA_VERSION -summary nextflow.jar | awk '/->/ {print $NF}' | grep -E '^(java\.|jdk\.)' | sort -u | paste -sd, -
-        const jdepsCmd = `jdeps --multi-release ${JAVA_VERSION} -summary "${nextflowJar}"`;
-        const jdepsOut = runOutput(jdepsCmd);
-        // Parse lines containing '->' and extract right-most token, then filter java./jdk.
-        const modules = jdepsOut
-          .split(/\r?\n/)
-          .map((l) => l.trim())
-          .filter((l) => l.includes('->'))
-          .map((l) => {
-            // take last token
-            const parts = l.split(/\s+/);
-            return parts[parts.length - 1];
-          })
-          .filter((m) => /^java\.|^jdk\./.test(m))
-          .filter(Boolean);
-
-        modules.push('java.base');
-        modules.push('java.net.http');
-        modules.push('jdk.crypto.ec');
-        modules.push('jdk.crypto.cryptoki');
-        modules.push('java.security.jgss');
-        modules.push('java.naming');
-        modules.push('java.xml');
-
-        const uniqueModules = Array.from(new Set(modules)).sort();
-        if (uniqueModules.length === 0) {
-          log('Warning: no java/jdk modules found by jdeps. Falling back to "java.base".');
-        }
-        const MODULES = uniqueModules.length > 0 ? uniqueModules.join(',') : 'java.base';
-        log('Required modules:', MODULES);
+        log('Using ALL-MODULE-PATH (include all JDK modules)...');
+        const MODULES = 'ALL-MODULE-PATH';
 
         log('Creating minimal Java runtime (jlink)...');
         // Build jlink command: jlink --add-modules "$MODULES" --strip-debug --compress zip-6 --no-header-files --no-man-pages --output ./jre

@@ -238,15 +238,14 @@ export default function SettingsPage({
       <TabPanel value={tabValue} index={1}>
         <Stack spacing={2}>
           <FormControlLabel
-            control={<Switch checked={darkMode} onChange={(_, checked) => handleDarkMode(checked)} />}
+            control={
+              <Switch checked={darkMode} onChange={(_, checked) => handleDarkMode(checked)} />
+            }
             label={t('settings.dark-mode')}
           />
           <FormControlLabel
             control={
-              <Switch
-                checked={showLogPanel}
-                onChange={() => onShowLogPanelChange(!showLogPanel)}
-              />
+              <Switch checked={showLogPanel} onChange={() => onShowLogPanelChange(!showLogPanel)} />
             }
             label={t('settings.show-log-panel')}
           />

@@ -10,7 +10,7 @@ export const ShardStatus = {
   Error: 'error',
   Completed: 'completed',
   Failed: 'failed'
-}
+};
 
 export const shardStatusMessage = {
   [ShardStatus.Unknown]: 'Unknown shard ID',
@@ -24,6 +24,6 @@ export const shardStatusMessage = {
   [ShardStatus.Error]: 'Shard import failed with error',
   [ShardStatus.Completed]: 'Shard import completed successfully',
   [ShardStatus.Failed]: 'Shard import failed'
-}
+};
 
 export type ShardStatusValue = (typeof ShardStatus)[keyof typeof ShardStatus];

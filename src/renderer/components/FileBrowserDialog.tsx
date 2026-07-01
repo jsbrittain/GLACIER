@@ -73,10 +73,22 @@ function formatSize(bytes: number): string {
 function formatDate(iso: string): string {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
 }
 
-export default function FileBrowserDialog({ open, mode, filters, defaultPath, onClose }: FileBrowserDialogProps) {
+export default function FileBrowserDialog({
+  open,
+  mode,
+  filters,
+  defaultPath,
+  onClose
+}: FileBrowserDialogProps) {
   const [currentPath, setCurrentPath] = useState('');
   const [parentPath, setParentPath] = useState<string | null>(null);
   const [entries, setEntries] = useState<FileEntry[]>([]);
@@ -87,7 +99,7 @@ export default function FileBrowserDialog({ open, mode, filters, defaultPath, on
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [showHidden, setShowHidden] = useState(false);
   const [filename, setFilename] = useState(
-    defaultPath && isSaveMode ? defaultPath.split('/').pop() ?? '' : ''
+    defaultPath && isSaveMode ? (defaultPath.split('/').pop() ?? '') : ''
   );
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -96,66 +108,82 @@ export default function FileBrowserDialog({ open, mode, filters, defaultPath, on
 
   const isSaveMode = mode === 'save';
 
-  const matchesFilter = useCallback((entry: FileEntry): boolean => {
-    if (entry.isDirectory) return true;
-    if (!filters || filters.length === 0) return true;
-    return filters.some((f) =>
-      f.extensions.some((ext) => {
-        if (ext === '*') return true;
-        return entry.name.toLowerCase().endsWith('.' + ext.toLowerCase());
-      })
-    );
-  }, [filters]);
+  const matchesFilter = useCallback(
+    (entry: FileEntry): boolean => {
+      if (entry.isDirectory) return true;
+      if (!filters || filters.length === 0) return true;
+      return filters.some((f) =>
+        f.extensions.some((ext) => {
+          if (ext === '*') return true;
+          return entry.name.toLowerCase().endsWith('.' + ext.toLowerCase());
+        })
+      );
+    },
+    [filters]
+  );
 
-  const canSelect = useCallback((entry: FileEntry): boolean => {
-    if (mode === 'directory') return entry.isDirectory;
-    if (mode === 'file') return !entry.isDirectory && matchesFilter(entry);
-    if (mode === 'both') return matchesFilter(entry);
-    if (mode === 'save') return entry.isDirectory;
-    return false;
-  }, [mode, matchesFilter]);
+  const canSelect = useCallback(
+    (entry: FileEntry): boolean => {
+      if (mode === 'directory') return entry.isDirectory;
+      if (mode === 'file') return !entry.isDirectory && matchesFilter(entry);
+      if (mode === 'both') return matchesFilter(entry);
+      if (mode === 'save') return entry.isDirectory;
+      return false;
+    },
+    [mode, matchesFilter]
+  );
 
   const getDialogTitle = (): string => {
     switch (mode) {
-      case 'file': return 'Select File';
-      case 'directory': return 'Select Directory';
-      case 'both': return 'Select File or Directory';
-      case 'save': return 'Save As';
+      case 'file':
+        return 'Select File';
+      case 'directory':
+        return 'Select Directory';
+      case 'both':
+        return 'Select File or Directory';
+      case 'save':
+        return 'Save As';
     }
   };
 
-  const loadDir = useCallback(async (dirPath: string, reset = true) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/fs-list', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: dirPath, offset: 0, limit: PAGE_SIZE, showHidden })
-      });
-      const result: ListResponse = await res.json();
-      if (!result.ok) {
-        setError(result.error?.message ?? 'Failed to list directory');
-        return;
+  const loadDir = useCallback(
+    async (dirPath: string, reset = true) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/fs-list', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: dirPath, offset: 0, limit: PAGE_SIZE, showHidden })
+        });
+        const result: ListResponse = await res.json();
+        if (!result.ok) {
+          setError(result.error?.message ?? 'Failed to list directory');
+          return;
+        }
+        setCurrentPath(result.data!.current);
+        setParentPath(result.data!.parent);
+        setEntries(result.data!.entries);
+        setTotal(result.data!.total);
+        setOffset(result.data!.offset + result.data!.limit);
+        if (reset) setSelectedPath(null);
+      } catch (err: any) {
+        setError(err.message ?? 'Network error');
+      } finally {
+        setLoading(false);
       }
-      setCurrentPath(result.data!.current);
-      setParentPath(result.data!.parent);
-      setEntries(result.data!.entries);
-      setTotal(result.data!.total);
-      setOffset(result.data!.offset + result.data!.limit);
-      if (reset) setSelectedPath(null);
-    } catch (err: any) {
-      setError(err.message ?? 'Network error');
-    } finally {
-      setLoading(false);
-    }
-  }, [showHidden]);
+    },
+    [showHidden]
+  );
 
-  const navigateTo = useCallback((dirPath: string) => {
-    setHistory(prev => [...prev.slice(0, historyIndex + 1), dirPath]);
-    setHistoryIndex(prev => prev + 1);
-    loadDir(dirPath);
-  }, [historyIndex, loadDir]);
+  const navigateTo = useCallback(
+    (dirPath: string) => {
+      setHistory((prev) => [...prev.slice(0, historyIndex + 1), dirPath]);
+      setHistoryIndex((prev) => prev + 1);
+      loadDir(dirPath);
+    },
+    [historyIndex, loadDir]
+  );
 
   const goUp = useCallback(() => {
     if (parentPath) navigateTo(parentPath);
@@ -191,7 +219,7 @@ export default function FileBrowserDialog({ open, mode, filters, defaultPath, on
         setError(result.error?.message ?? 'Failed to load more');
         return;
       }
-      setEntries(prev => [...prev, ...result.data!.entries]);
+      setEntries((prev) => [...prev, ...result.data!.entries]);
       setOffset(result.data!.offset + result.data!.limit);
     } catch (err: any) {
       setError(err.message ?? 'Network error');
@@ -216,9 +244,7 @@ export default function FileBrowserDialog({ open, mode, filters, defaultPath, on
       });
       const result = await res.json();
       if (!result.ok) {
-        setError(
-          'Failed to create folder: ' + (result.error?.message ?? 'Unknown error')
-        );
+        setError('Failed to create folder: ' + (result.error?.message ?? 'Unknown error'));
       } else {
         loadDir(currentPath, true);
       }
@@ -283,182 +309,218 @@ export default function FileBrowserDialog({ open, mode, filters, defaultPath, on
   }, []);
 
   const displayedEntries = isSaveMode
-    ? entries.filter(e => e.isDirectory)
+    ? entries.filter((e) => e.isDirectory)
     : mode === 'directory'
-      ? entries.filter(e => e.isDirectory)
+      ? entries.filter((e) => e.isDirectory)
       : mode === 'file'
-        ? entries.filter(e => !e.isDirectory && matchesFilter(e))
-        : entries.filter(e => matchesFilter(e));
+        ? entries.filter((e) => !e.isDirectory && matchesFilter(e))
+        : entries.filter((e) => matchesFilter(e));
 
   const confirmDisabled = isSaveMode ? !filename.trim() : !selectedPath;
 
   return (
-    <><Dialog open={open} onClose={() => onClose(null)} maxWidth="md" fullWidth>
-      <DialogTitle>{getDialogTitle()}</DialogTitle>
-      <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', minHeight: 400 }}>
-        {error && (
-          <Typography color="error" sx={{ mb: 1 }}>
-            {error}
-          </Typography>
-        )}
+    <>
+      <Dialog open={open} onClose={() => onClose(null)} maxWidth="md" fullWidth>
+        <DialogTitle>{getDialogTitle()}</DialogTitle>
+        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', minHeight: 400 }}>
+          {error && (
+            <Typography color="error" sx={{ mb: 1 }}>
+              {error}
+            </Typography>
+          )}
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
-          <IconButton size="small" onClick={goBack} disabled={historyIndex <= 0}>
-            <ArrowBackIcon fontSize="small" />
-          </IconButton>
-          <IconButton size="small" onClick={goForward} disabled={historyIndex >= history.length - 1}>
-            <ArrowForwardIcon fontSize="small" />
-          </IconButton>
-          <IconButton size="small" onClick={goUp} disabled={!parentPath}>
-            <ArrowUpwardIcon fontSize="small" />
-          </IconButton>
-          <IconButton size="small" onClick={handleCreateFolder} title="New Folder">
-            <CreateNewFolderIcon fontSize="small" />
-          </IconButton>
-          <Breadcrumbs sx={{ flexGrow: 1, ml: 1 }} maxItems={4}>
-            <Link
-              component="button"
-              underline="hover"
-              color="text.primary"
-              onClick={() => navigateTo(currentPath.startsWith('/') ? '/' : breadcrumbPaths[0]?.split('/')[0] ?? '/')}
-              sx={{ fontSize: '0.875rem' }}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 1 }}>
+            <IconButton size="small" onClick={goBack} disabled={historyIndex <= 0}>
+              <ArrowBackIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              onClick={goForward}
+              disabled={historyIndex >= history.length - 1}
             >
-              /
-            </Link>
-            {breadcrumbPaths.map((p, i) => (
+              <ArrowForwardIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small" onClick={goUp} disabled={!parentPath}>
+              <ArrowUpwardIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small" onClick={handleCreateFolder} title="New Folder">
+              <CreateNewFolderIcon fontSize="small" />
+            </IconButton>
+            <Breadcrumbs sx={{ flexGrow: 1, ml: 1 }} maxItems={4}>
               <Link
-                key={p}
                 component="button"
                 underline="hover"
-                color={i === breadcrumbPaths.length - 1 ? 'text.primary' : 'text.secondary'}
-                onClick={() => navigateTo(p)}
+                color="text.primary"
+                onClick={() =>
+                  navigateTo(
+                    currentPath.startsWith('/') ? '/' : (breadcrumbPaths[0]?.split('/')[0] ?? '/')
+                  )
+                }
                 sx={{ fontSize: '0.875rem' }}
               >
-                {pathSegments[i]}
+                /
               </Link>
-            ))}
-          </Breadcrumbs>
-        </Box>
+              {breadcrumbPaths.map((p, i) => (
+                <Link
+                  key={p}
+                  component="button"
+                  underline="hover"
+                  color={i === breadcrumbPaths.length - 1 ? 'text.primary' : 'text.secondary'}
+                  onClick={() => navigateTo(p)}
+                  sx={{ fontSize: '0.875rem' }}
+                >
+                  {pathSegments[i]}
+                </Link>
+              ))}
+            </Breadcrumbs>
+          </Box>
 
-        <FormControlLabel
-          control={
-            <Checkbox
-              size="small"
-              checked={showHidden}
-              onChange={(e) => setShowHidden(e.target.checked)}
-            />
-          }
-          label={<Typography variant="caption">Show hidden files</Typography>}
-          sx={{ mb: 0.5 }}
-        />
+          <FormControlLabel
+            control={
+              <Checkbox
+                size="small"
+                checked={showHidden}
+                onChange={(e) => setShowHidden(e.target.checked)}
+              />
+            }
+            label={<Typography variant="caption">Show hidden files</Typography>}
+            sx={{ mb: 0.5 }}
+          />
 
-        {loading && <LinearProgress sx={{ mb: 0.5 }} />}
+          {loading && <LinearProgress sx={{ mb: 0.5 }} />}
 
-        <Box sx={{ flexGrow: 1, overflow: 'auto', border: 1, borderColor: 'divider', borderRadius: 1 }}>
-          <List dense disablePadding>
-            {parentPath && (
-              <ListItem
-                component="div"
-                onClick={goUp}
-                sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
-              >
-                <ListItemIcon sx={{ minWidth: 36 }}>
-                  <ArrowUpwardIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText primary=".." />
-              </ListItem>
-            )}
-            {displayedEntries.length === 0 && !loading && (
-              <ListItem>
-                <ListItemText
-                  primary={<Typography color="text.secondary" variant="body2">(empty)</Typography>}
-                />
-              </ListItem>
-            )}
-            {displayedEntries.map((entry) => {
-              const sel = selectedPath === entry.path;
-              const canSel = canSelect(entry);
-              return (
+          <Box
+            sx={{
+              flexGrow: 1,
+              overflow: 'auto',
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 1
+            }}
+          >
+            <List dense disablePadding>
+              {parentPath && (
                 <ListItem
-                  key={entry.path}
                   component="div"
-                  selected={sel}
-                  onClick={() => handleEntryClick(entry)}
-                  onDoubleClick={() => handleEntryDoubleClick(entry)}
-                  sx={{
-                    cursor: canSel || entry.isDirectory ? 'pointer' : 'default',
-                    opacity: canSel || entry.isDirectory ? 1 : 0.5,
-                    '&:hover': { bgcolor: 'action.hover' },
-                    '&.Mui-selected': { bgcolor: 'action.selected' }
-                  }}
+                  onClick={goUp}
+                  sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
                 >
                   <ListItemIcon sx={{ minWidth: 36 }}>
-                    {entry.isDirectory ? <FolderIcon fontSize="small" color="primary" /> : <InsertDriveFileIcon fontSize="small" />}
+                    <ArrowUpwardIcon fontSize="small" />
                   </ListItemIcon>
-                  <ListItemText
-                    primary={entry.name}
-                    secondary={!entry.isDirectory ? `${formatSize(entry.size)}  ${formatDate(entry.modifiedAt)}` : ''}
-                    primaryTypographyProps={{ variant: 'body2', noWrap: true }}
-                    secondaryTypographyProps={{ variant: 'caption' }}
-                  />
-                  {!entry.isDirectory && (
-                    <Chip
-                      label={formatSize(entry.size)}
-                      size="small"
-                      variant="outlined"
-                      sx={{ ml: 1, fontSize: '0.7rem' }}
-                    />
-                  )}
+                  <ListItemText primary=".." />
                 </ListItem>
-              );
-            })}
-          </List>
-        </Box>
-
-        {offset < total && (
-          <Box sx={{ textAlign: 'center', mt: 1 }}>
-            <Button size="small" onClick={loadMore} disabled={loading} variant="outlined">
-              Load more ({total - offset} remaining)
-            </Button>
+              )}
+              {displayedEntries.length === 0 && !loading && (
+                <ListItem>
+                  <ListItemText
+                    primary={
+                      <Typography color="text.secondary" variant="body2">
+                        (empty)
+                      </Typography>
+                    }
+                  />
+                </ListItem>
+              )}
+              {displayedEntries.map((entry) => {
+                const sel = selectedPath === entry.path;
+                const canSel = canSelect(entry);
+                return (
+                  <ListItem
+                    key={entry.path}
+                    component="div"
+                    selected={sel}
+                    onClick={() => handleEntryClick(entry)}
+                    onDoubleClick={() => handleEntryDoubleClick(entry)}
+                    sx={{
+                      cursor: canSel || entry.isDirectory ? 'pointer' : 'default',
+                      opacity: canSel || entry.isDirectory ? 1 : 0.5,
+                      '&:hover': { bgcolor: 'action.hover' },
+                      '&.Mui-selected': { bgcolor: 'action.selected' }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 36 }}>
+                      {entry.isDirectory ? (
+                        <FolderIcon fontSize="small" color="primary" />
+                      ) : (
+                        <InsertDriveFileIcon fontSize="small" />
+                      )}
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={entry.name}
+                      secondary={
+                        !entry.isDirectory
+                          ? `${formatSize(entry.size)}  ${formatDate(entry.modifiedAt)}`
+                          : ''
+                      }
+                      primaryTypographyProps={{ variant: 'body2', noWrap: true }}
+                      secondaryTypographyProps={{ variant: 'caption' }}
+                    />
+                    {!entry.isDirectory && (
+                      <Chip
+                        label={formatSize(entry.size)}
+                        size="small"
+                        variant="outlined"
+                        sx={{ ml: 1, fontSize: '0.7rem' }}
+                      />
+                    )}
+                  </ListItem>
+                );
+              })}
+            </List>
           </Box>
-        )}
 
-        {isSaveMode && (
-          <Box sx={{ mt: 2 }}>
-            <TextField
-              fullWidth
-              size="small"
-              label="Filename"
-              placeholder="Enter filename"
-              value={filename}
-              onChange={(e) => setFilename(e.target.value)}
-              autoFocus
-            />
-          </Box>
-        )}
+          {offset < total && (
+            <Box sx={{ textAlign: 'center', mt: 1 }}>
+              <Button size="small" onClick={loadMore} disabled={loading} variant="outlined">
+                Load more ({total - offset} remaining)
+              </Button>
+            </Box>
+          )}
 
-        {selectedPath && !isSaveMode && (
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-            Selected: {selectedPath}
-          </Typography>
-        )}
+          {isSaveMode && (
+            <Box sx={{ mt: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Filename"
+                placeholder="Enter filename"
+                value={filename}
+                onChange={(e) => setFilename(e.target.value)}
+                autoFocus
+              />
+            </Box>
+          )}
 
-        {isSaveMode && filename.trim() && (
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-            Save as: {currentPath}{currentPath.endsWith('/') ? '' : '/'}{filename}
-          </Typography>
-        )}
-      </DialogContent>
+          {selectedPath && !isSaveMode && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+              Selected: {selectedPath}
+            </Typography>
+          )}
 
-      <DialogActions>
-        <Button onClick={() => onClose(null)}>Cancel</Button>
-        <Button onClick={handleConfirm} variant="contained" disabled={confirmDisabled}>
-          {isSaveMode ? 'Save' : 'Select'}
-        </Button>
-      </DialogActions>
-    </Dialog>
-    <Dialog open={showCreateDialog} onClose={() => setShowCreateDialog(false)} maxWidth="xs" fullWidth>
-      <DialogTitle>New Folder</DialogTitle>
+          {isSaveMode && filename.trim() && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+              Save as: {currentPath}
+              {currentPath.endsWith('/') ? '' : '/'}
+              {filename}
+            </Typography>
+          )}
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={() => onClose(null)}>Cancel</Button>
+          <Button onClick={handleConfirm} variant="contained" disabled={confirmDisabled}>
+            {isSaveMode ? 'Save' : 'Select'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={showCreateDialog}
+        onClose={() => setShowCreateDialog(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>New Folder</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -466,20 +528,24 @@ export default function FileBrowserDialog({ open, mode, filters, defaultPath, on
             size="small"
             label="Folder name"
             sx={{ mt: 1 }}
-          value={newFolderName}
-          onChange={(e) => setNewFolderName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleCreateFolderConfirm();
-          }}
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setShowCreateDialog(false)}>Cancel</Button>
-        <Button onClick={handleCreateFolderConfirm} variant="contained" disabled={!newFolderName.trim()}>
-          Create
-        </Button>
-      </DialogActions>
-    </Dialog>
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleCreateFolderConfirm();
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+          <Button
+            onClick={handleCreateFolderConfirm}
+            variant="contained"
+            disabled={!newFolderName.trim()}
+          >
+            Create
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

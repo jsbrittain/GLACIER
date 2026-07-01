@@ -7,11 +7,23 @@ import * as safeFs from './safe-fs.js';
 import { IRepo, IRepoVersions } from './types.js';
 import { getShell } from './shell.js';
 import { generateUniqueName } from './repo.js';
-import { cloneRepo, ICloneRepo, getRepoTags, getRepoBranches, parseRepoUrl, sortTagsBySemver } from './repo.js';
+import {
+  cloneRepo,
+  ICloneRepo,
+  getRepoTags,
+  getRepoBranches,
+  parseRepoUrl,
+  sortTagsBySemver
+} from './repo.js';
 import { runWorkflow } from './runner.js';
 import { getEnvironmentStatus, performEnvironmentAction } from '../runners/environment.js';
 import { ProcessDescriptor, WorkflowStatus } from '../types/types.js';
-import { syncRepo, getWorkflowParams, getWorkflowSchema, isValidWorkflowRepo as checkIsValidWorkflowRepo } from './repo.js';
+import {
+  syncRepo,
+  getWorkflowParams,
+  getWorkflowSchema,
+  isValidWorkflowRepo as checkIsValidWorkflowRepo
+} from './repo.js';
 import {
   getConfigPath,
   getDocumentsPath,
@@ -415,13 +427,22 @@ export class Collection {
       issues.push({ severity: 'error', message: `Config path does not exist: ${this.root_path}` });
     }
     if (!this.documents_root_path || !safeFs.existsSync(this.documents_root_path)) {
-      issues.push({ severity: 'error', message: `Documents path does not exist: ${this.documents_root_path}` });
+      issues.push({
+        severity: 'error',
+        message: `Documents path does not exist: ${this.documents_root_path}`
+      });
     }
     if (!safeFs.existsSync(this.workflow_path)) {
-      issues.push({ severity: 'warning', message: `Workflows path does not exist: ${this.workflow_path}` });
+      issues.push({
+        severity: 'warning',
+        message: `Workflows path does not exist: ${this.workflow_path}`
+      });
     }
     if (!safeFs.existsSync(this.instances_path)) {
-      issues.push({ severity: 'warning', message: `Instances path does not exist: ${this.instances_path}` });
+      issues.push({
+        severity: 'warning',
+        message: `Instances path does not exist: ${this.instances_path}`
+      });
     }
 
     // Instance database integrity
@@ -429,7 +450,10 @@ export class Collection {
     if (safeFs.existsSync(dbPath)) {
       const raw = safeFs.readFileSync(dbPath);
       if (!raw.ok) {
-        issues.push({ severity: 'error', message: `Cannot read instance database: ${raw.error.message}` });
+        issues.push({
+          severity: 'error',
+          message: `Cannot read instance database: ${raw.error.message}`
+        });
       } else {
         try {
           const db = JSON.parse(raw.data);
@@ -437,7 +461,10 @@ export class Collection {
             issues.push({ severity: 'error', message: 'Instance database has invalid structure' });
           }
         } catch {
-          issues.push({ severity: 'error', message: 'Instance database is corrupt (invalid JSON)' });
+          issues.push({
+            severity: 'error',
+            message: 'Instance database is corrupt (invalid JSON)'
+          });
         }
       }
     }
@@ -454,12 +481,18 @@ export class Collection {
         for (const desc of inst.processes) {
           const alive = await this.verifyProcess(desc);
           if (!alive) {
-            issues.push({ severity: 'warning', message: `Instance ${inst.id} has stale process (PID ${desc.pid})` });
+            issues.push({
+              severity: 'warning',
+              message: `Instance ${inst.id} has stale process (PID ${desc.pid})`
+            });
           }
         }
       }
       if (!safeFs.existsSync(inst.path)) {
-        issues.push({ severity: 'warning', message: `Instance ${inst.id} path missing: ${inst.path}` });
+        issues.push({
+          severity: 'warning',
+          message: `Instance ${inst.id} path missing: ${inst.path}`
+        });
       }
     }
 
@@ -709,7 +742,9 @@ export class Collection {
             } else {
               this.killPID(desc.pid, 'kill');
             }
-            console.log(`Instance ${run.id} found in database but not in filesystem, killed orphan process.`);
+            console.log(
+              `Instance ${run.id} found in database but not in filesystem, killed orphan process.`
+            );
           }
         }
         console.log(`Instance ${run.id} found in database but not in filesystem, removing.`);
@@ -823,7 +858,10 @@ export class Collection {
       console.log(`- ${inst.id} (${inst.workflow_version.id}) at ${inst.path}`);
       if (inst.processes.length > 0) {
         const descs = inst.processes
-          .map((p) => `${p.pid}${p.containerId ? ' (container:' + p.containerId.slice(0, 12) + ')' : ''}`)
+          .map(
+            (p) =>
+              `${p.pid}${p.containerId ? ' (container:' + p.containerId.slice(0, 12) + ')' : ''}`
+          )
           .join(', ');
         console.log(`  - Processes: ${descs}`);
       }
@@ -890,8 +928,8 @@ export class Collection {
     }
     let workflow_version;
     if (version === undefined || version === 'latest') {
-      workflow_version = workflow.versions.find((v) => v.sourceVersion === 'latest')
-        || workflow.versions[0];
+      workflow_version =
+        workflow.versions.find((v) => v.sourceVersion === 'latest') || workflow.versions[0];
     } else {
       workflow_version = workflow.versions.filter((v: any) => v.version === version)[0];
     }
@@ -947,7 +985,11 @@ export class Collection {
     if (safeFs.existsSync(db_path)) {
       const raw = safeFs.readFileSync(db_path);
       if (raw.ok) {
-        try { instanceDb = JSON.parse(raw.data); } catch { /* corrupt DB, ignore */ }
+        try {
+          instanceDb = JSON.parse(raw.data);
+        } catch {
+          /* corrupt DB, ignore */
+        }
       }
     }
     const visible: IWorkflowInstance[] = [];
@@ -1065,10 +1107,10 @@ export class Collection {
     try {
       if (isWin) {
         const { execSync } = require('child_process');
-        const out = execSync(
-          `wmic process where processid=${pid} get commandline /format:list`,
-          { encoding: 'utf-8', timeout: 3000 }
-        );
+        const out = execSync(`wmic process where processid=${pid} get commandline /format:list`, {
+          encoding: 'utf-8',
+          timeout: 3000
+        });
         const match = out.match(/CommandLine=(.+)/);
         return match ? match[1].trim() : null;
       } else {
@@ -1110,8 +1152,7 @@ export class Collection {
       const actualCmd = await this.getProcessCmd(desc.pid);
       if (actualCmd !== null && !actualCmd.includes(desc.cmd)) {
         // The PID is alive but belongs to a different program — PID reuse
-        const excerpt =
-          actualCmd.length > 120 ? actualCmd.slice(0, 120) + '...' : actualCmd;
+        const excerpt = actualCmd.length > 120 ? actualCmd.slice(0, 120) + '...' : actualCmd;
         console.warn(
           `PID ${desc.pid} cmd mismatch: expected "${desc.cmd.slice(0, 80)}", got "${excerpt}"`
         );
@@ -1460,7 +1501,12 @@ export class Collection {
   async cloneRepo(url: string, ver: string, sourceVer?: string): Promise<IWorkflowVersion> {
     console.log(`Cloning repository ${url} version ${ver}`);
     const isLatest = sourceVer === 'latest';
-    const repo: ICloneRepo = await cloneRepo(url, this.workflow_path, ver, isLatest ? 'latest' : undefined);
+    const repo: ICloneRepo = await cloneRepo(
+      url,
+      this.workflow_path,
+      ver,
+      isLatest ? 'latest' : undefined
+    );
     const wf_id = `${repo.owner}/${repo.repo}`;
     // Create workflow if it doesn't already exist
     let wf = this.workflows.find((wf) => wf.id === wf_id);
@@ -1563,7 +1609,11 @@ export class Collection {
     if (safeFs.existsSync(db_path)) {
       const raw = safeFs.readFileSync(db_path);
       if (raw.ok) {
-        try { db = JSON.parse(raw.data); } catch { /* corrupt DB, start fresh */ }
+        try {
+          db = JSON.parse(raw.data);
+        } catch {
+          /* corrupt DB, start fresh */
+        }
         if (!db?.runs || !Array.isArray(db.runs)) db = { runs: [] };
       }
     }
@@ -2184,7 +2234,13 @@ export class Collection {
     }
     this.parseCatalogues();
     // Check each workflow
-    const results: { name: string; repo: string; updated: boolean; error?: string; availableVersion?: string }[] = [];
+    const results: {
+      name: string;
+      repo: string;
+      updated: boolean;
+      error?: string;
+      availableVersion?: string;
+    }[] = [];
     const catRef = this.catalogues.find((c) => c.name === catalogue_name);
     if (!catRef) {
       throw new Error(`Catalogue ${catalogue_name} not found after refresh.`);
@@ -2204,13 +2260,21 @@ export class Collection {
                 const sortedTags = sortTagsBySemver(tags || []);
                 const newestTag = sortedTags.length > 0 ? sortedTags[sortedTags.length - 1] : null;
                 if (newestTag && installedVersion.version !== newestTag) {
-                  results.push({ name: workflow.name, repo: workflow.repo, updated: true, availableVersion: newestTag });
+                  results.push({
+                    name: workflow.name,
+                    repo: workflow.repo,
+                    updated: true,
+                    availableVersion: newestTag
+                  });
                 } else {
                   const timeoutMs = 20000;
                   const timeout = new Promise<{ status: 'ok'; updated: false }>((resolve) =>
                     setTimeout(() => resolve({ status: 'ok', updated: false }), timeoutMs)
                   );
-                  const syncResult: any = await Promise.race([syncRepo(installedVersion.path), timeout]);
+                  const syncResult: any = await Promise.race([
+                    syncRepo(installedVersion.path),
+                    timeout
+                  ]);
                   if (syncResult.status === 'ok') {
                     results.push({
                       name: workflow.name,
@@ -2251,19 +2315,18 @@ export class Collection {
       upToDate: results.filter((r) => !r.updated && !r.error).length,
       errors: results.filter((r) => r.error).length,
       errorDetails: results.filter((r) => r.error).map((r) => `${r.name}: ${r.error}`),
-      updates: results.filter((r) => r.updated).map((r) => ({
-        name: r.name,
-        repo: r.repo,
-        availableVersion: (r as any).availableVersion || ''
-      }))
+      updates: results
+        .filter((r) => r.updated)
+        .map((r) => ({
+          name: r.name,
+          repo: r.repo,
+          availableVersion: (r as any).availableVersion || ''
+        }))
     };
   }
 
   async checkWorkflowUpdates(): Promise<
-    Record<
-      string,
-      { name: string; currentVersion: string; availableVersion: string }
-    >
+    Record<string, { name: string; currentVersion: string; availableVersion: string }>
   > {
     // Read-only check: fetch tags for all 'latest' workflows and compare
     // without syncing repos or writing to disk.
@@ -2278,9 +2341,7 @@ export class Collection {
           if (wf.version === 'latest') {
             const installed = this.workflows.find((w) => w.id === wf.repo);
             if (installed) {
-              const ver = installed.versions.find(
-                (v) => v.sourceVersion === 'latest'
-              );
+              const ver = installed.versions.find((v) => v.sourceVersion === 'latest');
               if (ver?.version) {
                 checkTargets.push({
                   repo: wf.repo,
@@ -2525,7 +2586,8 @@ export class Collection {
     const raw = safeFs.readFileSync(filePath);
     if (!raw.ok) throw new Error(`Cannot read file: ${raw.error.message}`);
     const cat = JSON.parse(raw.data);
-    if (!cat?.sections || !cat?.name) throw new Error('Invalid catalogue JSON: missing name or sections');
+    if (!cat?.sections || !cat?.name)
+      throw new Error('Invalid catalogue JSON: missing name or sections');
     const dest = path.join(this.catalogues_path, 'local', cat.name);
     const destFile = path.join(dest, 'catalogue.json');
     this.ensurePathExists(dest);

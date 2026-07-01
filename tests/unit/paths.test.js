@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getDefaultCollectionsDir, getDefaultConfigDir, getCollectionsPath, getConfigPath, getDocumentsPath, getDefaultDocumentsDir, locateReports } from '../../src/main/paths.js';
+import {
+  getDefaultCollectionsDir,
+  getDefaultConfigDir,
+  getCollectionsPath,
+  getConfigPath,
+  getDocumentsPath,
+  getDefaultDocumentsDir,
+  locateReports
+} from '../../src/main/paths.js';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';

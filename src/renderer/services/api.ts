@@ -20,7 +20,8 @@ const electronAPI = isElectron
       deleteWorkflowInstance: (instance) => window.electronAPI.deleteWorkflowInstance(instance),
       openResultsFolder: (instance) => window.electronAPI.openResultsFolder(instance),
       openLogFile: (instance, logType) => window.electronAPI.openLogFile(instance, logType),
-      openWorkLogFile: (instance, workID, logType) => window.electronAPI.openWorkLogFile(instance, workID, logType),
+      openWorkLogFile: (instance, workID, logType) =>
+        window.electronAPI.openWorkLogFile(instance, workID, logType),
       updateWorkflowInstanceStatus: (instance) =>
         window.electronAPI.updateWorkflowInstanceStatus(instance),
       getInstanceReportsList: (instance) => window.electronAPI.getInstanceReportsList(instance),
@@ -49,7 +50,12 @@ const electronAPI = isElectron
         window.electronAPI.moveCatalogueWorkflowsToUser(catalogue_name, workflows),
       getInstalledWorkflowIds: () => window.electronAPI.getInstalledWorkflowIds(),
       uninstallCatalogueWorkflow: (catalogue_name, section_name, workflow_name, workflow_version) =>
-        window.electronAPI.uninstallCatalogueWorkflow(catalogue_name, section_name, workflow_name, workflow_version),
+        window.electronAPI.uninstallCatalogueWorkflow(
+          catalogue_name,
+          section_name,
+          workflow_name,
+          workflow_version
+        ),
       updateCatalogueWorkflow: (catalogue_name, section_name, workflow_name) =>
         window.electronAPI.updateCatalogueWorkflow(catalogue_name, section_name, workflow_name),
       checkCatalogueWorkflowUpdates: (catalogue_name) =>
@@ -105,8 +111,7 @@ const electronAPI = isElectron
       unhideWorkflowInstance: (instance) => window.electronAPI.unhideWorkflowInstance(instance),
       listHiddenInstances: () => window.electronAPI.listHiddenInstances(),
       exportCatalogue: (name, path) => window.electronAPI.exportCatalogue(name, path),
-      createCatalogueFromFile: (filePath) =>
-        window.electronAPI.createCatalogueFromFile(filePath),
+      createCatalogueFromFile: (filePath) => window.electronAPI.createCatalogueFromFile(filePath),
       getTheme: () => window.electronAPI.getTheme()
     }
   : null;
@@ -162,7 +167,8 @@ const httpAPI = {
     httpDispatch('/api/get-work-log', 'POST', { instance, workID, logType }),
   getAvailableProfiles: async (instance) =>
     httpDispatch('/api/get-available-profiles', 'POST', { instance }),
-  cloneRepo: async (repoUrl, ver, sourceVer) => httpDispatch('/api/clone-repo', 'POST', { repoUrl, ver, sourceVer }),
+  cloneRepo: async (repoUrl, ver, sourceVer) =>
+    httpDispatch('/api/clone-repo', 'POST', { repoUrl, ver, sourceVer }),
   getRepoTags: async (repoUrl) => httpDispatch('/api/get-repo-tags', 'POST', { repoUrl }),
   isRepoInstalled: async (repoUrl, ver) =>
     httpDispatch('/api/is-repo-installed', 'POST', { repoUrl, ver }),
@@ -191,7 +197,12 @@ const httpAPI = {
     }),
   moveCatalogueWorkflowsToUser: async (catalogue_name, workflows) =>
     httpDispatch('/api/move-catalogue-workflows-to-user', 'POST', { catalogue_name, workflows }),
-  uninstallCatalogueWorkflow: async (catalogue_name, section_name, workflow_name, workflow_version) =>
+  uninstallCatalogueWorkflow: async (
+    catalogue_name,
+    section_name,
+    workflow_name,
+    workflow_version
+  ) =>
     httpDispatch('/api/uninstall-catalogue-workflow', 'POST', {
       catalogue_name,
       section_name,
@@ -214,7 +225,8 @@ const httpAPI = {
   showCatalogueSections: async (catalogue_name) =>
     httpDispatch('/api/show-catalogue-sections', 'POST', { catalogue_name }),
   getCatalogues: async () => httpDispatch('/api/get-catalogues', 'POST', {}),
-  getCatalogueParseResults: async () => httpDispatch('/api/get-catalogue-parse-results', 'POST', {}),
+  getCatalogueParseResults: async () =>
+    httpDispatch('/api/get-catalogue-parse-results', 'POST', {}),
   refreshCatalogues: async () => httpDispatch('/api/refresh-catalogues', 'POST', {}),
   addUserWorkflow: async (name, repoUrl, ver, section) =>
     httpDispatch('/api/add-user-workflow', 'POST', { name, repoUrl, ver, section }),
@@ -263,7 +275,11 @@ const httpAPI = {
   },
   showSaveDialog: async (opts) => {
     const { showFileBrowser } = await import('./showFileBrowser.js');
-    return showFileBrowser({ mode: 'save', filters: opts?.filters, defaultFilename: opts?.defaultPath });
+    return showFileBrowser({
+      mode: 'save',
+      filters: opts?.filters,
+      defaultFilename: opts?.defaultPath
+    });
   },
   writeTextFile: async (filePath, content) =>
     httpDispatch('/api/write-text-file', 'POST', { filePath, content }),

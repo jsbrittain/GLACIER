@@ -65,7 +65,10 @@ export default function VersionSelectDialog({
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
       <DialogTitle>
-        {t('library.select-version-title', { name: workflowName, defaultValue: `Select version for ${workflowName}` })}
+        {t('library.select-version-title', {
+          name: workflowName,
+          defaultValue: `Select version for ${workflowName}`
+        })}
       </DialogTitle>
       <DialogContent dividers>
         {loading ? (

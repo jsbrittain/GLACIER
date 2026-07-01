@@ -18,7 +18,11 @@ const TIMEOUT_30s = 30_000;
 const TIMEOUT_60s = 60_000;
 
 async function waitForLogLine(page: Page, text: string | RegExp, timeout = 60000) {
-  await page.waitForEvent('console', { predicate: (msg) => text instanceof RegExp ? text.test(msg.text()) : msg.text().includes(text), timeout });
+  await page.waitForEvent('console', {
+    predicate: (msg) =>
+      text instanceof RegExp ? text.test(msg.text()) : msg.text().includes(text),
+    timeout
+  });
 }
 
 test('show title', async ({ page }) => {
@@ -73,7 +77,9 @@ test('clone a repository', async ({ page }) => {
   const repo_name = 'workflow-runner-test-nextflow';
 
   await actionsButton.click();
-  await expect(page.locator('#library-actions-menu-add-repo')).toBeVisible({ timeout: TIMEOUT_10s });
+  await expect(page.locator('#library-actions-menu-add-repo')).toBeVisible({
+    timeout: TIMEOUT_10s
+  });
   await page.click('#library-actions-menu-add-repo');
   // Fill in repo details
   await page.fill('#query-add-workflow-repo-url', `${repo_owner}/${repo_name}`);

@@ -2,11 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockStore = vi.hoisted(() => ({
   get: vi.fn(),
-  set: vi.fn(),
+  set: vi.fn()
 }));
 
 vi.mock('../../src/main/store.js', () => ({
-  default: mockStore,
+  default: mockStore
 }));
 
 import { settings } from '../../src/main/settings.js';

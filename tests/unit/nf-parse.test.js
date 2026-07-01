@@ -33,7 +33,7 @@ function createWorkDir(workID) {
 describe('nf-parse', () => {
   describe('created event', () => {
     it('adds a process with created status', async () => {
-      const content = '2024-01-01 12:00:00.123 Creating process \'foo\'\n';
+      const content = "2024-01-01 12:00:00.123 Creating process 'foo'\n";
       const logPath = createLogFile(content);
       const result = await parseNextflowLog(logPath);
 
@@ -45,7 +45,7 @@ describe('nf-parse', () => {
     });
 
     it('adds process under nested group for colon-separated names', async () => {
-      const content = '2024-01-01 12:00:00.123 Creating process \'foo:bar:baz\'\n';
+      const content = "2024-01-01 12:00:00.123 Creating process 'foo:bar:baz'\n";
       const logPath = createLogFile(content);
       const result = await parseNextflowLog(logPath);
 
@@ -129,8 +129,7 @@ describe('nf-parse', () => {
 
   describe('completed event', () => {
     it('adds a process with completed status', async () => {
-      const content =
-        '2024-01-01 12:00:00.123 Task completed > name: foo; status: COMPLETED;\n';
+      const content = '2024-01-01 12:00:00.123 Task completed > name: foo; status: COMPLETED;\n';
       const logPath = createLogFile(content);
       const result = await parseNextflowLog(logPath);
 
@@ -154,7 +153,7 @@ describe('nf-parse', () => {
         "2024-01-01 12:00:00.123 Error executing process > 'OOMER'",
         '',
         'Caused by:',
-        "  Process `OOMER` terminated with an error exit status (137)",
+        '  Process `OOMER` terminated with an error exit status (137)',
         '',
         'Command executed:',
         '  echo "Simulating out-of-memory error: process killed (exit code 137)"',
@@ -185,9 +184,7 @@ describe('nf-parse', () => {
       expect(entry.commandError).toBe(
         'Simulating out-of-memory error: process killed (exit code 137)'
       );
-      expect(entry.cause).toBe(
-        'Process `OOMER` terminated with an error exit status (137)'
-      );
+      expect(entry.cause).toBe('Process `OOMER` terminated with an error exit status (137)');
     });
 
     it('parses multi-line command error', async () => {
@@ -277,8 +274,7 @@ describe('nf-parse', () => {
 
   describe('aborted event', () => {
     it('adds a workflow entry with Failed status', async () => {
-      const content =
-        '2024-01-01 12:00:00.123 Session aborted -- Cause: Some error\n';
+      const content = '2024-01-01 12:00:00.123 Session aborted -- Cause: Some error\n';
       const logPath = createLogFile(content);
       const result = await parseNextflowLog(logPath);
 
@@ -293,9 +289,7 @@ describe('nf-parse', () => {
       const logPath = createLogFile(content);
       const result = await parseNextflowLog(logPath);
 
-      expect(result.workflow[0].cause).toBe(
-        "Process 'foo' terminated with exit code 137"
-      );
+      expect(result.workflow[0].cause).toBe("Process 'foo' terminated with exit code 137");
     });
 
     it('captures OOM cause from OutOfMemoryError', async () => {
@@ -304,14 +298,11 @@ describe('nf-parse', () => {
       const logPath = createLogFile(content);
       const result = await parseNextflowLog(logPath);
 
-      expect(result.workflow[0].cause).toBe(
-        'Java.lang.OutOfMemoryError: Java heap space'
-      );
+      expect(result.workflow[0].cause).toBe('Java.lang.OutOfMemoryError: Java heap space');
     });
 
     it('captures disk full cause', async () => {
-      const content =
-        '2024-01-01 12:00:00.123 Session aborted -- Cause: No space left on device\n';
+      const content = '2024-01-01 12:00:00.123 Session aborted -- Cause: No space left on device\n';
       const logPath = createLogFile(content);
       const result = await parseNextflowLog(logPath);
 
@@ -324,14 +315,11 @@ describe('nf-parse', () => {
       const logPath = createLogFile(content);
       const result = await parseNextflowLog(logPath);
 
-      expect(result.workflow[0].cause).toBe(
-        "Process 'foo' terminated with exit code 124"
-      );
+      expect(result.workflow[0].cause).toBe("Process 'foo' terminated with exit code 124");
     });
 
     it('captures permission denied cause', async () => {
-      const content =
-        '2024-01-01 12:00:00.123 Session aborted -- Cause: Permission denied\n';
+      const content = '2024-01-01 12:00:00.123 Session aborted -- Cause: Permission denied\n';
       const logPath = createLogFile(content);
       const result = await parseNextflowLog(logPath);
 

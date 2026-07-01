@@ -43,7 +43,7 @@ export default function ActionMenu({
         throw new Error(result.error.message);
       }
     });
-  }
+  };
 
   const addCatalogue = async (repo, version) => {
     return API.addCatalogue(repo, version).then((result) => {
@@ -71,14 +71,20 @@ export default function ActionMenu({
     if (!fileResult.ok || !fileResult.data) return;
     API.createCatalogueFromFile(fileResult.data).then((result) => {
       if (result.ok) {
-        logMessage(t('library.create-catalogue-from-file-success', { name: result.data }), 'success');
+        logMessage(
+          t('library.create-catalogue-from-file-success', { name: result.data }),
+          'success'
+        );
         getCatalogues();
       } else {
-        logMessage(t('library.create-catalogue-from-file-failure', { error: result.error.message }), 'error');
+        logMessage(
+          t('library.create-catalogue-from-file-failure', { error: result.error.message }),
+          'error'
+        );
       }
     });
   };
-  
+
   const display = permitAddCatalogues || permitAddRepos || permitImportShards;
   return (
     <Box

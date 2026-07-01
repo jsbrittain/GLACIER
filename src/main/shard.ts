@@ -20,21 +20,21 @@ export const queryShardStatus = async (shardId: string) => {
     status = ShardStatus.Unknown;
   }
   return {
-    "status": status,
-    "message": shardStatusMessage[status],
-    "logs": shard?.log?.logs || []
-  }
-}
+    status: status,
+    message: shardStatusMessage[status],
+    logs: shard?.log?.logs || []
+  };
+};
 
 const shardRepository: Record<string, ImportShard> = {};
 
 export const importShard = async (filePath: string, glacierPath: string) => {
   // New shard instance
-  const shard = new ImportShard()
+  const shard = new ImportShard();
   shardRepository[shard.shardId] = shard;
   void shard.importShard(filePath, glacierPath);
   return shard.shardId;
-}
+};
 
 interface PlatformInfo {
   path: string;
@@ -81,19 +81,16 @@ class Logger {
 class ImportShard {
   shardId: string;
   shardStatus: ShardStatusValue = ShardStatus.None;
-  shardPath: string = "";
+  shardPath: string = '';
   manifest: any;
   log: Logger = new Logger();
-  imported_workflows: Array<{name: string, repo: string, version: string}> = [];
+  imported_workflows: Array<{ name: string; repo: string; version: string }> = [];
 
   constructor() {
     this.shardId = `shard-${Date.now()}`;
   }
 
-  async importShard(
-    filePath: string,
-    glacierPath: string,
-  ) {
+  async importShard(filePath: string, glacierPath: string) {
     this.shardStatus = ShardStatus.Pending;
     console.log(`Importing shard from file ${filePath}`);
 
@@ -110,24 +107,24 @@ class ImportShard {
 
       // Extract workflow files and move to GLACIER catalogue
       this.shardStatus = ShardStatus.ImportingWorkflows;
-      const workflowPath = path.join(glacierPath, "workflows")
+      const workflowPath = path.join(glacierPath, 'workflows');
       await this.extractWorkflows(workflowPath);
 
       // Install containers
       this.shardStatus = ShardStatus.InstallingContainers;
-      const containersPath = path.join(glacierPath, "containers")
+      const containersPath = path.join(glacierPath, 'containers');
       await this.installContainers(containersPath);
 
       // Import assets / data
       this.shardStatus = ShardStatus.ImportingAssets;
-      const assetsPath = path.join(glacierPath, "data")
+      const assetsPath = path.join(glacierPath, 'data');
       await this.importAssets(assetsPath);
 
       // Add catalogue entry
       this.shardStatus = ShardStatus.UpdatingCatalogue;
-      const cataloguePath = path.join(glacierPath, "catalogues");
+      const cataloguePath = path.join(glacierPath, 'catalogues');
       await this.addCatalogueEntry(cataloguePath);
-      
+
       // Finished
       this.shardStatus = ShardStatus.Completed;
       this.log.success(`Shard import completed successfully`);
@@ -189,9 +186,12 @@ class ImportShard {
       throw err;
     }
     // Check for top-level folder and return
-    const topLevelFiles = fs.readdirSync(destPath).filter(file => !file.startsWith('.'));
+    const topLevelFiles = fs.readdirSync(destPath).filter((file) => !file.startsWith('.'));
     let decompressPath = destPath;
-    if (topLevelFiles.length === 1 && fs.statSync(path.join(destPath, topLevelFiles[0])).isDirectory()) {
+    if (
+      topLevelFiles.length === 1 &&
+      fs.statSync(path.join(destPath, topLevelFiles[0])).isDirectory()
+    ) {
       decompressPath = path.join(destPath, topLevelFiles[0]);
     }
     console.log(`Extracted ${tarPath} to ${decompressPath}`);
@@ -206,7 +206,7 @@ class ImportShard {
       console.info('No workflow directory found');
       return;
     }
-    const workflowFiles = fs.readdirSync(shardWorkflowPath).filter(file => !file.startsWith('.'));
+    const workflowFiles = fs.readdirSync(shardWorkflowPath).filter((file) => !file.startsWith('.'));
     console.log(`Found workflow files: ${workflowFiles.join(', ')}`);
     this.log.info(`Extracting ${workflowFiles.length} workflows from shard`);
     for (const file of workflowFiles) {
@@ -214,14 +214,18 @@ class ImportShard {
       if (ext === '.bundle') {
         // git bundle
         throw new Error('Git bundle workflow importing not implemented');
-      } else if ((ext === '.tar') || (path.extname(path.basename(file, '.gz')) === '.tar')) {
+      } else if (ext === '.tar' || path.extname(path.basename(file, '.gz')) === '.tar') {
         // tarball --- decompress to sub-folder
-        const basename = path.basename(file, '.tar.gz') === file
-          ? path.basename(path.basename(file, '.gz'), '.tar')
-          : path.basename(file, '.tar.gz');
+        const basename =
+          path.basename(file, '.tar.gz') === file
+            ? path.basename(path.basename(file, '.gz'), '.tar')
+            : path.basename(file, '.tar.gz');
         const srcFolder = path.join(workflowPath, 'local', basename);
         console.log(`Decompressing tarball ${file} to ${srcFolder}`);
-        let target_folder = await this.extractTar(path.join(this.shardPath, 'workflow', file), srcFolder);
+        let target_folder = await this.extractTar(
+          path.join(this.shardPath, 'workflow', file),
+          srcFolder
+        );
         if (path.basename(target_folder) !== basename) {
           // Move target folder up a level
           const new_target_folder = path.join(workflowPath, 'local', `${basename}@main`);
@@ -245,15 +249,13 @@ class ImportShard {
           fs.renameSync(target_folder, new_target_folder);
           target_folder = new_target_folder;
         }
-        const extracted_name = path.basename(target_folder.slice(0,-5));  // remove tag
+        const extracted_name = path.basename(target_folder.slice(0, -5)); // remove tag
         // add workflow to catalogue-import list
-        this.imported_workflows.push(
-          {
-            "name": extracted_name,
-            "repo": `local/${extracted_name}`,
-            "version": "main",
-          }
-        );
+        this.imported_workflows.push({
+          name: extracted_name,
+          repo: `local/${extracted_name}`,
+          version: 'main'
+        });
       } else {
         // otherwise, ignore
         this.log.warning(`Ignoring unrecognized workflow file ${file}`);
@@ -262,7 +264,7 @@ class ImportShard {
     }
   }
 
-  async installContainers(containersPath: string){
+  async installContainers(containersPath: string) {
     // Traverse containers folder for .tar or .tar.gz files
     console.log(`Installing containers from shard directory ${this.shardPath}`);
     const shardContainersPath = path.join(this.shardPath, 'containers');
@@ -301,9 +303,7 @@ class ImportShard {
     return new Promise((resolve, reject) => {
       let stdout = '';
 
-      const spawnOpts = is_windows
-        ? { windowsHide: true, detached: true }
-        : {};
+      const spawnOpts = is_windows ? { windowsHide: true, detached: true } : {};
 
       if (is_windows) {
         const posixPath = toPosixPath(imagePath);
@@ -329,7 +329,11 @@ class ImportShard {
           }
           const imageId = match[1];
           const tagCmd = `docker tag ${imageId} ${tag}`;
-          const tagProc = spawn('wsl.exe', ['-d', 'glacier', '-e', 'bash', '-lc', tagCmd], spawnOpts);
+          const tagProc = spawn(
+            'wsl.exe',
+            ['-d', 'glacier', '-e', 'bash', '-lc', tagCmd],
+            spawnOpts
+          );
           tagProc.on('error', reject);
           tagProc.on('close', (tagCode) => {
             if (tagCode === 0) {
@@ -414,11 +418,11 @@ class ImportShard {
     }
   }
 
-  async addCatalogueEntry(cataloguePath: string){
+  async addCatalogueEntry(cataloguePath: string) {
     // Add or amend catalogue.json with shard manifest
-    const owner = "shards";
-    const repo = "local";
-    const tag = "main";
+    const owner = 'shards';
+    const repo = 'local';
+    const tag = 'main';
 
     const repo_tag = `${repo}@${tag}`;
     const catalogueDir = path.join(cataloguePath, owner, repo_tag);
@@ -428,16 +432,16 @@ class ImportShard {
     if (fs.existsSync(catalogueFile)) {
       js = JSON.parse(fs.readFileSync(catalogueFile, 'utf-8'));
     }
-    
+
     if (!js) {
       js = {
-        "name": "Local catalogue",
-        "description": "",
-        "sections": [
+        name: 'Local catalogue',
+        description: '',
+        sections: [
           {
-            "name": this.manifest?.name || "Default shard",
-            "description": "",
-            "workflows": [] as Array<{
+            name: this.manifest?.name || 'Default shard',
+            description: '',
+            workflows: [] as Array<{
               name: string;
               repo: string;
               version: string;
@@ -448,13 +452,11 @@ class ImportShard {
     }
 
     for (const workflow of this.imported_workflows) {
-      js.sections[0].workflows.push(
-        {
-          "name": workflow.name,
-          "repo": workflow.repo,
-          "version": workflow.version,
-        }
-      );
+      js.sections[0].workflows.push({
+        name: workflow.name,
+        repo: workflow.repo,
+        version: workflow.version
+      });
     }
 
     fs.mkdirSync(catalogueDir, { recursive: true });

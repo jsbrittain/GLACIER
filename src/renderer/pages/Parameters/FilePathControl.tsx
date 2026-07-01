@@ -72,11 +72,7 @@ function InnerFilePathControl(props: ControlProps) {
     focused,
     showUnfocusedDescription
   );
-  const firstFormHelperText = showDescription
-    ? description
-    : !isValid
-    ? errors
-    : null;
+  const firstFormHelperText = showDescription ? description : !isValid ? errors : null;
   const secondFormHelperText = showDescription && !isValid ? errors : null;
 
   type PickerMode = 'file' | 'directory' | 'both';
@@ -187,7 +183,7 @@ function InnerFilePathControl(props: ControlProps) {
           border: isDragOver ? '2px dashed' : '2px solid transparent',
           borderColor: isDragOver ? 'primary.main' : 'transparent',
           bgcolor: isDragOver ? 'action.hover' : 'transparent',
-          transition: 'border-color 0.15s, background-color 0.15s',
+          transition: 'border-color 0.15s, background-color 0.15s'
         }}
       >
         <Stack
@@ -237,7 +233,7 @@ function InnerFilePathControl(props: ControlProps) {
               justifyContent: 'center',
               gap: 0.5,
               pointerEvents: 'none',
-              zIndex: 1,
+              zIndex: 1
             }}
           >
             <CloudUploadOutlined color="primary" fontSize="small" />
@@ -251,12 +247,8 @@ function InnerFilePathControl(props: ControlProps) {
           </Box>
         )}
       </Box>
-      <FormHelperText error={!isValid && !showDescription}>
-        {firstFormHelperText}
-      </FormHelperText>
-      {secondFormHelperText && (
-        <FormHelperText error>{secondFormHelperText}</FormHelperText>
-      )}
+      <FormHelperText error={!isValid && !showDescription}>{firstFormHelperText}</FormHelperText>
+      {secondFormHelperText && <FormHelperText error>{secondFormHelperText}</FormHelperText>}
     </FormControl>
   );
 }

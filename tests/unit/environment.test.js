@@ -2,17 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../src/runners/nextflow/environment.js', () => ({
   nextflowStatus: vi.fn(),
-  nextflowAction: vi.fn(),
+  nextflowAction: vi.fn()
 }));
 
-import {
-  getEnvironmentStatus,
-  performEnvironmentAction,
-} from '../../src/runners/environment.js';
-import {
-  nextflowStatus,
-  nextflowAction,
-} from '../../src/runners/nextflow/environment.js';
+import { getEnvironmentStatus, performEnvironmentAction } from '../../src/runners/environment.js';
+import { nextflowStatus, nextflowAction } from '../../src/runners/nextflow/environment.js';
 
 describe('environment dispatcher', () => {
   beforeEach(() => {

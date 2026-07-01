@@ -22,6 +22,24 @@ Since GLACIER supports both an electron build (where the backend runs in the sam
 - Most services are defined in a (singleton) `Collection` object (`src/main/collection.ts`), which manages the lifecycle of workflows. You can add a new services here as needed.
 - For HTTP, define the service endpoint in `api-server/index.js`, which should call the same service as the IPC handler by invoking the relevant method in the `Collection` object.
 
+# Upgrading Nextflow
+
+When upgrading the bundled Nextflow version, follow these steps:
+
+1. **Update the download URL** — Change `NXF_URL` in `scripts/prepare_bundle.js` (line 27) to point to the new release JAR. The URL pattern is:
+   ```
+   https://www.nextflow.io/releases/v<version>/nextflow-<version>-one.jar
+   ```
+
+2. **Update the license file** — Verify whether Nextflow's license has changed (`bundle/LICENSE-nextflow`). If it has, replace the file with the updated version from the Nextflow source distribution.
+
+3. **Check JRE compatibility** — Read the Nextflow release notes to confirm the minimum Java version. If it has changed, update `JAVA_VERSION` in `scripts/prepare_bundle.js` accordingly. After the build, verify the bundled JRE:
+   ```
+   java -version
+   ```
+
+4. **Run tests** to verify — particularly check that log parsing still works (it relies on `nextflow.log` output, which is not a documented API and may change between releases).
+
 # Adding languages
 
 GLACIER uses i8n for language support. To add a new language, you need to do the following:

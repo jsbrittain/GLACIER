@@ -14,9 +14,9 @@ export const ERROR_HINTS: ErrorHintEntry[] = [
       /\bKilled\b/,
       /exit\s*(?:code|status)\s*137/,
       /exit\s*(?:code|status)\s*134/,
-      /137\b/,
+      /137\b/
     ],
-    hintKey: 'monitor.progress.hint-oom',
+    hintKey: 'monitor.progress.hint-oom'
   },
   {
     patterns: [
@@ -25,9 +25,9 @@ export const ERROR_HINTS: ErrorHintEntry[] = [
       /[Dd]isk\s*[Ff]ull/,
       /quota\s*exceeded/i,
       /cannot write/i,
-      /No space left on device/,
+      /No space left on device/
     ],
-    hintKey: 'monitor.progress.hint-disk',
+    hintKey: 'monitor.progress.hint-disk'
   },
   {
     patterns: [
@@ -35,9 +35,9 @@ export const ERROR_HINTS: ErrorHintEntry[] = [
       /timed?\s*out/i,
       /time.?limit/i,
       /TIME_LIMIT/,
-      /exit\s*(?:code|status)\s*124/,
+      /exit\s*(?:code|status)\s*124/
     ],
-    hintKey: 'monitor.progress.hint-timeout',
+    hintKey: 'monitor.progress.hint-timeout'
   },
   {
     patterns: [
@@ -45,10 +45,10 @@ export const ERROR_HINTS: ErrorHintEntry[] = [
       /PermissionDenied/,
       /EACCES/,
       /access\s*denied/i,
-      /not executable/i,
+      /not executable/i
     ],
-    hintKey: 'monitor.progress.hint-permission',
-  },
+    hintKey: 'monitor.progress.hint-permission'
+  }
 ];
 
 export function findErrorHint(cause: string): string | undefined {

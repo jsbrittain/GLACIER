@@ -144,25 +144,25 @@ export async function runWorkflow(
       toPosixPath(workPath),
       '-profile',
       profile,
-    '-params-file',
-    toPosixPath(paramsFile),
-    '-name',
-    name
-  ];
-  if (resume) {
-    args.push('-resume');
-  }
-  const cmd = args.join(' ');
+      '-params-file',
+      toPosixPath(paramsFile),
+      '-name',
+      name
+    ];
+    if (resume) {
+      args.push('-resume');
+    }
+    const cmd = args.join(' ');
 
-  const bashArgs = [
-    cmd,
-    '>',
-    resolvePath(instancePath, 'stdout.log'),
-    '2>',
-    resolvePath(instancePath, 'stderr.log'),
-    '<',
-    '/dev/null'
-  ];
+    const bashArgs = [
+      cmd,
+      '>',
+      resolvePath(instancePath, 'stdout.log'),
+      '2>',
+      resolvePath(instancePath, 'stderr.log'),
+      '<',
+      '/dev/null'
+    ];
     const bashCmd = bashArgs.join(' ');
 
     console.log(`Spawning nextflow with command: ${cmd} from ${instancePath}`);

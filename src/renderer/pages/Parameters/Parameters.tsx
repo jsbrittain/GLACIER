@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Box, Paper, Stack, Tabs, Tab, Typography, Button, Tooltip } from '@mui/material';
 import { JsonForms } from '@jsonforms/react';
 import Ajv, { ErrorObject } from 'ajv'; // ajv is also used by jsonforms
+import addMetaSchema2020 from 'ajv/dist/refs/json-schema-2020-12/index.js';
 import { buildUISchema } from './buildUISchema';
 import { renderers } from './renderers';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -15,6 +16,7 @@ const ajv = new Ajv({
   allErrors: true,
   strict: false
 });
+addMetaSchema2020.call(ajv, false);
 
 // add custom AJV formats
 ajv.addFormat('file-path', {
@@ -124,6 +126,7 @@ export default function ParametersPage({
     logMessage(`Launched test workflow ${instance.name}`);
     refreshInstancesList();
     if (onLaunchSuccess) onLaunchSuccess(instance.id);
+    if (onEditComplete) onEditComplete();
   };
 
   useEffect(() => {
@@ -208,7 +211,13 @@ export default function ParametersPage({
       fn.errors = null;
       return fn;
     }
-    return ajv.compile(schema);
+    try {
+      return ajv.compile(schema);
+    } catch {
+      const fn: any = () => true;
+      fn.errors = null;
+      return fn;
+    }
   }, [schema]);
 
   // Build the UI schema with stepper options
@@ -251,10 +260,7 @@ export default function ParametersPage({
             disableHoverListener={isValidWorkflow}
           >
             <span>
-              <Button
-                variant="contained"
-                onClick={() => onLaunch(instance, params)}
-              >
+              <Button variant="contained" onClick={() => onLaunch(instance, params)}>
                 {t('parameters.launch-workflow')}
               </Button>
             </span>

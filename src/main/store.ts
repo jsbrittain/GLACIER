@@ -61,7 +61,10 @@ function getInstance() {
 }
 
 const store = {
-  get<K extends keyof StoreSchema>(key: K, defaultValue?: StoreSchema[K]): StoreSchema[K] | undefined {
+  get<K extends keyof StoreSchema>(
+    key: K,
+    defaultValue?: StoreSchema[K]
+  ): StoreSchema[K] | undefined {
     return getInstance().get(key, defaultValue);
   },
   set<K extends keyof StoreSchema>(key: K, value: StoreSchema[K]): void {

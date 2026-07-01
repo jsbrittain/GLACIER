@@ -6,22 +6,16 @@ const mockContainer = vi.hoisted(() => ({
   stop: vi.fn(() => Promise.resolve()),
   remove: vi.fn(() => Promise.resolve()),
   wait: vi.fn(() => Promise.resolve({ StatusCode: 0 })),
-  attach: vi.fn(() =>
-    Promise.resolve({ pipe: vi.fn(), destroy: vi.fn() })
-  ),
+  attach: vi.fn(() => Promise.resolve({ pipe: vi.fn(), destroy: vi.fn() })),
   logs: vi.fn(),
-  id: 'container-id-123',
+  id: 'container-id-123'
 }));
 
 const mockBuildImage = vi.hoisted(() => vi.fn());
 const mockListContainers = vi.hoisted(() => vi.fn());
 const mockGetContainer = vi.hoisted(() => vi.fn(() => mockContainer));
-const mockCreateContainer = vi.hoisted(() =>
-  vi.fn(() => Promise.resolve(mockContainer))
-);
-const mockFollowProgress = vi.hoisted(() =>
-  vi.fn((_stream, cb) => cb(null, 'success'))
-);
+const mockCreateContainer = vi.hoisted(() => vi.fn(() => Promise.resolve(mockContainer)));
+const mockFollowProgress = vi.hoisted(() => vi.fn((_stream, cb) => cb(null, 'success')));
 
 vi.hoisted(() => {
   mockBuildImage.mockReset();
@@ -42,11 +36,11 @@ const mockDockerInstance = vi.hoisted(() => ({
   listContainers: mockListContainers,
   getContainer: mockGetContainer,
   createContainer: mockCreateContainer,
-  modem: { followProgress: mockFollowProgress },
+  modem: { followProgress: mockFollowProgress }
 }));
 
 vi.mock('dockerode', () => ({
-  default: vi.fn(() => mockDockerInstance),
+  default: vi.fn(() => mockDockerInstance)
 }));
 
 process.stdout.isTTY = false;
@@ -71,7 +65,11 @@ describe('docker module', () => {
 
   describe('buildAndRunContainer', () => {
     it('builds and starts container from folder', async () => {
-      const tarStream = new Readable({ read() { this.push(null); } });
+      const tarStream = new Readable({
+        read() {
+          this.push(null);
+        }
+      });
       mockBuildImage.mockResolvedValue(tarStream);
       mockContainer.start.mockResolvedValue(undefined);
 
@@ -81,14 +79,11 @@ describe('docker module', () => {
         { context: '/some/folder', src: ['Dockerfile'] },
         { t: 'my-image' }
       );
-      expect(mockFollowProgress).toHaveBeenCalledWith(
-        tarStream,
-        expect.any(Function)
-      );
+      expect(mockFollowProgress).toHaveBeenCalledWith(tarStream, expect.any(Function));
       expect(mockCreateContainer).toHaveBeenCalledWith({
         Image: 'my-image',
         Cmd: ['echo', 'Container built and running'],
-        Tty: true,
+        Tty: true
       });
       expect(mockContainer.start).toHaveBeenCalled();
       expect(id).toBe('container-id-123');
@@ -97,9 +92,9 @@ describe('docker module', () => {
     it('throws when buildImage fails', async () => {
       mockBuildImage.mockRejectedValue(new Error('Build failed'));
 
-      await expect(
-        docker.buildAndRunContainer('/some/folder', 'my-image')
-      ).rejects.toThrow('Build failed');
+      await expect(docker.buildAndRunContainer('/some/folder', 'my-image')).rejects.toThrow(
+        'Build failed'
+      );
     });
   });
 
@@ -107,7 +102,7 @@ describe('docker module', () => {
     it('returns list of containers', async () => {
       const containerList = [
         { Id: 'abc', State: 'running' },
-        { Id: 'def', State: 'exited' },
+        { Id: 'def', State: 'exited' }
       ];
       mockListContainers.mockResolvedValue(containerList);
 
@@ -119,9 +114,7 @@ describe('docker module', () => {
     it('rejects when Docker API fails', async () => {
       mockListContainers.mockRejectedValue(new Error('Docker not running'));
 
-      await expect(docker.listContainers()).rejects.toThrow(
-        'Docker not running'
-      );
+      await expect(docker.listContainers()).rejects.toThrow('Docker not running');
     });
   });
 
@@ -130,15 +123,15 @@ describe('docker module', () => {
       const mockRm = vi.fn(() => Promise.resolve());
       const stoppedContainer = {
         Id: 'stopped-1',
-        State: 'exited',
+        State: 'exited'
       };
       mockGetContainer.mockReturnValue({
         ...mockContainer,
-        remove: mockRm,
+        remove: mockRm
       });
       mockListContainers.mockResolvedValue([
         { Id: 'running-1', State: 'running' },
-        stoppedContainer,
+        stoppedContainer
       ]);
 
       const result = await docker.clearStoppedContainers();
@@ -160,23 +153,21 @@ describe('docker module', () => {
     it('propagates error from container removal', async () => {
       mockGetContainer.mockReturnValue({
         ...mockContainer,
-        remove: vi.fn(() =>
-          Promise.reject(new Error('Permission denied'))
-        ),
+        remove: vi.fn(() => Promise.reject(new Error('Permission denied')))
       });
-      mockListContainers.mockResolvedValue([
-        { Id: 'bad-container', State: 'exited' },
-      ]);
+      mockListContainers.mockResolvedValue([{ Id: 'bad-container', State: 'exited' }]);
 
-      await expect(docker.clearStoppedContainers()).rejects.toThrow(
-        'Permission denied'
-      );
+      await expect(docker.clearStoppedContainers()).rejects.toThrow('Permission denied');
     });
   });
 
   describe('runRepo_Docker', () => {
     it('builds image, creates container, returns its ID', async () => {
-      const tarStream = new Readable({ read() { this.push(null); } });
+      const tarStream = new Readable({
+        read() {
+          this.push(null);
+        }
+      });
       mockBuildImage.mockResolvedValue(tarStream);
       mockContainer.start.mockResolvedValue(undefined);
 
@@ -186,14 +177,11 @@ describe('docker module', () => {
         { context: '/repo/path', src: ['Dockerfile'] },
         { t: 'my-repo' }
       );
-      expect(mockFollowProgress).toHaveBeenCalledWith(
-        tarStream,
-        expect.any(Function)
-      );
+      expect(mockFollowProgress).toHaveBeenCalledWith(tarStream, expect.any(Function));
       expect(mockCreateContainer).toHaveBeenCalledWith({
         Image: 'my-repo',
         Cmd: ['echo', 'Running my/repo'],
-        Tty: true,
+        Tty: true
       });
       expect(mockContainer.start).toHaveBeenCalled();
       expect(desc.containerId).toBe('container-id-123');
@@ -203,9 +191,9 @@ describe('docker module', () => {
     it('throws when build fails', async () => {
       mockBuildImage.mockRejectedValue(new Error('Build failed'));
 
-      await expect(
-        docker.runRepo_Docker('/repo/path', 'my/repo', {})
-      ).rejects.toThrow('Build failed');
+      await expect(docker.runRepo_Docker('/repo/path', 'my/repo', {})).rejects.toThrow(
+        'Build failed'
+      );
     });
   });
 
@@ -221,7 +209,7 @@ describe('docker module', () => {
         follow: false,
         stdout: true,
         stderr: true,
-        timestamps: false,
+        timestamps: false
       });
       expect(logs).toBe('line1\nline2\n');
     });
@@ -230,7 +218,7 @@ describe('docker module', () => {
       const emptyStream = new Readable({
         read() {
           this.push(null);
-        },
+        }
       });
       mockContainer.logs.mockResolvedValue(emptyStream);
 
@@ -271,9 +259,7 @@ describe('docker module', () => {
       const err = new Error('Docker daemon unreachable');
       mockContainer.stop.mockRejectedValue(err);
 
-      await expect(docker.stopContainer('some-id')).rejects.toThrow(
-        'Docker daemon unreachable'
-      );
+      await expect(docker.stopContainer('some-id')).rejects.toThrow('Docker daemon unreachable');
     });
   });
 });

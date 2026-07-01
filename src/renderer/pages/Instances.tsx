@@ -168,7 +168,11 @@ const InstanceAccordion = ({
             </Typography>
             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
               {isCreated ? (
-                <Typography variant="body2" color="text.secondary" sx={{ minWidth: 40, textAlign: 'right' }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ minWidth: 40, textAlign: 'right' }}
+                >
                   {t('instances.not_started')}
                 </Typography>
               ) : (
@@ -206,7 +210,9 @@ const InstanceAccordion = ({
                   {t('instances.last_update')}
                 </Typography>
                 <Tooltip title={t('instances.last_update_tooltip')}>
-                  <Typography variant="body2">{formatAbsoluteTime(instance.last_update)}</Typography>
+                  <Typography variant="body2">
+                    {formatAbsoluteTime(instance.last_update)}
+                  </Typography>
                 </Tooltip>
               </Box>
               <Box>
@@ -225,11 +231,7 @@ const InstanceAccordion = ({
 
             {/* Action buttons */}
             <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={handleOpenDetails}
-              >
+              <Button variant="outlined" size="small" onClick={handleOpenDetails}>
                 {t('instances.view_details')}
               </Button>
               <Button
@@ -256,11 +258,7 @@ const InstanceAccordion = ({
               >
                 {t('instances.wipe')}
               </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => setHideDialogOpen(true)}
-              >
+              <Button variant="outlined" size="small" onClick={() => setHideDialogOpen(true)}>
                 {t('instances.hide')}
               </Button>
             </Box>
@@ -269,20 +267,21 @@ const InstanceAccordion = ({
       </Accordion>
 
       {/* Hide confirmation dialog */}
-      <Dialog open={hideDialogOpen} onClose={() => setHideDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={hideDialogOpen}
+        onClose={() => setHideDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>{t('instances.hide_title')}</DialogTitle>
         <DialogContent>
-          <Typography>
-            {t('instances.hide_confirm', { name: instanceName })}
-          </Typography>
+          <Typography>{t('instances.hide_confirm', { name: instanceName })}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             {t('instances.hide_info')}
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setHideDialogOpen(false)}>
-            {t('common.cancel')}
-          </Button>
+          <Button onClick={() => setHideDialogOpen(false)}>{t('common.cancel')}</Button>
           <Button onClick={handleHide} variant="contained">
             {t('instances.hide')}
           </Button>
@@ -403,10 +402,7 @@ export default function InstancesPage({
     if (!wipeTarget) return;
     const result = await API.deleteWorkflowInstance(wipeTarget.instance);
     if (result.ok) {
-      logMessage(
-        t('instances.wipe_success', { name: wipeTarget.name }),
-        'info'
-      );
+      logMessage(t('instances.wipe_success', { name: wipeTarget.name }), 'info');
       refreshInstancesList();
     }
     setWipeDialogOpen(false);
@@ -502,12 +498,8 @@ export default function InstancesPage({
               open={Boolean(menuAnchorEl)}
               onClose={() => setMenuAnchorEl(null)}
             >
-              <MenuItem onClick={handleDeleteOrphaned}>
-                {t('instances.delete_orphaned')}
-              </MenuItem>
-              <MenuItem onClick={handleOpenHiddenDialog}>
-                {t('instances.manage_hidden')}
-              </MenuItem>
+              <MenuItem onClick={handleDeleteOrphaned}>{t('instances.delete_orphaned')}</MenuItem>
+              <MenuItem onClick={handleOpenHiddenDialog}>{t('instances.manage_hidden')}</MenuItem>
             </Menu>
           </Box>
 
@@ -581,7 +573,12 @@ export default function InstancesPage({
           )}
 
           {/* Wipe confirmation dialog */}
-          <Dialog open={wipeDialogOpen} onClose={() => setWipeDialogOpen(false)} maxWidth="sm" fullWidth>
+          <Dialog
+            open={wipeDialogOpen}
+            onClose={() => setWipeDialogOpen(false)}
+            maxWidth="sm"
+            fullWidth
+          >
             <DialogTitle>{t('instances.wipe_title')}</DialogTitle>
             <DialogContent>
               <Typography>
@@ -592,9 +589,7 @@ export default function InstancesPage({
               </Typography>
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setWipeDialogOpen(false)}>
-                {t('common.cancel')}
-              </Button>
+              <Button onClick={() => setWipeDialogOpen(false)}>{t('common.cancel')}</Button>
               <Button onClick={confirmWipe} variant="contained" color="error">
                 {t('instances.wipe')}
               </Button>
@@ -617,38 +612,25 @@ export default function InstancesPage({
               ) : (
                 <>
                   <Box sx={{ mb: 1 }}>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={handleUnhideAll}
-                    >
+                    <Button size="small" variant="outlined" onClick={handleUnhideAll}>
                       {t('instances.show_all')}
                     </Button>
                   </Box>
                   <List dense>
-                  {hiddenInstances.map((inst) => (
-                    <ListItem key={inst.id} disableGutters>
-                      <ListItemText
-                        primary={inst.name}
-                        secondary={inst.workflow_version?.name}
-                      />
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => handleUnhide(inst)}
-                      >
-                        {t('instances.unhide')}
-                      </Button>
-                    </ListItem>
-                  ))}
-                </List>
+                    {hiddenInstances.map((inst) => (
+                      <ListItem key={inst.id} disableGutters>
+                        <ListItemText primary={inst.name} secondary={inst.workflow_version?.name} />
+                        <Button size="small" variant="outlined" onClick={() => handleUnhide(inst)}>
+                          {t('instances.unhide')}
+                        </Button>
+                      </ListItem>
+                    ))}
+                  </List>
                 </>
               )}
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setHiddenDialogOpen(false)}>
-                {t('common.close')}
-              </Button>
+              <Button onClick={() => setHiddenDialogOpen(false)}>{t('common.close')}</Button>
             </DialogActions>
           </Dialog>
         </>
