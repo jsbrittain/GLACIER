@@ -1,74 +1,99 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Typography, Alert } from '@mui/material';
-import { Select } from '@mui/material';
-import { Button } from '@mui/material';
-import IconButton from '@mui/material/IconButton';
-import { API } from '../../services/api.js';
-import { WorkflowStatus, ProcessStatus } from '../../../types/types.js';
-import { useTranslation } from 'react-i18next';
+import React, { useEffect, useState, useRef, useReducer } from 'react';
+import {
+  Box,
+  Typography,
+  Alert,
+  IconButton,
+  LinearProgress,
+  TextField,
+  Tooltip,
+  Chip,
+  Collapse,
+  Menu,
+  MenuItem,
+} from '@mui/material';
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
-import LinearProgress from '@mui/material/LinearProgress';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import { formatRelative } from 'date-fns';
 import { TreeItem, TreeItemProps } from '@mui/x-tree-view/TreeItem';
 import { useTreeItemModel } from '@mui/x-tree-view/hooks';
-import { getDateLocale } from '../../../locales';
 import DoneIcon from '@mui/icons-material/Done';
 import CancelIcon from '@mui/icons-material/Cancel';
 import PendingIcon from '@mui/icons-material/Pending';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import PlayCircleIcon from '@mui/icons-material/PlayCircle';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
+import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
+import SearchIcon from '@mui/icons-material/Search';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import Collapse from '@mui/material/Collapse';
-import AnsiLog from './AnsiLog.js';
+import { formatRelative } from 'date-fns';
+import { useTranslation } from 'react-i18next';
+import { keyframes } from '@mui/system';
+
+import { API } from '../../services/api.js';
+import { WorkflowStatus, ProcessStatus } from '../../../types/types.js';
+import { getDateLocale } from '../../../locales';
 import { findErrorHint } from './errorHints.js';
-import Chip from '@mui/material/Chip';
+import ProcessLogViewer from './ProcessLogViewer.js';
+import {
+  TreeItemData,
+  isFinished,
+  collectErrorPaths,
+  addGroup,
+  ascendStatus,
+  computeOverallProgress,
+} from './progressTree.js';
 
 const SECOND = 1000;
 
-const log_types = ['log', 'stdout', 'stderr', 'run', 'shell', 'trace', 'begin'];
+const pulse = keyframes`
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.9); }
+`;
 
-const STATUS_ICONS = {
-  created: <PendingIcon style={{ color: 'gray' }} />,
-  starting: <PendingIcon style={{ color: 'gray' }} />,
-  submitted: <PendingIcon style={{ color: 'blue' }} />,
-  completed: <DoneIcon style={{ color: 'green' }} />,
-  error: <CancelIcon style={{ color: 'red' }} />,
-  stopped: <CancelIcon style={{ color: 'gray' }} />
+const flash = keyframes`
+  0% { background-color: rgba(255, 193, 7, 0.3); }
+  100% { background-color: transparent; }
+`;
+
+const progressColor = (status: ProcessStatus | undefined) => {
+  switch (status) {
+    case ProcessStatus.Completed:
+      return 'success';
+    case ProcessStatus.Error:
+      return 'error';
+    case ProcessStatus.Submitted:
+      return 'info';
+    default:
+      return 'inherit';
+  }
 };
 
-const is_finished = (status: ProcessStatus) => {
-  return (
-    status === ProcessStatus.Completed ||
-    status === ProcessStatus.Error ||
-    status === ProcessStatus.Stopped
-  );
+const StatusIcon = ({ status }: { status: ProcessStatus | undefined }) => {
+  const iconSx: Record<string, any> = { fontSize: 20, display: 'flex' };
+  switch (status) {
+    case ProcessStatus.Completed:
+      return <DoneIcon sx={{ ...iconSx, color: 'success.main' }} />;
+    case ProcessStatus.Error:
+      return <CancelIcon sx={{ ...iconSx, color: 'error.main' }} />;
+    case ProcessStatus.Submitted:
+      return <PlayCircleIcon sx={{ ...iconSx, color: 'info.main', animation: `${pulse} 1.5s infinite` }} />;
+    case ProcessStatus.Starting:
+    case ProcessStatus.Created:
+      return <HourglassEmptyIcon sx={{ ...iconSx, color: 'text.disabled' }} />;
+    default:
+      return <PendingIcon sx={{ ...iconSx, color: 'text.disabled' }} />;
+  }
 };
 
-type LogIDContextType = {
-  logID: string;
-  setLogID: (id: string) => void;
-};
+type LogIDContextType = { logID: string; setLogID: (id: string) => void };
+const LogIDContext = React.createContext<LogIDContextType>(null as any);
 
-const LogIDContext = React.createContext<LogIDContextType>(null);
-const GetInstanceContext = React.createContext<{
-  instance: any;
-  isWorkflowRunning: boolean;
-} | null>(null);
+type InstanceCtx = { instance: any; isWorkflowRunning: boolean };
+const GetInstanceContext = React.createContext<InstanceCtx | null>(null);
 
-// X-Tree-View customisation: https://mui.com/x/react-tree-view/tree-item-customization/
-type TreeItemWithLabel = {
-  id: string;
-  label: string;
-  last_update?: Date;
-  logs_available?: boolean;
-  status: ProcessStatus;
-  progress: number;
-  work_folder?: string;
-  exitStatus?: string;
-  commandError?: string;
-};
+const ChangedContext = React.createContext<Set<string>>(new Set());
 
 interface CustomLabelProps {
   children: string;
@@ -90,196 +115,156 @@ function CustomLabel({
   last_update,
   logs_available,
   status,
-  progress,
+  progress: progressVal,
   work_folder,
   exitStatus,
-  commandError
+  commandError,
 }: CustomLabelProps) {
   const { t } = useTranslation();
   const [showLog, setShowLog] = useState(false);
-  const [logText, setLogText] = useState('');
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [logType, setLogType] = useState(log_types[0]);
+  const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const [showError, setShowError] = useState(true);
-  const { logID, setLogID } = React.useContext(LogIDContext);
+  const { setLogID } = React.useContext(LogIDContext);
   const ctx = React.useContext(GetInstanceContext);
+  const changedIds = React.useContext(ChangedContext);
   const instance = ctx?.instance;
-  const is_workflow_running = ctx?.isWorkflowRunning ?? false;
-  const current_locale = getDateLocale();
-  const menuIsOpen = Boolean(anchorEl);
-  let logInterval;
+  const isWorkflowRunning = ctx?.isWorkflowRunning ?? false;
+  const currentLocale = getDateLocale();
+  const menuOpen = Boolean(anchorEl);
 
-  useEffect(() => {
-    // Close log view if another log is opened
-    if (logID !== id) {
-      setShowLog(false);
-      setLogText('');
-    }
-  }, [logID]);
-
-  useEffect(() => {
-    if (logInterval) {
-      clearInterval(logInterval);
-    }
-
-    if (showLog) {
-      logInterval = setInterval(() => refreshWorkLog(logType), 5 * SECOND);
-    }
-
-    return () => {
-      if (logInterval) {
-        clearInterval(logInterval);
-      }
-    };
-  }, [showLog, logType]);
-
-  const handleMenuOpen = (event) => {
-    event.stopPropagation();
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = (event) => {
-    event.stopPropagation();
+  const handleViewLog = () => {
+    setShowLog(true);
+    setLogID(id);
     setAnchorEl(null);
   };
 
-  const handleOpenFolder = (event) => {
-    API.openWorkFolder(instance, work_folder).then((result) => {
-      if (!result.ok) console.error(result.error.message);
-    });
-    if (event) handleMenuClose(event);
-  };
-
-  const handleOpenInEditor = (event) => {
-    API.openWorkLogFile(instance, work_folder, logType).then((result) => {
-      if (!result.ok) console.error(result.error.message);
-    });
-    if (event) handleMenuClose(event);
-  };
-
-  const handleViewLog = (event) => {
-    setShowLog(true);
-    refreshWorkLog(logType);
-    setLogID(id);
-    handleMenuClose(event);
-  };
-
-  const handleHideLog = (event) => {
+  const handleHideLog = () => {
     setShowLog(false);
-    setLogText('');
-    handleMenuClose(event);
+    setAnchorEl(null);
   };
 
-  const handleLogTypeChange = (event, log_type_index) => {
-    setLogType(log_types[log_type_index.props.value]);
-    refreshWorkLog(log_types[log_type_index.props.value]);
-    event.stopPropagation();
-  };
+  const hasCustomError =
+    status === ProcessStatus.Error && commandError && exitStatus;
 
-  const refreshWorkLog = (log_type) => {
-    API.getWorkLog(instance, work_folder, log_type || logType).then((result) => {
-      if (result.ok) {
-        setLogText(result.data === '' ? t('monitor.progress.no-logs') : result.data);
-      } else {
-        setLogText(t('monitor.progress.no-logs'));
-      }
-    });
-  };
+  const finished = isFinished(status as ProcessStatus);
 
   return (
-    <Box className={className} sx={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-      {/* Regular display */}
-      <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-        <Box sx={{ mr: 1 }}>
-          {status ? STATUS_ICONS[status] : <PendingIcon style={{ color: 'grey' }} />}
-        </Box>
+    <Box
+      className={className}
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        animation: changedIds.has(id) ? `${flash} 1.5s ease-out` : undefined,
+        borderRadius: 1,
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          width: '100%',
+          gap: 1,
+          py: 0.5,
+        }}
+      >
+        <StatusIcon status={status} />
 
-        <Box sx={{ flex: 1 }}>
-          <Typography>{children}</Typography>
-        </Box>
+        <Typography
+          variant="body2"
+          sx={{
+            flex: 1,
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            fontWeight: status === ProcessStatus.Error ? 600 : 400,
+          }}
+        >
+          {children}
+        </Typography>
 
         {last_update && (
-          <Typography variant="caption" sx={{ m: 1, color: 'gray' }}>
-            {formatRelative(last_update, new Date(), { locale: current_locale })}
+          <Typography variant="caption" sx={{ color: 'text.secondary', flexShrink: 0 }}>
+            {formatRelative(last_update, new Date(), { locale: currentLocale })}
           </Typography>
         )}
 
-        <Box
-          sx={{
-            width: '100px',
-            m: 1
-          }}
-        >
-          {status !== ProcessStatus.Created &&
-            status !== ProcessStatus.Starting &&
-            (progress !== undefined ? (
-              <LinearProgress variant="determinate" value={progress} />
-            ) : (
-              is_workflow_running && !is_finished(status) && <LinearProgress />
-            ))}
-        </Box>
+        {!finished && !isWorkflowRunning && (
+          <Chip label={t('monitor.progress.stopped')} size="small" variant="outlined" color="warning" />
+        )}
 
-        <IconButton onClick={handleMenuOpen} disabled={!logs_available}>
-          <MoreVertIcon />
+        {status !== ProcessStatus.Created && status !== ProcessStatus.Starting && (
+          <Box sx={{ width: 90, flexShrink: 0 }}>
+            {progressVal !== undefined ? (
+              <Tooltip title={`${Math.round(progressVal)}%`}>
+                <LinearProgress
+                  variant="determinate"
+                  value={progressVal}
+                  color={progressColor(status) as any}
+                  sx={{
+                    height: 6,
+                    borderRadius: 3,
+                    transition: 'all 0.5s ease',
+                    '& .MuiLinearProgress-bar': {
+                      borderRadius: 3,
+                      transition: 'transform 0.5s ease',
+                    },
+                  }}
+                />
+              </Tooltip>
+            ) : (
+              isWorkflowRunning &&
+              !finished && (
+                <LinearProgress
+                  sx={{
+                    height: 6,
+                    borderRadius: 3,
+                    transition: 'all 0.5s ease',
+                  }}
+                />
+              )
+            )}
+          </Box>
+        )}
+
+        <IconButton
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            setAnchorEl(e.currentTarget);
+          }}
+          disabled={!logs_available}
+        >
+          <MoreVertIcon fontSize="small" />
         </IconButton>
-        <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
+        <Menu anchorEl={anchorEl} open={menuOpen} onClose={() => setAnchorEl(null)}>
           {showLog ? (
             <MenuItem onClick={handleHideLog}>{t('monitor.progress.hide-log')}</MenuItem>
           ) : (
             <MenuItem onClick={handleViewLog}>{t('monitor.progress.view-log')}</MenuItem>
           )}
-          <MenuItem onClick={handleOpenFolder}>{t('monitor.progress.open-folder')}</MenuItem>
-          <MenuItem onClick={handleOpenInEditor}>{t('monitor.progress.open-in-editor')}</MenuItem>
         </Menu>
       </Box>
 
-      {/* Log display */}
-      {logText && (
-        <Box
-          sx={{ border: '1px solid lightgray', borderRadius: '4px', p: 1, mt: 1, width: '100%' }}
-        >
-          <Box
-            sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}
-          >
-            <Select
-              value={log_types.indexOf(logType)}
-              onChange={handleLogTypeChange}
-              variant="standard"
-              sx={{ mb: 1 }}
-            >
-              {log_types.map((log_type, index) => {
-                return (
-                  <MenuItem key={log_type} value={index}>
-                    {t('monitor.logs.' + log_type)}
-                  </MenuItem>
-                );
-              })}
-            </Select>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button variant="outlined" size="small" onClick={() => handleOpenFolder()}>
-                {t('monitor.progress.open-folder')}
-              </Button>
-              <Button variant="outlined" size="small" onClick={() => handleOpenInEditor()}>
-                {t('monitor.progress.open-in-editor')}
-              </Button>
-              <Button variant="outlined" size="small" onClick={handleHideLog}>
-                {t('monitor.progress.hide-log')}
-              </Button>
-            </Box>
-          </Box>
-          <AnsiLog text={logText} />
-        </Box>
+      {showLog && (
+        <ProcessLogViewer
+          instance={instance}
+          workFolder={work_folder}
+          onHide={handleHideLog}
+        />
       )}
 
-      {/* Command error display — collapsible, expanded by default */}
-      {status === ProcessStatus.Error && commandError && (
+      {hasCustomError && (
         <Box
           sx={{
-            border: '1px solid #d32f2f',
-            borderRadius: '4px',
+            border: '1px solid',
+            borderColor: 'error.main',
+            borderRadius: 1,
             mt: 1,
             width: '100%',
-            bgcolor: 'rgba(211, 47, 47, 0.04)'
+            bgcolor: 'error.light',
+            overflow: 'hidden',
           }}
         >
           <Box
@@ -290,27 +275,16 @@ function CustomLabel({
               p: 1.5,
               pb: showError ? 0 : 1.5,
               cursor: 'pointer',
-              userSelect: 'none'
+              userSelect: 'none',
             }}
             onClick={() => setShowError(!showError)}
           >
-            <IconButton size="small" sx={{ p: 0 }}>
-              {showError ? (
-                <ExpandLessIcon fontSize="small" />
-              ) : (
-                <ExpandMoreIcon fontSize="small" />
-              )}
-            </IconButton>
+            <ErrorOutlineIcon fontSize="small" color="error" />
             <Typography variant="subtitle2" color="error">
               {t('monitor.progress.command-error')}
             </Typography>
             {exitStatus === '137' && (
-              <Chip
-                label={t('monitor.progress.oom-killed')}
-                size="small"
-                color="error"
-                variant="outlined"
-              />
+              <Chip label={t('monitor.progress.oom-killed')} size="small" color="error" variant="outlined" />
             )}
             {exitStatus && exitStatus !== '137' && (
               <Chip
@@ -320,6 +294,10 @@ function CustomLabel({
                 variant="outlined"
               />
             )}
+            <Box sx={{ flex: 1 }} />
+            <IconButton size="small" sx={{ p: 0 }}>
+              {showError ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            </IconButton>
           </Box>
           <Collapse in={showError}>
             <Box
@@ -329,12 +307,11 @@ function CustomLabel({
                 p: 1.5,
                 pt: 1,
                 bgcolor: 'rgba(0,0,0,0.06)',
-                borderRadius: '2px',
                 fontSize: '0.8rem',
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
-                maxHeight: '200px',
-                overflow: 'auto'
+                maxHeight: 200,
+                overflow: 'auto',
               }}
             >
               {commandError}
@@ -350,14 +327,12 @@ const CustomTreeItem = React.forwardRef(function CustomTreeItem(
   props: TreeItemProps,
   ref: React.Ref<HTMLLIElement>
 ) {
-  const item = useTreeItemModel<TreeItemWithLabel>(props.itemId)!;
+  const item = useTreeItemModel<TreeItemData>(props.itemId)!;
   return (
     <TreeItem
       {...props}
       ref={ref}
-      slots={{
-        label: CustomLabel
-      }}
+      slots={{ label: CustomLabel }}
       slotProps={{
         label: {
           id: item.id,
@@ -367,239 +342,327 @@ const CustomTreeItem = React.forwardRef(function CustomTreeItem(
           progress: item?.progress,
           work_folder: item?.work_folder,
           exitStatus: item?.exitStatus,
-          commandError: item?.commandError
-        } as CustomLabelProps
+          commandError: item?.commandError,
+        } as CustomLabelProps,
       }}
     />
   );
 });
 
+const formatDuration = (start?: string, end?: string): string => {
+  if (!start) return '';
+  try {
+    const from = new Date(start).getTime();
+    if (isNaN(from)) return '';
+    const to = end ? new Date(end).getTime() : Date.now();
+    if (isNaN(to)) return '';
+    const diffMs = Math.max(0, to - from);
+    const totalSec = Math.floor(diffMs / 1000);
+    if (totalSec === 0) return '< 1s';
+    const hrs = Math.floor(totalSec / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  } catch {
+    return '';
+  }
+};
+
 const FormatWorkflowStatus = ({
   workflowStatus,
-  isWorkflowRunning
+  isWorkflowRunning,
+  overallProgress,
+  totalProcessCount,
+  launchTime,
+  lastUpdate,
+  onCollapseAll,
+  onExpandAll,
 }: {
   workflowStatus: WorkflowStatus;
   isWorkflowRunning: boolean;
+  overallProgress: number;
+  totalProcessCount: number;
+  launchTime?: string;
+  lastUpdate?: string;
+  onCollapseAll: () => void;
+  onExpandAll: () => void;
 }) => {
   const { t } = useTranslation();
 
-  let color_palette = 'info';
+  let chipColor: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' =
+    'default';
+  let chipLabel: string;
+  let progressColor: 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' =
+    'primary';
+
+  const statusLabel =
+    workflowStatus === WorkflowStatus.Undefined
+      ? isWorkflowRunning
+        ? 'running'
+        : 'loading'
+      : workflowStatus;
+
+  chipLabel = t('monitor.progress.' + statusLabel);
+
   if (workflowStatus === WorkflowStatus.Failed) {
-    color_palette = 'error';
+    chipColor = 'error';
+    progressColor = 'error';
   } else if (workflowStatus === WorkflowStatus.Completed) {
-    color_palette = 'success';
+    chipColor = 'success';
+    progressColor = 'success';
+  } else if (workflowStatus === WorkflowStatus.Running || workflowStatus === WorkflowStatus.Undefined) {
+    chipColor = 'info';
+    progressColor = 'info';
   }
+
   return (
-    <Typography variant="h6" color={color_palette} gutterBottom>
-      {workflowStatus === WorkflowStatus.Undefined
-        ? isWorkflowRunning
-          ? t('monitor.progress.running')
-          : t('monitor.progress.loading')
-        : t('monitor.progress.' + workflowStatus)}
-    </Typography>
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Chip label={chipLabel} color={chipColor} size="small" variant="filled" />
+          {overallProgress > 0 && (
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+              {Math.round(overallProgress)}%
+            </Typography>
+          )}
+          {launchTime && workflowStatus !== WorkflowStatus.Created && (
+            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+              {isWorkflowRunning || !lastUpdate
+                ? formatDuration(launchTime)
+                : formatDuration(launchTime, lastUpdate)}
+            </Typography>
+          )}
+        </Box>
+        <Box sx={{ display: 'flex', gap: 0.5 }}>
+          <Tooltip title={t('monitor.progress.collapse-all')}>
+            <IconButton size="small" onClick={onCollapseAll}>
+              <UnfoldLessIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title={t('monitor.progress.expand-all')}>
+            <IconButton size="small" onClick={onExpandAll}>
+              <UnfoldMoreIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
+      {totalProcessCount > 0 && (
+        <LinearProgress
+          variant="determinate"
+          value={overallProgress}
+          color={progressColor as any}
+          sx={{
+            height: 8,
+            borderRadius: 4,
+            transition: 'all 0.5s ease',
+            '& .MuiLinearProgress-bar': {
+              borderRadius: 4,
+              transition: 'transform 0.5s ease',
+            },
+          }}
+        />
+      )}
+    </Box>
   );
 };
 
-const collectErrorPaths = (items: any[]): string[] => {
-  const ids = new Set<string>();
-  const walk = (nodes: any[], ancestorIds: string[]) => {
-    for (const node of nodes) {
-      const path = [...ancestorIds, node.id];
-      if (node.status === ProcessStatus.Error) {
-        path.forEach((id) => ids.add(id));
+const filterTree = (items: any[], query: string): any[] => {
+  if (!query) return items;
+  const lower = query.toLowerCase();
+  return items
+    .map((item) => {
+      const childMatch = item.children?.length
+        ? filterTree(item.children, query)
+        : [];
+      const selfMatch = item.label.toLowerCase().includes(lower);
+      if (selfMatch || childMatch.length > 0) {
+        return { ...item, children: childMatch.length > 0 ? childMatch : item.children };
       }
-      if (node.children?.length) {
-        walk(node.children, path);
-      }
-    }
-  };
-  walk(items, []);
-  return Array.from(ids);
+      return null;
+    })
+    .filter(Boolean);
 };
 
-const addGroup = (parent, group, itemIdRef) => {
-  parent.push({
-    id: String(itemIdRef.current++),
-    label: group.name,
-    children: [],
-    last_update: group?.last_update,
-    logs_available: group?.group?.length === 0,
-    status: undefined,
-    progress: undefined,
-    work_folder: undefined
-  });
-  const item = parent[parent.length - 1];
-  // Sub-groups
-  group?.group?.forEach((subgroup) => {
-    addGroup(item.children, subgroup, itemIdRef);
-  });
-  // Extract last process state and error details
-  if (group?.process.length > 0) {
-    const lastProcess = group.process[group.process.length - 1];
-    item.status = lastProcess.status;
-    if (lastProcess.status === 'error') {
-      item.exitStatus = lastProcess.exitStatus;
-      item.commandError = lastProcess.commandError;
-    }
-  }
-  // Extract work folder
-  const work_folders = group?.process.filter((process) => process.work !== undefined);
-  if (work_folders?.length === 1) {
-    item.work_folder = work_folders[0].work;
-  } else if (work_folders?.length > 1) {
-    console.warn(
-      'Multiple work folders found for process ' +
-        group.name +
-        ', using most recent: ' +
-        work_folders
-    );
-    item.work_folder = work_folders[work_folders.length - 1].work;
-  }
-};
-
-const descendStatus = (child, status) => {
-  child?.children?.forEach((grand_child) => {
-    grand_child.status = status;
-    descendStatus(grand_child, status);
-  });
-};
-
-const ascendStatus = (child, isWorkflowRunning) => {
-  if (is_finished(child.status)) {
-    descendStatus(child, child.status);
-  }
-  if (child?.children.length > 0) {
-    const status_list = child.children.map((grand_child) =>
-      ascendStatus(grand_child, isWorkflowRunning)
-    );
-    if (status_list.every((status) => status === ProcessStatus.Completed)) {
-      child.status = ProcessStatus.Completed;
-    } else if (status_list.includes(ProcessStatus.Error)) {
-      child.status = ProcessStatus.Error;
-    } else if (status_list.includes(ProcessStatus.Submitted)) {
-      child.status = ProcessStatus.Submitted;
-    } else if (!isWorkflowRunning) {
-      // Workflow is no longer active
-      child.status = ProcessStatus.Stopped;
-    } else {
-      child.status = undefined;
-    }
-    child.progress =
-      (100 * status_list.filter((status) => status === ProcessStatus.Completed).length) /
-      status_list.length;
-  }
-  if (!is_finished(child.status) && !isWorkflowRunning) {
-    // Workflow is no longer active
-    child.status = ProcessStatus.Stopped;
-  }
-  // Returns leaf status, or aggregated status for (above) children
-  return child.status as ProcessStatus;
-};
-
-export default function ProgressTracker({ instance }) {
+export default function ProgressTracker({ instance }: { instance: any }) {
   const { t } = useTranslation();
-  const [workflowStatus, setWorkflowStatus] = React.useState<WorkflowStatus>(
-    WorkflowStatus.Undefined
-  );
-  const [items, setItems] = React.useState<any[]>([]);
-  const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
-  const [hintKey, setHintKey] = React.useState<string | undefined>(undefined);
-  const [logID, setLogID] = React.useState<string>('');
-  const itemIdRef = React.useRef(0);
+  const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>(WorkflowStatus.Undefined);
+  const [items, setItems] = useState<any[]>([]);
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [hintKey, setHintKey] = useState<string | undefined>(undefined);
+  const [logID, setLogID] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [changedItemIds, setChangedItemIds] = useState<Set<string>>(new Set());
+  const itemIdRef = useRef(0);
+  const prevItemsRef = useRef<any[]>([]);
+
+  // Force re-render every second so live duration updates smoothly
+  const [, forceRender] = useReducer((x: number) => x + 1, 0);
+  useEffect(() => {
+    const timer = setInterval(() => forceRender(), 1000);
+    return () => clearInterval(timer);
+  }, [forceRender]);
 
   const isWorkflowRunning =
     workflowStatus !== WorkflowStatus.Completed && workflowStatus !== WorkflowStatus.Failed;
+
+  const processByFullNameRef = useRef(new Map<string, string>());
+
+  const { progress: overallProgress, total: totalProcessCount } = React.useMemo(
+    () => computeOverallProgress(processByFullNameRef.current),
+    [items]
+  );
 
   useEffect(() => {
     const fetchAll = () => {
       API.getInstanceProgress(instance).then((result) => {
         if (!result.ok) return;
         const report = result.data;
-        // Determine if workflow is still active before ascending process statuses.
-        // Backward-scan to match updateWorkflowInstanceStatus logic: if the last event
-        // is 'completed' but an earlier event was 'failed', report 'failed'.
         const workflowEvents = report?.workflow;
-        let workflow_status = WorkflowStatus.Undefined;
+        let workflowStatus = WorkflowStatus.Undefined;
         if (workflowEvents && workflowEvents.length > 0) {
           let s: string = WorkflowStatus.Created;
           for (let i = workflowEvents.length - 1; i >= 0; i--) {
-            if (
-              s === WorkflowStatus.Completed &&
-              workflowEvents[i].status !== WorkflowStatus.Completed
-            ) {
+            if (s === WorkflowStatus.Completed && workflowEvents[i].status !== WorkflowStatus.Completed) {
               s = workflowEvents[i].status;
               break;
             } else {
               s = workflowEvents[i].status;
             }
           }
-          workflow_status = s as WorkflowStatus;
+          workflowStatus = s as WorkflowStatus;
         }
-        setWorkflowStatus(workflow_status);
+        setWorkflowStatus(workflowStatus);
 
         let hint: string | undefined;
-        if (workflow_status === WorkflowStatus.Failed && workflowEvents) {
+        if (workflowStatus === WorkflowStatus.Failed && workflowEvents) {
           const failedEvent = workflowEvents.find((e: any) => e.status === WorkflowStatus.Failed);
           const cause: string | undefined = failedEvent?.cause;
-          if (cause) {
-            hint = findErrorHint(cause);
-          }
+          if (cause) hint = findErrorHint(cause);
         }
         setHintKey(hint);
 
         const isRunning =
-          workflow_status !== WorkflowStatus.Completed && workflow_status !== WorkflowStatus.Failed;
+          workflowStatus !== WorkflowStatus.Completed && workflowStatus !== WorkflowStatus.Failed;
 
-        // Parse report into custom TreeView structure (groups and processes)
         itemIdRef.current = 0;
-        const items = [];
-        report?.group?.forEach((group) => addGroup(items, group, itemIdRef));
-        // Ascend leaf status to parent groups, and calculate progress
-        items.forEach((group) => ascendStatus(group, isRunning));
-        // Auto-expand tree to show errored processes (merge with any manual expansions)
+        const newItems: any[] = [];
+        const newProcessMap = new Map<string, string>();
+        report?.group?.forEach((group: any) =>
+          addGroup(newItems, group, itemIdRef, newProcessMap),
+        );
+        processByFullNameRef.current = newProcessMap;
+        newItems.forEach((group) => ascendStatus(group, isRunning));
+
         setExpandedItems((prev) => {
-          const errors = collectErrorPaths(items);
+          const errors = collectErrorPaths(newItems);
           return errors.length ? Array.from(new Set([...prev, ...errors])) : prev;
         });
-        setItems(items);
+
+        const prev = prevItemsRef.current;
+        const changed = new Set<string>();
+        const walk = (nodes: any[], prevNodes: any[]) => {
+          nodes.forEach((node, i) => {
+            const prevNode = prevNodes[i];
+            if (prevNode && node.status !== prevNode.status) {
+              changed.add(node.id);
+            }
+            if (node.children?.length && prevNode?.children?.length) {
+              walk(node.children, prevNode.children);
+            }
+          });
+        };
+        walk(newItems, prev);
+        if (changed.size > 0) {
+          setChangedItemIds(changed);
+          setTimeout(() => setChangedItemIds(new Set()), 1500);
+        }
+        prevItemsRef.current = newItems;
+        setItems(newItems);
       });
     };
 
-    fetchAll(); // Initial fetch
+    fetchAll();
     const interval = setInterval(fetchAll, 5 * SECOND);
     return () => clearInterval(interval);
   }, [instance]);
 
+  const filteredItems = React.useMemo(() => filterTree(items, searchQuery), [items, searchQuery]);
+
+  const handleCollapseAll = () => setExpandedItems([]);
+  const handleExpandAll = () => {
+    const ids = items.flatMap((item) => {
+      const collect = (node: any): string[] => {
+        const result = [node.id];
+        if (node.children?.length) {
+          node.children.forEach((c: any) => result.push(...collect(c)));
+        }
+        return result;
+      };
+      return collect(item);
+    });
+    setExpandedItems(ids);
+  };
+
   return (
     <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
-        <Box>
-          <FormatWorkflowStatus
-            workflowStatus={workflowStatus}
-            isWorkflowRunning={isWorkflowRunning}
+        <FormatWorkflowStatus
+          workflowStatus={workflowStatus}
+          isWorkflowRunning={isWorkflowRunning}
+          overallProgress={overallProgress}
+          totalProcessCount={totalProcessCount}
+          launchTime={instance.launch_time}
+          lastUpdate={instance.last_update}
+          onCollapseAll={handleCollapseAll}
+          onExpandAll={handleExpandAll}
+        />
+        {hintKey && (
+          <Alert severity="warning" sx={{ mt: 1 }}>
+            {t(hintKey)}
+          </Alert>
+        )}
+
+        {items.length > 0 && (
+          <TextField
+            size="small"
+            placeholder={t('monitor.progress.search')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{ mt: 1 }}
+            slotProps={{
+              input: {
+                startAdornment: <SearchIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />,
+              },
+            }}
           />
-          {hintKey && (
-            <Alert severity="warning" sx={{ mt: 1 }}>
-              {t(hintKey)}
-            </Alert>
-          )}
-        </Box>
-        <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto' }}>
-          {items?.length > 0 ? (
+        )}
+
+        <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto', mt: 1 }}>
+          {filteredItems.length > 0 ? (
             <LogIDContext.Provider value={{ logID, setLogID }}>
               <GetInstanceContext.Provider value={{ instance, isWorkflowRunning }}>
+                <ChangedContext.Provider value={changedItemIds}>
                 <RichTreeView
-                  items={items}
+                  items={filteredItems}
                   slots={{ item: CustomTreeItem }}
                   expandedItems={expandedItems}
                   onExpandedItemsChange={(event, value) => setExpandedItems(value)}
                 />
+                </ChangedContext.Provider>
               </GetInstanceContext.Provider>
             </LogIDContext.Provider>
+          ) : searchQuery ? (
+            <Typography sx={{ color: 'text.secondary', mt: 2 }}>
+              {t('monitor.progress.no-search-results')}
+            </Typography>
           ) : workflowStatus === WorkflowStatus.Failed ? (
             <Typography color="error">{t('monitor.progress.workflow-failure')}</Typography>
           ) : (
-            <Typography>{t('monitor.progress.waiting-for-report')}</Typography>
+            <Typography sx={{ color: 'text.secondary' }}>
+              {t('monitor.progress.waiting-for-report')}
+            </Typography>
           )}
         </Box>
       </Box>

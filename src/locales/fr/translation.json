@@ -139,6 +139,7 @@
     "progress": "Progression",
     "launch_time": "Date de lancement",
     "last_update": "Dernière mise à jour",
+    "duration": "Durée",
     "last_update_tooltip": "Dernière sortie de processus ou activité de journalisation",
     "disk_usage": "Espace disque",
     "disk_usage_loading": "Chargement...",
@@ -239,7 +240,12 @@
       "no-logs": "Ce fichier journal est vide.",
       "command-error": "Erreur de commande",
       "exit-status": "Code de sortie : {{code}}",
-      "oom-killed": "Processus tué (mémoire insuffisante)"
+      "oom-killed": "Processus tué (mémoire insuffisante)",
+      "search": "Rechercher des processus...",
+      "no-search-results": "Aucun processus ne correspond à votre recherche",
+      "stopped": "Arrêté",
+      "collapse-all": "Tout réduire",
+      "expand-all": "Tout développer"
     },
     "open-results-folder": "Ouvrir le dossier des résultats"
   },

@@ -142,6 +142,7 @@
     "progress": "Progress",
     "launch_time": "Launch time",
     "last_update": "Last update",
+    "duration": "Duration",
     "last_update_tooltip": "Most recent process output or log activity",
     "disk_usage": "Disk usage",
     "disk_usage_loading": "Loading...",
@@ -251,7 +252,12 @@
       "no-logs": "This log file is empty.",
       "command-error": "Command error",
       "exit-status": "Exit status: {{code}}",
-      "oom-killed": "Process was killed (out of memory)"
+      "oom-killed": "Process was killed (out of memory)",
+      "search": "Search processes...",
+      "no-search-results": "No processes match your search",
+      "stopped": "Stopped",
+      "collapse-all": "Collapse all",
+      "expand-all": "Expand all"
     },
     "open-results-folder": "Open Results Folder"
   },
