@@ -45,9 +45,7 @@ export default function ConfirmInstallDialog({
 
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        {t('library.confirm-install-workflow')}
-      </DialogTitle>
+      <DialogTitle>{t('library.confirm-install-workflow')}</DialogTitle>
       <DialogContent dividers>
         <Typography variant="body2" gutterBottom>
           {isSingle
@@ -71,11 +69,7 @@ export default function ConfirmInstallDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={onCancel}>{t('common.cancel')}</Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={onConfirm}
-        >
+        <Button variant="contained" color="primary" onClick={onConfirm}>
           {t('library.install-proceed')}
         </Button>
       </DialogActions>

@@ -111,7 +111,10 @@ export function locateReports(reportsDir: string): Record<string, string>[] {
       return 2;
     };
 
-    return priority(aIndexOrReport, !aSep, aPipelineInfo) - priority(bIndexOrReport, !bSep, bPipelineInfo);
+    return (
+      priority(aIndexOrReport, !aSep, aPipelineInfo) -
+      priority(bIndexOrReport, !bSep, bPipelineInfo)
+    );
   });
 
   return reportFiles;

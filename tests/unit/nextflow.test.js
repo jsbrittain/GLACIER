@@ -18,10 +18,7 @@ vi.mock('../../src/main/paths.js', () => ({
   getCollectionsPath: vi.fn(() => '/tmp/collections')
 }));
 
-import {
-  runWorkflow,
-  getAvailableProfiles
-} from '../../src/runners/nextflow/nextflow.js';
+import { runWorkflow, getAvailableProfiles } from '../../src/runners/nextflow/nextflow.js';
 
 let mockChildProcess;
 let origPlatform;
@@ -172,7 +169,9 @@ describe('nextflow', () => {
     });
 
     it('handles read error gracefully', async () => {
-      const instance = makeInstance({ workflow_version: { path: '/nonexistent', version: 'v1.0' } });
+      const instance = makeInstance({
+        workflow_version: { path: '/nonexistent', version: 'v1.0' }
+      });
 
       const profiles = await getAvailableProfiles(instance);
 

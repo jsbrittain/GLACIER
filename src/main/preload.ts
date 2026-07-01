@@ -42,8 +42,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getRepoTags: (repoUrl: string) => ipcRenderer.invoke('get-repo-tags', repoUrl),
   isRepoInstalled: (repoUrl: string, ver: string) =>
     ipcRenderer.invoke('is-repo-installed', repoUrl, ver),
-  isValidWorkflowRepo: (repoPath: string) =>
-    ipcRenderer.invoke('is-valid-workflow-repo', repoPath),
+  isValidWorkflowRepo: (repoPath: string) => ipcRenderer.invoke('is-valid-workflow-repo', repoPath),
   getCollectionsPath: () => ipcRenderer.invoke('get-collections-path'),
   setCollectionsPath: (path: string) => ipcRenderer.invoke('set-collections-path', path),
   getConfigPath: () => ipcRenderer.invoke('get-config-path'),
@@ -65,10 +64,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('hide-catalogue-section', catalogue_name, section_name),
   removeCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string) =>
     ipcRenderer.invoke('remove-catalogue-workflow', catalogue_name, section_name, workflow_name),
-  moveCatalogueWorkflowsToUser: (catalogue_name: string, workflows: Array<{ section: string; name: string }>) =>
-    ipcRenderer.invoke('move-catalogue-workflows-to-user', catalogue_name, workflows),
-  uninstallCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string, workflow_version?: string) =>
-    ipcRenderer.invoke('uninstall-catalogue-workflow', catalogue_name, section_name, workflow_name, workflow_version),
+  moveCatalogueWorkflowsToUser: (
+    catalogue_name: string,
+    workflows: Array<{ section: string; name: string }>
+  ) => ipcRenderer.invoke('move-catalogue-workflows-to-user', catalogue_name, workflows),
+  uninstallCatalogueWorkflow: (
+    catalogue_name: string,
+    section_name: string,
+    workflow_name: string,
+    workflow_version?: string
+  ) =>
+    ipcRenderer.invoke(
+      'uninstall-catalogue-workflow',
+      catalogue_name,
+      section_name,
+      workflow_name,
+      workflow_version
+    ),
   updateCatalogueWorkflow: (catalogue_name: string, section_name: string, workflow_name: string) =>
     ipcRenderer.invoke('update-catalogue-workflow', catalogue_name, section_name, workflow_name),
   checkCatalogueWorkflowUpdates: (catalogue_name: string) =>
@@ -110,9 +122,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getInstanceDiskUsage: (instance: any) => ipcRenderer.invoke('get-instance-disk-usage', instance),
   deleteOrphanedInstances: () => ipcRenderer.invoke('delete-orphaned-instances'),
   hideWorkflowInstance: (instance: any) => ipcRenderer.invoke('hide-workflow-instance', instance),
-  unhideWorkflowInstance: (instance: any) => ipcRenderer.invoke('unhide-workflow-instance', instance),
+  unhideWorkflowInstance: (instance: any) =>
+    ipcRenderer.invoke('unhide-workflow-instance', instance),
   listHiddenInstances: () => ipcRenderer.invoke('list-hidden-instances'),
-  exportCatalogue: (name: string, path: string) => ipcRenderer.invoke('export-catalogue', name, path),
+  exportCatalogue: (name: string, path: string) =>
+    ipcRenderer.invoke('export-catalogue', name, path),
   createCatalogueFromFile: (filePath: string) =>
     ipcRenderer.invoke('create-catalogue-from-file', filePath),
   getTheme: () => ipcRenderer.invoke('get-theme')

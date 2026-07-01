@@ -25,8 +25,16 @@ async function gracefulCrash(error: Error, type: 'uncaughtException' | 'unhandle
             await container.stop({ t: 5 });
           } else {
             // Send SIGTERM to process group
-            try { process.kill(-desc.pid, 'SIGTERM'); } catch { /* already dead */ }
-            try { process.kill(desc.pid, 'SIGTERM'); } catch { /* already dead */ }
+            try {
+              process.kill(-desc.pid, 'SIGTERM');
+            } catch {
+              /* already dead */
+            }
+            try {
+              process.kill(desc.pid, 'SIGTERM');
+            } catch {
+              /* already dead */
+            }
           }
         } catch {
           // Best effort

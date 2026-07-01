@@ -30,30 +30,30 @@ export default function App() {
           ...(palette.warning && { warning: palette.warning }),
           ...(palette.info && { info: palette.info }),
           ...(palette.success && { success: palette.success }),
-          ...(palette.divider && { divider: palette.divider }),
+          ...(palette.divider && { divider: palette.divider })
         },
         components: {
           MuiTab: {
             styleOverrides: {
               root: ({ theme }) => ({
                 '&.Mui-selected': {
-                  color: theme.palette.text.primary,
-                },
-              }),
-            },
+                  color: theme.palette.text.primary
+                }
+              })
+            }
           },
           MuiButton: {
             styleOverrides: {
               textPrimary: ({ theme }) => ({
-                color: theme.palette.text.primary,
+                color: theme.palette.text.primary
               }),
               outlinedPrimary: ({ theme }) => ({
                 color: theme.palette.text.primary,
-                borderColor: theme.palette.divider,
-              }),
-            },
-          },
-        },
+                borderColor: theme.palette.divider
+              })
+            }
+          }
+        }
       });
     }
     return createTheme({

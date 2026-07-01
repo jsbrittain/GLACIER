@@ -74,11 +74,7 @@ describe('runner dispatch', () => {
       params: { key: 'val' }
     });
 
-    expect(runRepo_Docker).toHaveBeenCalledWith(
-      '/some/project',
-      'test-instance',
-      { key: 'val' }
-    );
+    expect(runRepo_Docker).toHaveBeenCalledWith('/some/project', 'test-instance', { key: 'val' });
     expect(id).toBe('container-id-xyz');
   });
 
@@ -95,9 +91,9 @@ describe('runner dispatch', () => {
   });
 
   it('throws when projectPath is empty', async () => {
-    await expect(
-      runWorkflow({ instance: mockInstance(''), params: {} })
-    ).rejects.toThrow('Invalid repository path');
+    await expect(runWorkflow({ instance: mockInstance(''), params: {} })).rejects.toThrow(
+      'Invalid repository path'
+    );
   });
 
   it('passes opts to Nextflow runner when provided', async () => {
@@ -114,10 +110,9 @@ describe('runner dispatch', () => {
       opts: { resume: true, profile: 'test' }
     });
 
-    expect(runWorkflowNextflow).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      { resume: true, profile: 'test' }
-    );
+    expect(runWorkflowNextflow).toHaveBeenCalledWith(expect.anything(), expect.anything(), {
+      resume: true,
+      profile: 'test'
+    });
   });
 });

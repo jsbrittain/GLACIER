@@ -52,7 +52,10 @@ type LogIDContextType = {
 };
 
 const LogIDContext = React.createContext<LogIDContextType>(null);
-const GetInstanceContext = React.createContext<{ instance: any; isWorkflowRunning: boolean } | null>(null);
+const GetInstanceContext = React.createContext<{
+  instance: any;
+  isWorkflowRunning: boolean;
+} | null>(null);
 
 // X-Tree-View customisation: https://mui.com/x/react-tree-view/tree-item-customization/
 type TreeItemWithLabel = {
@@ -292,7 +295,11 @@ function CustomLabel({
             onClick={() => setShowError(!showError)}
           >
             <IconButton size="small" sx={{ p: 0 }}>
-              {showError ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+              {showError ? (
+                <ExpandLessIcon fontSize="small" />
+              ) : (
+                <ExpandMoreIcon fontSize="small" />
+              )}
             </IconButton>
             <Typography variant="subtitle2" color="error">
               {t('monitor.progress.command-error')}
@@ -367,7 +374,13 @@ const CustomTreeItem = React.forwardRef(function CustomTreeItem(
   );
 });
 
-const FormatWorkflowStatus = ({ workflowStatus, isWorkflowRunning }: { workflowStatus: WorkflowStatus; isWorkflowRunning: boolean }) => {
+const FormatWorkflowStatus = ({
+  workflowStatus,
+  isWorkflowRunning
+}: {
+  workflowStatus: WorkflowStatus;
+  isWorkflowRunning: boolean;
+}) => {
   const { t } = useTranslation();
 
   let color_palette = 'info';
@@ -456,7 +469,9 @@ const ascendStatus = (child, isWorkflowRunning) => {
     descendStatus(child, child.status);
   }
   if (child?.children.length > 0) {
-    const status_list = child.children.map((grand_child) => ascendStatus(grand_child, isWorkflowRunning));
+    const status_list = child.children.map((grand_child) =>
+      ascendStatus(grand_child, isWorkflowRunning)
+    );
     if (status_list.every((status) => status === ProcessStatus.Completed)) {
       child.status = ProcessStatus.Completed;
     } else if (status_list.includes(ProcessStatus.Error)) {
@@ -524,9 +539,7 @@ export default function ProgressTracker({ instance }) {
 
         let hint: string | undefined;
         if (workflow_status === WorkflowStatus.Failed && workflowEvents) {
-          const failedEvent = workflowEvents.find(
-            (e: any) => e.status === WorkflowStatus.Failed
-          );
+          const failedEvent = workflowEvents.find((e: any) => e.status === WorkflowStatus.Failed);
           const cause: string | undefined = failedEvent?.cause;
           if (cause) {
             hint = findErrorHint(cause);
@@ -559,16 +572,19 @@ export default function ProgressTracker({ instance }) {
 
   return (
     <Box sx={{ display: 'flex', gap: 2, height: '100%' }}>
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
-          <Box>
-            <FormatWorkflowStatus workflowStatus={workflowStatus} isWorkflowRunning={isWorkflowRunning} />
-            {hintKey && (
-              <Alert severity="warning" sx={{ mt: 1 }}>
-                {t(hintKey)}
-              </Alert>
-            )}
-          </Box>
-          <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto' }}>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0 }}>
+        <Box>
+          <FormatWorkflowStatus
+            workflowStatus={workflowStatus}
+            isWorkflowRunning={isWorkflowRunning}
+          />
+          {hintKey && (
+            <Alert severity="warning" sx={{ mt: 1 }}>
+              {t(hintKey)}
+            </Alert>
+          )}
+        </Box>
+        <Box sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: 'auto' }}>
           {items?.length > 0 ? (
             <LogIDContext.Provider value={{ logID, setLogID }}>
               <GetInstanceContext.Provider value={{ instance, isWorkflowRunning }}>

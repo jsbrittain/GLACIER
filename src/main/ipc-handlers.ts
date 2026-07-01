@@ -21,9 +21,7 @@ export async function call(fcn: any, ...args: any[]): Promise<Result<any>> {
 
 export function registerIpcHandlers(resourceRoot?: string) {
   const redirect = {
-    init: resourceRoot
-      ? () => collection.init(resourceRoot)
-      : collection.init.bind(collection),
+    init: resourceRoot ? () => collection.init(resourceRoot) : collection.init.bind(collection),
     'run-workflow': collection.runWorkflow.bind(collection),
     'get-catalogues': collection.getCatalogues.bind(collection),
     'get-catalogue-parse-results': collection.getCatalogueParseResults.bind(collection),
@@ -54,7 +52,7 @@ export function registerIpcHandlers(resourceRoot?: string) {
     'import-shard': collection.importShard.bind(collection),
     'query-shard-status': collection.queryShardStatus.bind(collection),
     'export-catalogue': collection.exportCatalogue.bind(collection),
-    'create-catalogue-from-file': collection.createCatalogueFromFile.bind(collection),
+    'create-catalogue-from-file': collection.createCatalogueFromFile.bind(collection)
   };
 
   for (const [channel, fcn] of Object.entries(redirect)) {
@@ -142,9 +140,12 @@ export function registerIpcHandlers(resourceRoot?: string) {
     return call(collection.openLogFile.bind(collection), instance, log_type);
   });
 
-  ipcMain.handle('open-work-log-file', async (event, instance: any, workID: string, logType: string) => {
-    return call(collection.openWorkLogFile.bind(collection), instance, workID, logType);
-  });
+  ipcMain.handle(
+    'open-work-log-file',
+    async (event, instance: any, workID: string, logType: string) => {
+      return call(collection.openWorkLogFile.bind(collection), instance, workID, logType);
+    }
+  );
 
   ipcMain.handle('get-work-log', async (event, instance: any, workID: string, logType: string) => {
     return call(collection.getWorkLog.bind(collection), instance, workID, logType);

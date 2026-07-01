@@ -82,7 +82,9 @@ describe('nextflow-environment', () => {
     });
 
     it('returns docker warning without action in web mode', async () => {
-      mockExecFileSync.mockImplementation(() => { throw new Error('not found'); });
+      mockExecFileSync.mockImplementation(() => {
+        throw new Error('not found');
+      });
       const env = await importEnv();
 
       const status = await env.nextflowStatus();
@@ -93,7 +95,9 @@ describe('nextflow-environment', () => {
     });
 
     it('returns docker warning with install action in electron mode', async () => {
-      mockExecFileSync.mockImplementation(() => { throw new Error('not found'); });
+      mockExecFileSync.mockImplementation(() => {
+        throw new Error('not found');
+      });
       Object.defineProperty(process, 'versions', {
         value: { ...process.versions, electron: '28.0.0' },
         configurable: true
@@ -114,7 +118,9 @@ describe('nextflow-environment', () => {
   describe('nextflowStatus (windows)', () => {
     it('returns wsl install prompt when wsl is missing', async () => {
       Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
-      mockExecFileSync.mockImplementation(() => { throw new Error('ENOENT'); });
+      mockExecFileSync.mockImplementation(() => {
+        throw new Error('ENOENT');
+      });
       const env = await importEnv();
 
       const status = await env.nextflowStatus();
@@ -156,10 +162,16 @@ describe('nextflow-environment', () => {
   describe('nextflowAction', () => {
     it('install.nextflow calls installNextflow', async () => {
       const writeStream = new Writable({
-        write(chunk, encoding, callback) { callback(); }
+        write(chunk, encoding, callback) {
+          callback();
+        }
       });
       mockCreateWriteStream.mockReturnValue(writeStream);
-      const mockProcess = { on: vi.fn((event, cb) => { if (event === 'close') cb(0); }) };
+      const mockProcess = {
+        on: vi.fn((event, cb) => {
+          if (event === 'close') cb(0);
+        })
+      };
       mockSpawn.mockReturnValue(mockProcess);
       mockHttpsGet.mockImplementation((url, cb) => {
         const res = makeMockResponse(writeStream);
@@ -191,7 +203,9 @@ describe('nextflow-environment', () => {
 
     it('install.wsl2.distro triggers distro setup', async () => {
       const writeStream = new Writable({
-        write(chunk, encoding, callback) { callback(); }
+        write(chunk, encoding, callback) {
+          callback();
+        }
       });
       mockCreateWriteStream.mockReturnValue(writeStream);
       mockExecFileSync.mockReturnValue('');
@@ -240,7 +254,9 @@ describe('nextflow-environment', () => {
     });
 
     it('checkExecutable returns false when command throws', async () => {
-      mockExecFileSync.mockImplementation(() => { throw new Error('ENOENT'); });
+      mockExecFileSync.mockImplementation(() => {
+        throw new Error('ENOENT');
+      });
       const env = await importEnv();
 
       const status = await env.nextflowStatus();

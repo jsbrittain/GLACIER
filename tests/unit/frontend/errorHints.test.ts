@@ -4,7 +4,7 @@ import { findErrorHint } from '../../../src/renderer/pages/Monitor/errorHints';
 describe('findErrorHint', () => {
   describe('OOM / memory', () => {
     it('detects "out of memory"', () => {
-      expect(findErrorHint('Process \'foo\' terminated with out of memory error')).toBe(
+      expect(findErrorHint("Process 'foo' terminated with out of memory error")).toBe(
         'monitor.progress.hint-oom'
       );
     });
@@ -26,13 +26,13 @@ describe('findErrorHint', () => {
     });
 
     it('detects "Killed"', () => {
-      expect(findErrorHint('Process \'foo\' terminated with signal: Killed')).toBe(
+      expect(findErrorHint("Process 'foo' terminated with signal: Killed")).toBe(
         'monitor.progress.hint-oom'
       );
     });
 
     it('detects exit code 137', () => {
-      expect(findErrorHint('Process \'foo\' terminated with exit code 137')).toBe(
+      expect(findErrorHint("Process 'foo' terminated with exit code 137")).toBe(
         'monitor.progress.hint-oom'
       );
     });
@@ -42,7 +42,7 @@ describe('findErrorHint', () => {
     });
 
     it('detects exit code 134 (SIGABRT)', () => {
-      expect(findErrorHint('Process \'foo\' terminated with exit code 134')).toBe(
+      expect(findErrorHint("Process 'foo' terminated with exit code 134")).toBe(
         'monitor.progress.hint-oom'
       );
     });
@@ -96,7 +96,7 @@ describe('findErrorHint', () => {
     });
 
     it('detects exit code 124', () => {
-      expect(findErrorHint('Process \'foo\' terminated with exit code 124')).toBe(
+      expect(findErrorHint("Process 'foo' terminated with exit code 124")).toBe(
         'monitor.progress.hint-timeout'
       );
     });
@@ -136,19 +136,19 @@ describe('findErrorHint', () => {
     });
 
     it('returns undefined for exit code 1', () => {
-      expect(findErrorHint('Process \'foo\' terminated with exit code 1')).toBeUndefined();
+      expect(findErrorHint("Process 'foo' terminated with exit code 1")).toBeUndefined();
     });
 
     it('returns undefined for exit code 139 (segfault)', () => {
-      expect(findErrorHint('Process \'foo\' terminated with exit code 139')).toBeUndefined();
+      expect(findErrorHint("Process 'foo' terminated with exit code 139")).toBeUndefined();
     });
   });
 
   describe('first match wins (priority order)', () => {
     it('returns OOM hint when both OOM and disk patterns match', () => {
-      expect(
-        findErrorHint('OutOfMemoryError: no space left on device')
-      ).toBe('monitor.progress.hint-oom');
+      expect(findErrorHint('OutOfMemoryError: no space left on device')).toBe(
+        'monitor.progress.hint-oom'
+      );
     });
   });
 });

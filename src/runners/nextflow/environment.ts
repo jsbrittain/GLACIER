@@ -216,7 +216,12 @@ function installWSL2distro() {
           res.pipe(file);
           file.on('finish', () => {
             // Import distribution into WSL
-            callExecutable('wsl', ['--import', 'glacier', path.dirname(getDistroPath()), getDistroPath()]);
+            callExecutable('wsl', [
+              '--import',
+              'glacier',
+              path.dirname(getDistroPath()),
+              getDistroPath()
+            ]);
             // Configure user account
             callExecutable('wsl', [
               '-d',

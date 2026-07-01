@@ -65,7 +65,11 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
             const status = statusResult.data;
             logMessage(`Shard status: ${status.status} (${status.message})`);
             setLogs(status?.logs || []);
-            if (status.status === 'completed' || status.status === 'failed' || status.status === 'unknown') {
+            if (
+              status.status === 'completed' ||
+              status.status === 'failed' ||
+              status.status === 'unknown'
+            ) {
               clearInterval(intervalId);
               setImporting(false);
               if (status.status === 'failed') {
@@ -107,8 +111,8 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
           </FormControl>
         </DialogContent>
 
-        {(logs.length > 0) && (
-          <Paper sx={{p: 2, overflowY: 'auto' }}>
+        {logs.length > 0 && (
+          <Paper sx={{ p: 2, overflowY: 'auto' }}>
             {logs.map((log) => (
               <Alert severity={log.level} sx={{ mb: 2 }}>
                 {log.message}

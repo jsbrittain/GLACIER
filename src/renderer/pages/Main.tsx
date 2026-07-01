@@ -119,10 +119,18 @@ export default function MainPage({ darkMode, setDarkMode }) {
       if (missing.config || missing.documents) {
         const defaultPaths = await API.getDefaultPaths();
         setPendingConfigPath(
-          missing.config && defaultPaths.ok ? defaultPaths.data.config : (pathResult.ok ? pathResult.data : '')
+          missing.config && defaultPaths.ok
+            ? defaultPaths.data.config
+            : pathResult.ok
+              ? pathResult.data
+              : ''
         );
         setPendingDocumentsPath(
-          missing.documents && defaultPaths.ok ? defaultPaths.data.documents : (dPathResult.ok ? dPathResult.data : '')
+          missing.documents && defaultPaths.ok
+            ? defaultPaths.data.documents
+            : dPathResult.ok
+              ? dPathResult.data
+              : ''
         );
         setShowPathDialog(true);
       }
@@ -197,7 +205,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
     setMessage(text);
     setSeverity(level);
     setOpen(true);
-    const consoleFn = level === 'error' ? console.error : level === 'warning' ? console.warn : console.log;
+    const consoleFn =
+      level === 'error' ? console.error : level === 'warning' ? console.warn : console.log;
     consoleFn(text);
   };
 
@@ -338,29 +347,31 @@ export default function MainPage({ darkMode, setDarkMode }) {
 
         {showLogPanel && <PanelResizeHandle />}
 
-        {showLogPanel && <Panel defaultSize={10} minSize={2} collapsible>
-          <Paper
-            variant="outlined"
-            sx={{ width: '100%', height: '100%', overflowY: 'auto' }}
-            square
-          >
-            <Box
-              id="logMessage"
-              component="pre"
-              sx={{ m: 0, fontSize: '0.75rem', whiteSpace: 'pre-wrap' }}
+        {showLogPanel && (
+          <Panel defaultSize={10} minSize={2} collapsible>
+            <Paper
+              variant="outlined"
+              sx={{ width: '100%', height: '100%', overflowY: 'auto' }}
+              square
             >
-              {log.map((line, index) => (
-                <Typography
-                  key={index}
-                  variant="body2"
-                  color={severity === 'error' ? 'error.main' : 'text.primary'}
-                >
-                  {line}
-                </Typography>
-              ))}
-            </Box>
-          </Paper>
-        </Panel>}
+              <Box
+                id="logMessage"
+                component="pre"
+                sx={{ m: 0, fontSize: '0.75rem', whiteSpace: 'pre-wrap' }}
+              >
+                {log.map((line, index) => (
+                  <Typography
+                    key={index}
+                    variant="body2"
+                    color={severity === 'error' ? 'error.main' : 'text.primary'}
+                  >
+                    {line}
+                  </Typography>
+                ))}
+              </Box>
+            </Paper>
+          </Panel>
+        )}
       </PanelGroup>
 
       <Dialog open={showPathDialog} maxWidth="sm" fullWidth>

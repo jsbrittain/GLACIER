@@ -105,12 +105,14 @@ function WorkflowCard({
         if (tags.length === 0) {
           setVersionSelectorOpen(false);
           logMessage(t('library.no-tags-installing-default', { name: workflow.name }), 'info');
-          requestInstallWorkflows([{
-            id: `${workflow.repo}@latest`,
-            repo: workflow.repo,
-            version: 'latest',
-            sourceVersion: 'latest'
-          }]);
+          requestInstallWorkflows([
+            {
+              id: `${workflow.repo}@latest`,
+              repo: workflow.repo,
+              version: 'latest',
+              sourceVersion: 'latest'
+            }
+          ]);
         } else {
           setAvailableTags(tags);
         }
@@ -118,23 +120,27 @@ function WorkflowCard({
         setAvailableTags([]);
       }
     } else {
-      const workflows = [{
-        id: `${workflow.repo}@${workflow.version}`,
-        repo: workflow.repo,
-        version: workflow.version
-      }];
+      const workflows = [
+        {
+          id: `${workflow.repo}@${workflow.version}`,
+          repo: workflow.repo,
+          version: workflow.version
+        }
+      ];
       requestInstallWorkflows(workflows);
     }
   };
 
   const handleVersionSelected = (version: string) => {
     setVersionSelectorOpen(false);
-    const workflows = [{
-      id: `${workflow.repo}@latest`,
-      repo: workflow.repo,
-      version: version,
-      sourceVersion: 'latest'
-    }];
+    const workflows = [
+      {
+        id: `${workflow.repo}@latest`,
+        repo: workflow.repo,
+        version: version,
+        sourceVersion: 'latest'
+      }
+    ];
     requestInstallWorkflows(workflows);
   };
 
@@ -205,10 +211,14 @@ function WorkflowCard({
     <Paper
       id={`card-${workflow.name}`}
       variant="outlined"
-      onClick={isRepoInstalled ? () => {
-        if (menuIsOpen || versionSelectorOpen) return;
-        runWorkflow();
-      } : undefined}
+      onClick={
+        isRepoInstalled
+          ? () => {
+              if (menuIsOpen || versionSelectorOpen) return;
+              runWorkflow();
+            }
+          : undefined
+      }
       sx={{
         p: 1,
         height: '100%',
@@ -221,9 +231,7 @@ function WorkflowCard({
         fontSize: scheme['font-size'] ?? 'inherit',
         filter: !isRepoInstalled ? 'grayscale(60%)' : 'none',
         transition: 'filter 0.2s, background-color 0.2s',
-        '&:hover': isRepoInstalled
-          ? { backgroundColor: 'action.hover' }
-          : {}
+        '&:hover': isRepoInstalled ? { backgroundColor: 'action.hover' } : {}
       }}
     >
       <Box
@@ -235,14 +243,22 @@ function WorkflowCard({
       >
         <Typography variant="h6">{workflow.name}</Typography>
         <Box sx={{ ml: 'auto' }}>
-          <IconButton color="inherit" onClick={(e) => { e.stopPropagation(); handleMenuOpen(e); }}>
+          <IconButton
+            color="inherit"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleMenuOpen(e);
+            }}
+          >
             <MoreVertIcon />
           </IconButton>
         </Box>
         <Menu anchorEl={anchorEl} open={menuIsOpen} onClose={handleMenuClose}>
           <MenuItem onClick={handleHideWorkflow}>{t('library.hide-repository')}</MenuItem>
           {isRepoInstalled && (
-            <MenuItem onClick={handleUninstallWorkflow}>{t('library.uninstall-repository')}</MenuItem>
+            <MenuItem onClick={handleUninstallWorkflow}>
+              {t('library.uninstall-repository')}
+            </MenuItem>
           )}
           {workflow['version'] === 'latest' && isRepoInstalled && (
             <MenuItem onClick={selectVersion}>{t('library.select-version')}</MenuItem>
@@ -274,7 +290,10 @@ function WorkflowCard({
               fontFamily: scheme['font-family'] ?? 'inherit',
               fontSize: scheme['font-size'] ?? 'inherit'
             }}
-            onClick={(e) => { e.stopPropagation(); cloneRepo(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              cloneRepo();
+            }}
           >
             {t('library.install')}
           </Button>
@@ -542,12 +561,14 @@ function CatalogueCard({
   const handleUpdateVersionSelected = async (version: string) => {
     const entry = updateQueueRef.current[updateQueueIndexRef.current];
     setVersionSelectorOpen(false);
-    requestInstallWorkflows([{
-      id: `${entry.repo}@latest`,
-      repo: entry.repo,
-      version: version,
-      sourceVersion: 'latest'
-    }]);
+    requestInstallWorkflows([
+      {
+        id: `${entry.repo}@latest`,
+        repo: entry.repo,
+        version: version,
+        sourceVersion: 'latest'
+      }
+    ]);
     await advanceUpdateQueue();
   };
 
@@ -572,7 +593,10 @@ function CatalogueCard({
         }
       } else if (errors > 0) {
         logMessage(
-          t('library.catalogue-workflows-check-failure', { name: catalogue.name, error: `All ${errors} workflow(s) failed to sync` }),
+          t('library.catalogue-workflows-check-failure', {
+            name: catalogue.name,
+            error: `All ${errors} workflow(s) failed to sync`
+          }),
           'error'
         );
       } else {
@@ -584,7 +608,10 @@ function CatalogueCard({
       getCatalogues();
     } else {
       logMessage(
-        t('library.catalogue-workflows-check-failure', { name: catalogue.name, error: result.error?.message ?? 'Unknown error' }),
+        t('library.catalogue-workflows-check-failure', {
+          name: catalogue.name,
+          error: result.error?.message ?? 'Unknown error'
+        }),
         'error'
       );
     }
@@ -602,7 +629,10 @@ function CatalogueCard({
     }
     const result = await API.exportCatalogue(catalogue.name, saveResult.data);
     if (result.ok) {
-      logMessage(t('library.export-catalogue-success', { name: catalogue.name, path: saveResult.data }), 'success');
+      logMessage(
+        t('library.export-catalogue-success', { name: catalogue.name, path: saveResult.data }),
+        'success'
+      );
     } else {
       logMessage(t('library.export-catalogue-failure', { error: result.error.message }), 'error');
     }
@@ -651,21 +681,22 @@ function CatalogueCard({
           {catalogue.description && (
             <Typography variant="subtitle1">{catalogue.description}</Typography>
           )}
-          {updateMap && (() => {
-            const count = Object.keys(updateMap).filter((repo) =>
-              (catalogue.sections || []).some((s) =>
-                (s.workflows || []).some((w) => w.repo === repo)
-              )
-            ).length;
-            return count > 0 ? (
-              <Chip
-                label={t('library.updates-available', { count })}
-                color="warning"
-                size="small"
-                sx={{ ml: 1 }}
-              />
-            ) : null;
-          })()}
+          {updateMap &&
+            (() => {
+              const count = Object.keys(updateMap).filter((repo) =>
+                (catalogue.sections || []).some((s) =>
+                  (s.workflows || []).some((w) => w.repo === repo)
+                )
+              ).length;
+              return count > 0 ? (
+                <Chip
+                  label={t('library.updates-available', { count })}
+                  color="warning"
+                  size="small"
+                  sx={{ ml: 1 }}
+                />
+              ) : null;
+            })()}
         </Box>
         {permitCatalogueModifications && (
           <>
@@ -774,7 +805,13 @@ export default function LibraryPage({
         const key = `${wf.repo}@${wf.version || 'latest'}`;
         if (seenKeys.has(key)) continue;
         seenKeys.add(key);
-        workflows.push({ section: section.name, name: wf.name, repo: wf.repo, version: wf.version, delete: true });
+        workflows.push({
+          section: section.name,
+          name: wf.name,
+          repo: wf.repo,
+          version: wf.version,
+          delete: true
+        });
       }
     }
 
@@ -788,7 +825,9 @@ export default function LibraryPage({
       }
     }
 
-    const uniqueWorkflows = workflows.filter((wf) => !otherKeys.has(`${wf.repo}@${wf.version || 'latest'}`));
+    const uniqueWorkflows = workflows.filter(
+      (wf) => !otherKeys.has(`${wf.repo}@${wf.version || 'latest'}`)
+    );
 
     if (uniqueWorkflows.length === 0 || catalogue.source === 'local') {
       if (!window.confirm(t('library.confirm-remove-catalogue', { name: catalogue.name }))) return;
@@ -837,8 +876,12 @@ export default function LibraryPage({
         return true;
       })
       .map((wf) => ({
-      section: section.name, name: wf.name, repo: wf.repo, version: wf.version, delete: true
-    }));
+        section: section.name,
+        name: wf.name,
+        repo: wf.repo,
+        version: wf.version,
+        delete: true
+      }));
 
     const otherKeys = new Set<string>();
     for (const otherCat of catalogues || []) {
@@ -858,7 +901,9 @@ export default function LibraryPage({
       }
     }
 
-    const uniqueWorkflows = workflows.filter((wf) => !otherKeys.has(`${wf.repo}@${wf.version || 'latest'}`));
+    const uniqueWorkflows = workflows.filter(
+      (wf) => !otherKeys.has(`${wf.repo}@${wf.version || 'latest'}`)
+    );
 
     if (uniqueWorkflows.length === 0 || catalogue.source === 'local') {
       if (!window.confirm(t('library.confirm-remove-section', { name: section.name }))) return;
@@ -921,9 +966,12 @@ export default function LibraryPage({
       await API.uninstallCatalogueWorkflow(catalogue.name, wf.section, wf.name, version);
     }
 
-    const toMigrate = workflows.filter((wf) => !wf.delete).map((wf) => ({
-      section: wf.section, name: wf.name
-    }));
+    const toMigrate = workflows
+      .filter((wf) => !wf.delete)
+      .map((wf) => ({
+        section: wf.section,
+        name: wf.name
+      }));
 
     if (toMigrate.length > 0) {
       const result = await API.moveCatalogueWorkflowsToUser(catalogue.name, toMigrate);
@@ -948,7 +996,10 @@ export default function LibraryPage({
     const { catalogue, section, workflow } = uninstallTarget;
     workflow['version'] = workflow['version'] ?? 'latest';
     const result = await API.uninstallCatalogueWorkflow(
-      catalogue.name, section.name, workflow.name, workflow.version
+      catalogue.name,
+      section.name,
+      workflow.name,
+      workflow.version
     );
     if (result.ok) {
       logMessage(t('library.workflow-uninstalled-success', { name: workflow.name }), 'success');
@@ -962,21 +1013,26 @@ export default function LibraryPage({
 
   const updateWorkflow = (catalogue, section, workflow) => {
     logMessage(t('library.checking-for-updates', { name: workflow.name }), 'info');
-    return API.updateCatalogueWorkflow(catalogue.name, section.name, workflow.name).then((result) => {
-      if (result.ok) {
-        if (result.data?.updated) {
-          logMessage(t('library.workflow-updated-success', { name: workflow.name }), 'success');
+    return API.updateCatalogueWorkflow(catalogue.name, section.name, workflow.name)
+      .then((result) => {
+        if (result.ok) {
+          if (result.data?.updated) {
+            logMessage(t('library.workflow-updated-success', { name: workflow.name }), 'success');
+          } else {
+            logMessage(t('library.workflow-up-to-date', { name: workflow.name }), 'success');
+          }
+          getCatalogues();
         } else {
-          logMessage(t('library.workflow-up-to-date', { name: workflow.name }), 'success');
+          logMessage(t('library.workflow-updated-failure', { name: workflow.name }), 'error');
         }
-        getCatalogues();
-      } else {
-        logMessage(t('library.workflow-updated-failure', { name: workflow.name }), 'error');
-      }
-      return result;
-    }).catch((err) => {
-      logMessage(t('library.workflow-update-error', { name: workflow.name, error: err.message }), 'error');
-    });
+        return result;
+      })
+      .catch((err) => {
+        logMessage(
+          t('library.workflow-update-error', { name: workflow.name, error: err.message }),
+          'error'
+        );
+      });
   };
 
   const showCatalogueSectionWorkflows = (catalogue, section) => {
@@ -1084,7 +1140,9 @@ export default function LibraryPage({
             deleteCatalogue={() => deleteCatalogue(catalogue)}
             deleteSection={(section) => deleteSection(catalogue, section)}
             hideWorkflow={(section, workflow) => hideWorkflow(catalogue, section, workflow)}
-            uninstallWorkflow={(section, workflow) => uninstallWorkflow(catalogue, section, workflow)}
+            uninstallWorkflow={(section, workflow) =>
+              uninstallWorkflow(catalogue, section, workflow)
+            }
             updateWorkflow={(section, workflow) => updateWorkflow(catalogue, section, workflow)}
             hideSection={(section) => hideSection(catalogue, section)}
             showSections={() => showSections(catalogue)}
@@ -1113,23 +1171,33 @@ export default function LibraryPage({
           </Typography>
         </Container>
       )}
-      <Dialog open={uninstallDialogOpen} onClose={() => setUninstallDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={uninstallDialogOpen}
+        onClose={() => setUninstallDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>{t('library.uninstall-repository')}</DialogTitle>
         <DialogContent>
           <Typography>
-            {t('library.confirm-uninstall-workflow', { name: uninstallTarget?.workflow?.name || '' })}
+            {t('library.confirm-uninstall-workflow', {
+              name: uninstallTarget?.workflow?.name || ''
+            })}
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setUninstallDialogOpen(false)}>
-            {t('common.cancel')}
-          </Button>
+          <Button onClick={() => setUninstallDialogOpen(false)}>{t('common.cancel')}</Button>
           <Button onClick={confirmUninstall} variant="contained" color="error">
             {t('library.uninstall-repository')}
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={deleteDialog !== null} onClose={() => setDeleteDialog(null)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={deleteDialog !== null}
+        onClose={() => setDeleteDialog(null)}
+        maxWidth="sm"
+        fullWidth
+      >
         {deleteDialog && (
           <>
             <DialogTitle>
@@ -1142,11 +1210,7 @@ export default function LibraryPage({
               <List dense>
                 {deleteDialog.workflows.map((wf, i) => (
                   <ListItem key={`${wf.repo}@${wf.version || 'latest'}`} disablePadding>
-                    <Switch
-                      checked={wf.delete}
-                      onChange={() => toggleWorkflow(i)}
-                      color="error"
-                    />
+                    <Switch checked={wf.delete} onChange={() => toggleWorkflow(i)} color="error" />
                     <ListItemText
                       primary={wf.name}
                       secondary={`${wf.repo} @ ${wf.version}`}

@@ -260,10 +260,7 @@ export default function ParametersPage({
             disableHoverListener={isValidWorkflow}
           >
             <span>
-              <Button
-                variant="contained"
-                onClick={() => onLaunch(instance, params)}
-              >
+              <Button variant="contained" onClick={() => onLaunch(instance, params)}>
                 {t('parameters.launch-workflow')}
               </Button>
             </span>

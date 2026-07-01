@@ -242,9 +242,7 @@ describe('ProgressTracker — command error display', () => {
 
     render(<ProgressTracker instance={mockInstance} />);
 
-    expect(
-      await screen.findByText('monitor.progress.exit-status')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('monitor.progress.exit-status')).toBeInTheDocument();
   });
 
   it('does not show command error section for completed process', async () => {

@@ -166,9 +166,7 @@ describe('cloneRepo', () => {
 describe('syncRepo', () => {
   it('returns ok and updated=true when HEAD changes', async () => {
     git.currentBranch.mockResolvedValue('main');
-    git.resolveRef
-      .mockResolvedValueOnce('abc123')
-      .mockResolvedValueOnce('def456');
+    git.resolveRef.mockResolvedValueOnce('abc123').mockResolvedValueOnce('def456');
     git.pull.mockResolvedValue(undefined);
 
     const result = await repo.syncRepo('/some/path');
@@ -179,9 +177,7 @@ describe('syncRepo', () => {
 
   it('returns ok and updated=false when HEAD did not change', async () => {
     git.currentBranch.mockResolvedValue('main');
-    git.resolveRef
-      .mockResolvedValueOnce('abc123')
-      .mockResolvedValueOnce('abc123');
+    git.resolveRef.mockResolvedValueOnce('abc123').mockResolvedValueOnce('abc123');
     git.pull.mockResolvedValue(undefined);
 
     const result = await repo.syncRepo('/some/path');
@@ -269,17 +265,21 @@ describe('getWorkflowParams', () => {
 
   it('extracts default values from parameters', async () => {
     const yamlPath = path.join(tmpDir, 'workflow.yaml');
-    fs.writeFileSync(yamlPath, [
-      'parameters:',
-      '  input_path:',
-      '    description: Input directory',
-      '    default: /data/in',
-      '    type: string',
-      '  threads:',
-      '    description: Number of threads',
-      '    default: 4',
-      '    type: integer'
-    ].join('\n'), 'utf8');
+    fs.writeFileSync(
+      yamlPath,
+      [
+        'parameters:',
+        '  input_path:',
+        '    description: Input directory',
+        '    default: /data/in',
+        '    type: string',
+        '  threads:',
+        '    description: Number of threads',
+        '    default: 4',
+        '    type: integer'
+      ].join('\n'),
+      'utf8'
+    );
 
     const params = await repo.getWorkflowParams(tmpDir);
 
@@ -349,9 +349,7 @@ describe('generateUniqueName', () => {
   });
 
   it('generates a new name if the first is taken', () => {
-    uniqueNamesGenerator
-      .mockReturnValueOnce('taken-name')
-      .mockReturnValueOnce('unique-name');
+    uniqueNamesGenerator.mockReturnValueOnce('taken-name').mockReturnValueOnce('unique-name');
 
     const name = repo.generateUniqueName(['taken-name']);
 

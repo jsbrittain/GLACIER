@@ -132,7 +132,9 @@ async function ensureJdk(version, jdkDir) {
     const jlinkPath = execSync('which jlink', { encoding: 'utf8' }).toString().trim();
     if (jlinkPath) {
       const jdkBin = path.dirname(jlinkPath);
-      const javaVer = execSync(`"${path.join(jdkBin, 'java')}" -version 2>&1`, { encoding: 'utf8' }).toString();
+      const javaVer = execSync(`"${path.join(jdkBin, 'java')}" -version 2>&1`, {
+        encoding: 'utf8'
+      }).toString();
       if (javaVer.includes('Temurin')) {
         log('System jlink is from Temurin -- using system JDK.');
         return null;
@@ -150,7 +152,7 @@ async function ensureJdk(version, jdkDir) {
   if (!url) {
     throw new Error(
       `Unsupported platform: ${os.type()} ${process.arch}. ` +
-      'Please install Temurin JDK 21+ manually and ensure it is on PATH.'
+        'Please install Temurin JDK 21+ manually and ensure it is on PATH.'
     );
   }
 
@@ -162,7 +164,9 @@ async function ensureJdk(version, jdkDir) {
   fs.mkdirSync(jdkDir, { recursive: true });
   run(`tar xzf "${archive}" --strip-components=1 -C "${jdkDir}"`);
 
-  try { fs.unlinkSync(archive); } catch {}
+  try {
+    fs.unlinkSync(archive);
+  } catch {}
 
   log(`Temurin JDK ${version} installed at ${jdkDir}`);
   return jdkDir;
@@ -314,7 +318,10 @@ async function main() {
 
         log('Preparing minimal Java runtime...');
 
-        const jdkDir = await ensureJdk(JAVA_VERSION, path.join(repoRoot, '.temurin', `jdk${JAVA_VERSION}`));
+        const jdkDir = await ensureJdk(
+          JAVA_VERSION,
+          path.join(repoRoot, '.temurin', `jdk${JAVA_VERSION}`)
+        );
         if (jdkDir) {
           process.env.PATH = `${path.join(jdkDir, 'bin')}:${process.env.PATH}`;
         }

@@ -11,7 +11,7 @@
     "build": "npm run build:backend && npm run build:frontend && npm run build:bundle",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write .",
+    "format": "prettier --write src/ tests/ scripts/",
     "start": "npm run build && electron .",
     "test": "vitest run  --coverage",
     "dist": "npm run build && electron-builder",
