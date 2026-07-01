@@ -135,6 +135,12 @@ export async function runWorkflow(
     await fs.writeFile(path.resolve(instancePath, 'nextflow.config'), lines.join('\n'), 'utf8');
   }
 
+  // Write custom user config if provided
+  const customConfig = settings.get('customNextflowConfig');
+  if (customConfig) {
+    await fs.writeFile(path.resolve(instancePath, 'user.config'), customConfig, 'utf8');
+  }
+
   // Clear logs and set to append
   if (!fs_sync.existsSync(instancePath)) {
     fs_sync.mkdirSync(instancePath, { recursive: true });
@@ -226,6 +232,9 @@ export async function runWorkflow(
   ];
   if (resume) {
     cmd.push('-resume');
+  }
+  if (customConfig) {
+    cmd.push('-c', 'user.config');
   }
 
   const java_flags = [

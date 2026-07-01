@@ -29,6 +29,7 @@ const RES = [
   { t: 'completed' as const, re: /Task completed > .*?name:\s*([^;]+);\s*status:\s*([A-Z]+);/ },
   { t: 'error' as const, re: /Error executing process > '([^']+)'/ },
   { t: 'aborted' as const, re: /Session aborted -- Cause:\s*(.+)/ },
+  { t: 'config_error' as const, re: /ERROR.*Config parsing failed/ },
   { t: 'wf_done' as const, re: /Workflow completed/ }
 ];
 
@@ -222,6 +223,9 @@ export async function readNextflowLog(path: string) {
         }
         case 'aborted':
           progress['workflow'].push({ time: ts, status: WorkflowStatus.Failed, cause: m[1] });
+          break;
+        case 'config_error':
+          progress['workflow'].push({ time: ts, status: WorkflowStatus.Failed, cause: 'Config parsing failed' });
           break;
         case 'wf_done':
           progress['workflow'].push({ time: ts, status: WorkflowStatus.Completed });
