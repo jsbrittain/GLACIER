@@ -69,3 +69,39 @@ You can add your own workflow repositories outside of any curated catalogue:
 ## Removing a catalogue
 
 Use the **⋮** menu on the catalogue card and select **Remove catalogue**. This deletes the cloned catalogue repository from disk — it does not affect any installed workflows.
+
+## Default parameters
+
+Each workflow entry in a catalogue can include a `parameters` object that provides default values for the Parameters form. When you create an instance from a catalogue entry that has default parameters, those values are pre-filled automatically.
+
+Example `catalogue.json`:
+
+```json
+{
+  "name": "My Catalog",
+  "sections": [
+    {
+      "name": "Genomics",
+      "workflows": [
+        {
+          "name": "amplicon-nf",
+          "repo": "artic-network/amplicon-nf",
+          "version": "main",
+          "parameters": {
+            "outdir": "./results",
+            "primer_set": "SARS-CoV-2/V1200"
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
+The precedence for parameter values (highest to lowest) is:
+
+1. **User settings** — Auto-resolved values like `outdir` and `store_dir` from GLACIER settings
+2. **Catalogue defaults** — The `parameters` object in the catalogue entry
+3. **Schema defaults** — Defaults defined in the workflow's `nextflow_schema.json`
+
+This means catalogue defaults are a convenient starting point, and they can be overridden by GLACIER's auto-resolution settings or by direct changes in the Parameters form.

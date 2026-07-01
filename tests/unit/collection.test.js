@@ -36,6 +36,7 @@ vi.mock('../../src/main/paths.js', () => ({
   getConfigPath: vi.fn(),
   getDocumentsPath: vi.fn(() => '/tmp/documents/GLACIER'),
   getCollectionsPath: vi.fn(),
+  getOutputPath: vi.fn(() => '/tmp/output/GLACIER'),
   locateReports: vi.fn(() => [])
 }));
 
@@ -231,6 +232,80 @@ describe('Collection', () => {
       await expect(collection.createWorkflowInstance('owner/repo', 'v1.0')).rejects.toThrow(
         'no versions'
       );
+    });
+
+    it('writes catalogue default parameters to glacier-params.json', async () => {
+      collection.catalogues = [
+        {
+          name: 'Test Catalogue',
+          source: 'local',
+          sections: [
+            {
+              name: 'My Workflows',
+              workflows: [
+                {
+                  name: 'my-workflow',
+                  repo: 'owner/repo',
+                  version: 'v1.0',
+                  parameters: { outdir: './results', max_cpus: 4 }
+                }
+              ]
+            }
+          ]
+        }
+      ];
+      collection.workflows = [makeWorkflow()];
+      vi.mocked(repo.generateUniqueName).mockReturnValue('happy-fox');
+      vi.mocked(repo.getWorkflowSchema).mockResolvedValue({});
+
+      const instance = await collection.createWorkflowInstance('owner/repo', 'v1.0');
+
+      const paramsFile = path.join(instance.path, 'glacier-params.json');
+      expect(fs.existsSync(paramsFile)).toBe(true);
+      const params = JSON.parse(fs.readFileSync(paramsFile, 'utf8'));
+      expect(params.outdir).toBe('./results');
+      expect(params.max_cpus).toBe(4);
+    });
+
+    it('auto-resolved settings overlay catalogue default parameters', async () => {
+      collection.catalogues = [
+        {
+          name: 'Test Catalogue',
+          source: 'local',
+          sections: [
+            {
+              name: 'My Workflows',
+              workflows: [
+                {
+                  name: 'my-workflow',
+                  repo: 'owner/repo',
+                  version: 'v1.0',
+                  parameters: { outdir: './results', max_cpus: 4 }
+                }
+              ]
+            }
+          ]
+        }
+      ];
+      collection.workflows = [makeWorkflow()];
+      vi.mocked(repo.generateUniqueName).mockReturnValue('happy-fox');
+
+      // Enable auto-resolve and provide a schema with outdir
+      collection.settingsSet('autoOutdir', true);
+      vi.mocked(repo.getWorkflowSchema).mockResolvedValue({
+        properties: { outdir: { type: 'string', format: 'directory-path' } }
+      });
+
+      const instance = await collection.createWorkflowInstance('owner/repo', 'v1.0');
+
+      const paramsFile = path.join(instance.path, 'glacier-params.json');
+      expect(fs.existsSync(paramsFile)).toBe(true);
+      const params = JSON.parse(fs.readFileSync(paramsFile, 'utf8'));
+      // Catalogue default max_cpus should be preserved
+      expect(params.max_cpus).toBe(4);
+      // outdir should be overridden by the auto-resolved output path
+      expect(params.outdir).not.toBe('./results');
+      expect(params.outdir).toContain('output');
     });
   });
 
