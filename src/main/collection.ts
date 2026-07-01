@@ -240,7 +240,8 @@ class WorkflowInstance implements IWorkflowInstance {
     if (!instanceDb?.runs) return undefined;
     const run = instanceDb.runs.find((r: any) => r.id === this.id);
     if (!run?.runs?.length) return undefined;
-    return run.runs[0].datetime || undefined;
+    const launch = run.runs.find((e: any) => e.status === 'running');
+    return launch?.datetime || run.runs[0].datetime || undefined;
   }
 
   getLastUpdateTime(): string | undefined {
@@ -250,22 +251,38 @@ class WorkflowInstance implements IWorkflowInstance {
     const consider = (ts: string | undefined) => {
       if (ts && (!latest || ts > latest)) latest = ts;
     };
-    // Check workflow-level events
-    for (const entry of progress.workflow || []) {
-      consider(entry.time);
-    }
-    // Walk process tree for timestamps
+    // Walk process tree for ISO 8601 timestamps only
+    // Note: p.time and entry.time are raw nextflow log prefixes (e.g. "Apr-01 12:34:56")
+    // and must NOT be compared as ISO 8601 strings — they can produce incorrect ordering
+    // or parse to the same value as launch_time.
     const walk = (items: any[]) => {
       for (const item of items) {
         consider(item.last_update);
         for (const p of item.process || []) {
-          consider(p.time);
           consider(p.last_update);
         }
         if (item.group?.length) walk(item.group);
       }
     };
     walk(progress.group || []);
+    // Fallback: use nextflow.log modification time if tree had no ISO timestamps
+    if (!latest) {
+      try {
+        if (fs.existsSync(this.path)) {
+          const candidates = fs
+            .readdirSync(this.path)
+            .filter((f) => f.startsWith('nextflow.log'))
+            .map((f) => ({
+              name: f,
+              mtime: fs.statSync(path.join(this.path, f)).mtimeMs
+            }))
+            .sort((a, b) => b.mtime - a.mtime);
+          if (candidates.length > 0) {
+            latest = new Date(candidates[0].mtime).toISOString();
+          }
+        }
+      } catch {}
+    }
     return latest;
   }
 
@@ -276,12 +293,25 @@ class WorkflowInstance implements IWorkflowInstance {
   }
 }
 
+const STATUS_PRIORITY: Record<string, number> = {
+  completed: 4,
+  error: 3,
+  submitted: 2,
+  starting: 1,
+  created: 0,
+};
+
 function countProcesses(groups: any[]): { total: number; completed: number } {
   const allProcesses = new Map<string, string>();
   const walk = (items: any[]) => {
     for (const item of items) {
       for (const p of item.process || []) {
-        allProcesses.set(p.full_name, p.status);
+        const priority = STATUS_PRIORITY[p.status] ?? -1;
+        const existingStatus = allProcesses.get(p.full_name);
+        const existingPriority = existingStatus !== undefined ? (STATUS_PRIORITY[existingStatus] ?? -1) : -1;
+        if (priority >= existingPriority) {
+          allProcesses.set(p.full_name, p.status);
+        }
       }
       if (item.group?.length) walk(item.group);
     }
@@ -969,7 +999,8 @@ export class Collection {
     for (const instance of this.workflow_instances) {
       if (
         instance.status === WorkflowStatus.Running ||
-        instance.status === WorkflowStatus.Completed
+        instance.status === WorkflowStatus.Completed ||
+        instance.status === WorkflowStatus.Failed
       ) {
         const updatePromise = this.updateWorkflowInstanceStatus(instance).then((status) => {
           instance.status = status;

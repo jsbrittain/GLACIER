@@ -54,6 +54,32 @@ function formatAbsoluteTime(ts: string | null | undefined): string {
   }
 }
 
+function formatDuration(start?: string | null, end?: string | null): string {
+  if (!start) return '-';
+  try {
+    const from = new Date(start).getTime();
+    if (isNaN(from)) return '-';
+    let to: number;
+    if (end) {
+      to = new Date(end).getTime();
+      if (isNaN(to)) return '-';
+    } else {
+      to = Date.now();
+    }
+    const diffMs = Math.max(0, to - from);
+    const totalSec = Math.floor(diffMs / 1000);
+    if (totalSec === 0) return '< 1s';
+    const hrs = Math.floor(totalSec / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m ${secs}s`;
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  } catch {
+    return '-';
+  }
+}
+
 const statusColor = (status: string | undefined) => {
   switch (status) {
     case WorkflowStatus.Created:
@@ -214,6 +240,20 @@ const InstanceAccordion = ({
                     {formatAbsoluteTime(instance.last_update)}
                   </Typography>
                 </Tooltip>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  {t('instances.duration')}
+                </Typography>
+                <Typography variant="body2">
+                  {instance.status === WorkflowStatus.Created
+                    ? '-'
+                    : instance.status === WorkflowStatus.Running
+                      ? formatDuration(instance.launch_time)
+                      : instance.last_update
+                        ? formatDuration(instance.launch_time, instance.last_update)
+                        : '-'}
+                </Typography>
               </Box>
               <Box>
                 <Typography variant="caption" color="text.secondary">
