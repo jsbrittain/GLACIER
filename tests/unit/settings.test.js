@@ -27,4 +27,11 @@ describe('settings', () => {
     settings.set('darkMode', true);
     expect(mockStore.set).toHaveBeenCalledWith('darkMode', true);
   });
+
+  it('get/set nextflowSyntaxParser', () => {
+    mockStore.get.mockReturnValue('2');
+    expect(settings.get('nextflowSyntaxParser')).toBe('2');
+    settings.set('nextflowSyntaxParser', '1');
+    expect(mockStore.set).toHaveBeenCalledWith('nextflowSyntaxParser', '1');
+  });
 });

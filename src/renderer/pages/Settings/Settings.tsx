@@ -38,6 +38,8 @@ export default function SettingsPage({
   onShowLogPanelChange,
   autoStoreDir,
   setAutoStoreDir,
+  nextflowSyntaxParser,
+  setNextflowSyntaxParser,
   navigateToPage,
   setNavigateToPage,
   onReopenSetup
@@ -99,6 +101,13 @@ export default function SettingsPage({
   const handleAutoStoreDir = (value) => {
     setAutoStoreDir(value);
     API.settingsSet(SettingsKey.AutoStoreDir, value).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
+  };
+
+  const handleNextflowSyntaxParser = (value) => {
+    setNextflowSyntaxParser(value);
+    API.settingsSet(SettingsKey.NextflowSyntaxParser, value).then((result) => {
       if (!result.ok) console.error(result.error.message);
     });
   };
@@ -272,6 +281,21 @@ export default function SettingsPage({
 
       <TabPanel value={tabValue} index={4}>
         <Stack spacing={2}>
+          <Box>
+            <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
+              {t('settings.nextflow-syntax-parser-desc')}
+            </Typography>
+            <Select
+              id="settings-nextflow-syntax-parser"
+              value={nextflowSyntaxParser}
+              onChange={(e) => handleNextflowSyntaxParser(e.target.value)}
+              size="small"
+              sx={{ minWidth: 200 }}
+            >
+              <MenuItem value="1">v1</MenuItem>
+              <MenuItem value="2">v2</MenuItem>
+            </Select>
+          </Box>
           <FormControlLabel
             control={
               <Switch

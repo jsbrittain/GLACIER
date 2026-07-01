@@ -4,9 +4,9 @@ import slash from 'slash';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 
-// should not be linking directly to main from here
 import { IWorkflowInstance } from '../../main/collection.js';
 import { getConfigPath } from '../../main/paths.js';
+import { settings } from '../../main/settings.js';
 import { ProcessDescriptor } from '../../types/types.js';
 
 type paramsT = { [key: string]: any };
@@ -55,7 +55,7 @@ const get_electron_paths = async () => {
 
   let java_binary = '';
   let jar_file = '';
-  let env = {};
+  let env: Record<string, string> = {};
 
   if (is_electron) {
     const { app } = await import('electron');
@@ -87,6 +87,12 @@ const get_electron_paths = async () => {
       NXF_JAVA_HOME: path.join(resource_root, 'jre')
     };
   }
+
+  const syntaxParser = settings.get('nextflowSyntaxParser');
+  if (syntaxParser) {
+    env.NXF_SYNTAX_PARSER = `v${syntaxParser}`;
+  }
+
   return { is_electron, java_binary, jar_file, env };
 };
 
@@ -261,8 +267,12 @@ export async function runWorkflow(
       });
     } else {
       // Client-server (assume nextflow on path for now)
+      const nxfEnv = { ...process.env };
+      const parserVal = settings.get('nextflowSyntaxParser');
+      if (parserVal) nxfEnv.NXF_SYNTAX_PARSER = `v${parserVal}`;
       p = spawn('nextflow', cmd, {
         cwd: instancePath,
+        env: nxfEnv,
         stdio: ['ignore', stdout, stderr], // stdin ignored
         detached: true
       });

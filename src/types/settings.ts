@@ -11,7 +11,8 @@ export const SettingsKey = {
   InstanceSortBy: 'instanceSortBy',
   InstanceSortDir: 'instanceSortDir',
   ShowLogPanel: 'showLogPanel',
-  AutoStoreDir: 'autoStoreDir'
+  AutoStoreDir: 'autoStoreDir',
+  NextflowSyntaxParser: 'nextflowSyntaxParser'
 } as const;
 
 export type SettingsKey = (typeof SettingsKey)[keyof typeof SettingsKey];

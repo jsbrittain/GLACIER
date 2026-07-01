@@ -298,7 +298,7 @@ const STATUS_PRIORITY: Record<string, number> = {
   error: 3,
   submitted: 2,
   starting: 1,
-  created: 0,
+  created: 0
 };
 
 function countProcesses(groups: any[]): { total: number; completed: number } {
@@ -308,7 +308,8 @@ function countProcesses(groups: any[]): { total: number; completed: number } {
       for (const p of item.process || []) {
         const priority = STATUS_PRIORITY[p.status] ?? -1;
         const existingStatus = allProcesses.get(p.full_name);
-        const existingPriority = existingStatus !== undefined ? (STATUS_PRIORITY[existingStatus] ?? -1) : -1;
+        const existingPriority =
+          existingStatus !== undefined ? (STATUS_PRIORITY[existingStatus] ?? -1) : -1;
         if (priority >= existingPriority) {
           allProcesses.set(p.full_name, p.status);
         }

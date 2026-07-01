@@ -5,7 +5,7 @@ const STATUS_PRIORITY: Record<string, number> = {
   error: 3,
   submitted: 2,
   starting: 1,
-  created: 0,
+  created: 0
 };
 
 export type TreeItemData = {
@@ -46,13 +46,14 @@ export const addGroup = (
   parent: any[],
   group: any,
   itemIdRef: { current: number },
-  processByFullName: Map<string, string>,
+  processByFullName: Map<string, string>
 ) => {
   if (group?.process?.length) {
     group.process.forEach((p: any) => {
       const priority = STATUS_PRIORITY[p.status] ?? -1;
       const existingStatus = processByFullName.get(p.full_name);
-      const existingPriority = existingStatus !== undefined ? (STATUS_PRIORITY[existingStatus] ?? -1) : -1;
+      const existingPriority =
+        existingStatus !== undefined ? (STATUS_PRIORITY[existingStatus] ?? -1) : -1;
       if (priority >= existingPriority) {
         processByFullName.set(p.full_name, p.status);
       }
@@ -68,12 +69,12 @@ export const addGroup = (
     progress: undefined,
     work_folder: undefined,
     exitStatus: undefined,
-    commandError: undefined,
+    commandError: undefined
   });
   const item = parent[parent.length - 1];
   if (group?.group?.length) {
     group.group.forEach((subgroup: any) =>
-      addGroup(item.children, subgroup, itemIdRef, processByFullName),
+      addGroup(item.children, subgroup, itemIdRef, processByFullName)
     );
   }
   if (group?.process?.length > 0) {
@@ -127,7 +128,7 @@ export const ascendStatus = (child: any, isWorkflowRunning: boolean): ProcessSta
 };
 
 export const computeOverallProgress = (
-  processByFullName: Map<string, string>,
+  processByFullName: Map<string, string>
 ): { progress: number; total: number } => {
   let completed = 0;
   for (const status of processByFullName.values()) {
@@ -136,6 +137,6 @@ export const computeOverallProgress = (
   const total = processByFullName.size;
   return {
     progress: total > 0 ? (completed / total) * 100 : 0,
-    total,
+    total
   };
 };

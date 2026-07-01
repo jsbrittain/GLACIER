@@ -9,7 +9,7 @@ const LOG_TYPES = ['log', 'stdout', 'stderr', 'run', 'shell', 'trace', 'begin'];
 export default function ProcessLogViewer({
   instance,
   workFolder,
-  onHide,
+  onHide
 }: {
   instance: any;
   workFolder?: string;
@@ -55,7 +55,7 @@ export default function ProcessLogViewer({
         p: 1.5,
         mt: 1,
         width: '100%',
-        bgcolor: 'background.paper',
+        bgcolor: 'background.paper'
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>

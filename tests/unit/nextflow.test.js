@@ -5,12 +5,20 @@ import os from 'os';
 
 const mockSpawn = vi.hoisted(() => vi.fn());
 
+const mockSettings = vi.hoisted(() => ({
+  get: vi.fn().mockReturnValue(undefined)
+}));
+
 vi.mock('child_process', () => ({
   spawn: mockSpawn
 }));
 
 vi.mock('slash', () => ({
   default: vi.fn((s) => s)
+}));
+
+vi.mock('../../src/main/settings.js', () => ({
+  settings: mockSettings
 }));
 
 vi.mock('../../src/main/paths.js', () => ({
@@ -250,6 +258,38 @@ describe('nextflow', () => {
       const callArgs = mockSpawn.mock.calls[0][1];
       expect(callArgs).not.toContain('-resume');
     });
+
+    it('injects NXF_SYNTAX_PARSER=v2 when set to 2', async () => {
+      mockSettings.get.mockReturnValue('2');
+
+      await runWorkflow(makeInstance(), {});
+
+      expect(mockSpawn).toHaveBeenCalledWith(
+        'nextflow',
+        expect.any(Array),
+        expect.objectContaining({
+          env: expect.objectContaining({ NXF_SYNTAX_PARSER: 'v2' })
+        })
+      );
+    });
+
+    it('injects NXF_SYNTAX_PARSER=v1 when set to 1', async () => {
+      mockSettings.get.mockReturnValue('1');
+
+      await runWorkflow(makeInstance(), {});
+
+      const env = mockSpawn.mock.calls[0][2].env;
+      expect(env.NXF_SYNTAX_PARSER).toBe('v1');
+    });
+
+    it('does not inject NXF_SYNTAX_PARSER when unset', async () => {
+      mockSettings.get.mockReturnValue(undefined);
+
+      await runWorkflow(makeInstance(), {});
+
+      const env = mockSpawn.mock.calls[0][2].env;
+      expect(env.NXF_SYNTAX_PARSER).toBeUndefined();
+    });
   });
 
   describe('runWorkflow — Unix, electron mode', () => {
@@ -304,6 +344,33 @@ describe('nextflow', () => {
 
       const binary = mockSpawn.mock.calls[0][0];
       expect(binary).toMatch(/java$/);
+    });
+
+    it('electron mode injects NXF_SYNTAX_PARSER=v2', async () => {
+      mockSettings.get.mockReturnValue('2');
+
+      await runWorkflow(makeInstance(), {});
+
+      expect(mockSpawn).toHaveBeenCalledWith(
+        expect.stringContaining('java'),
+        expect.any(Array),
+        expect.objectContaining({
+          env: expect.objectContaining({
+            NXF_HOME: expect.any(String),
+            NXF_JAVA_HOME: expect.any(String),
+            NXF_SYNTAX_PARSER: 'v2'
+          })
+        })
+      );
+    });
+
+    it('electron mode does not inject NXF_SYNTAX_PARSER when unset', async () => {
+      mockSettings.get.mockReturnValue(undefined);
+
+      await runWorkflow(makeInstance(), {});
+
+      const env = mockSpawn.mock.calls[0][2].env;
+      expect(env.NXF_SYNTAX_PARSER).toBeUndefined();
     });
   });
 
