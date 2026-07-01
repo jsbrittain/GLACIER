@@ -73,6 +73,7 @@ export interface CatalogueWorkflow {
   repo: string;
   version?: string;
   hidden?: boolean;
+  parameters?: Record<string, any>;
 }
 
 export enum IWorkflowType {
@@ -1005,10 +1006,37 @@ export class Collection {
     const instance_path = path.join(this.instances_path, owner, repo_and_version, instance_name);
     this.ensurePathExists(instance_path);
 
-    // Auto-set store_dir and outdir if enabled
+    // Apply catalogue default parameters if specified
+    let catalogueParams: Record<string, any> = {};
+    for (const cat of this.catalogues) {
+      for (const section of cat.sections) {
+        const wf = section.workflows.find((w: any) => w.repo === workflow_id);
+        if (wf?.parameters) {
+          catalogueParams = { ...wf.parameters };
+          break;
+        }
+      }
+      if (Object.keys(catalogueParams).length > 0) break;
+    }
+    if (Object.keys(catalogueParams).length > 0) {
+      const paramsFile = path.join(instance_path, 'glacier-params.json');
+      safeFs.writeFileSync(paramsFile, JSON.stringify(catalogueParams, null, 2));
+    }
+
+    // Auto-set store_dir and outdir if enabled (overlay on catalogue defaults)
     if (this.settingsGet('autoStoreDir') || this.settingsGet('autoOutdir')) {
       const schema = await getWorkflowSchema(workflow_version.path);
-      const params: Record<string, string> = {};
+      const paramsFile = path.join(instance_path, 'glacier-params.json');
+      let existingParams: Record<string, any> = {};
+      if (safeFs.existsSync(paramsFile)) {
+        const readResult = safeFs.readFileSync(paramsFile);
+        if (readResult.ok && readResult.data) {
+          try {
+            existingParams = JSON.parse(readResult.data);
+          } catch {}
+        }
+      }
+      const params: Record<string, string> = { ...existingParams };
       if (this.settingsGet('autoStoreDir')) {
         const storeDirKey = findStoreDirKey(schema);
         if (storeDirKey) {
@@ -1026,7 +1054,6 @@ export class Collection {
         }
       }
       if (Object.keys(params).length > 0) {
-        const paramsFile = path.join(instance_path, 'glacier-params.json');
         safeFs.writeFileSync(paramsFile, JSON.stringify(params, null, 2));
       }
     }
