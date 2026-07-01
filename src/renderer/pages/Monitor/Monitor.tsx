@@ -45,6 +45,7 @@ export default function MonitorPage({
   instance,
   logMessage,
   onRestart,
+  onRefresh,
   initialTab = 0,
   showLaunchBanner = false,
   onLaunchBannerDismissed
@@ -85,7 +86,7 @@ export default function MonitorPage({
         <Tab label={t('monitor.logs.title')} />
       </Tabs>
       <TabPanel value={tabSelected} index={0}>
-        <ProgressTracker instance={instance} />
+        <ProgressTracker instance={instance} onRefresh={onRefresh} />
       </TabPanel>
       <TabPanel value={tabSelected} index={1}>
         <HtmlReports instance={instance} />

@@ -704,6 +704,7 @@ export default function InstancesPage({
                 instance={instance}
                 logMessage={logMessage}
                 onRestart={onRestart}
+                onRefresh={refreshInstancesList}
                 initialTab={initialMonitorTab}
                 showLaunchBanner={justLaunchedId === instance.id}
                 onLaunchBannerDismissed={() => setJustLaunchedId(null)}
