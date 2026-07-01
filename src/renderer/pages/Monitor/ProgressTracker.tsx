@@ -417,7 +417,7 @@ const addGroup = (parent, group, itemIdRef) => {
   });
   const item = parent[parent.length - 1];
   // Sub-groups
-  group?.group.forEach((subgroup) => {
+  group?.group?.forEach((subgroup) => {
     addGroup(item.children, subgroup, itemIdRef);
   });
   // Extract last process state and error details
@@ -540,11 +540,14 @@ export default function ProgressTracker({ instance }) {
         // Parse report into custom TreeView structure (groups and processes)
         itemIdRef.current = 0;
         const items = [];
-        report?.group.forEach((group) => addGroup(items, group, itemIdRef));
+        report?.group?.forEach((group) => addGroup(items, group, itemIdRef));
         // Ascend leaf status to parent groups, and calculate progress
         items.forEach((group) => ascendStatus(group, isRunning));
-        // Auto-expand tree to show errored processes
-        setExpandedItems(collectErrorPaths(items));
+        // Auto-expand tree to show errored processes (merge with any manual expansions)
+        setExpandedItems((prev) => {
+          const errors = collectErrorPaths(items);
+          return errors.length ? Array.from(new Set([...prev, ...errors])) : prev;
+        });
         setItems(items);
       });
     };
@@ -573,7 +576,7 @@ export default function ProgressTracker({ instance }) {
                   items={items}
                   slots={{ item: CustomTreeItem }}
                   expandedItems={expandedItems}
-                  onExpandedItemsChange={setExpandedItems}
+                  onExpandedItemsChange={(event, value) => setExpandedItems(value)}
                 />
               </GetInstanceContext.Provider>
             </LogIDContext.Provider>
