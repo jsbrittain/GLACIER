@@ -1,8 +1,10 @@
 import { ipcMain } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
+import { execSync } from 'child_process';
 import { Collection } from './collection.js';
-import { StoreSchema } from './settings.js';
+import { settings, StoreSchema } from './settings.js';
 import { Result } from '../types/types.js';
 
 const collection = Collection.getInstance();
@@ -205,6 +207,54 @@ export function registerIpcHandlers(resourceRoot?: string) {
 
   ipcMain.handle('set-store-dir-path', (event, path) => {
     return call(collection.setStoreDirPath.bind(collection), path);
+  });
+
+  ipcMain.handle('write-wslconfig', async (event, cpu: number, mem: number) => {
+    if (process.platform !== 'win32') return { ok: true, data: null };
+    const wslPath = path.join(os.homedir(), '.wslconfig');
+    try {
+      if (cpu === 0 && mem === 0) {
+        if (fs.existsSync(wslPath)) fs.unlinkSync(wslPath);
+        return { ok: true, data: null };
+      }
+      const lines: string[] = ['[wsl2]'];
+      if (cpu) lines.push(`processors=${cpu}`);
+      if (mem) lines.push(`memory=${mem}GB`);
+      fs.writeFileSync(wslPath, lines.join('\n') + '\n', 'utf8');
+      return { ok: true, data: null };
+    } catch (err: any) {
+      return { ok: false, error: { message: `Failed to write .wslconfig: ${err.message}` } };
+    }
+  });
+
+  ipcMain.handle('check-wsl-config', async () => {
+    if (process.platform !== 'win32') return { ok: true, data: null };
+    const storedCpu = settings.get('resourceLimitsCpu') || 0;
+    const storedMem = settings.get('resourceLimitsMemory') || 0;
+    let fileCpu: number | undefined;
+    let fileMem: number | undefined;
+    const wslPath = path.join(os.homedir(), '.wslconfig');
+    if (fs.existsSync(wslPath)) {
+      const content = fs.readFileSync(wslPath, 'utf8');
+      const mCpu = content.match(/processors\s*=\s*(\d+)/);
+      if (mCpu) fileCpu = parseInt(mCpu[1]);
+      const mMem = content.match(/memory\s*=\s*(\d+)/);
+      if (mMem) fileMem = parseInt(mMem[1]);
+    }
+    return {
+      ok: true,
+      data: { storedCpu, storedMem, fileCpu, fileMem }
+    };
+  });
+
+  ipcMain.handle('restart-wsl', async () => {
+    if (process.platform !== 'win32') return { ok: true, data: null };
+    try {
+      execSync('wsl --shutdown', { timeout: 30000 });
+      return { ok: true, data: null };
+    } catch (err: any) {
+      return { ok: false, error: { message: `Failed to restart WSL: ${err.message}` } };
+    }
   });
 
   ipcMain.handle('get-default-paths', () => {

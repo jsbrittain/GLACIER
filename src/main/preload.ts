@@ -19,8 +19,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   killWorkflowInstance: (instance: any) => ipcRenderer.invoke('kill-workflow-instance', instance),
   deleteWorkflowInstance: (instance: any) =>
     ipcRenderer.invoke('delete-workflow-instance', instance),
-  deleteInstanceOutput: (instance: any) =>
-    ipcRenderer.invoke('delete-instance-output', instance),
+  deleteInstanceOutput: (instance: any) => ipcRenderer.invoke('delete-instance-output', instance),
   openResultsFolder: (instance: any) => ipcRenderer.invoke('open-results-folder', instance),
   updateWorkflowInstanceStatus: (instance: any) =>
     ipcRenderer.invoke('update-workflow-instance-status', instance),
@@ -59,6 +58,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setOutputPath: (path: string) => ipcRenderer.invoke('set-output-path', path),
   getStoreDirPath: () => ipcRenderer.invoke('get-store-dir-path'),
   setStoreDirPath: (path: string) => ipcRenderer.invoke('set-store-dir-path', path),
+  checkWslConfig: () => ipcRenderer.invoke('check-wsl-config'),
+  writeWslconfig: (cpu: number, mem: number) => ipcRenderer.invoke('write-wslconfig', cpu, mem),
+  restartWsl: () => ipcRenderer.invoke('restart-wsl'),
   getDefaultPaths: () => ipcRenderer.invoke('get-default-paths'),
   getMissingPaths: () => ipcRenderer.invoke('get-missing-paths'),
   getCollectionRepos: () => ipcRenderer.invoke('get-collection-repos'),

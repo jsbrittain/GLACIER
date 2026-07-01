@@ -518,7 +518,7 @@ describe('nextflow', () => {
       await runWorkflow(makeInstance(), {});
 
       const calls = writeSpy.mock.calls.filter(
-        ([p]) => typeof p === 'string' && p.endsWith('nextflow.config'),
+        ([p]) => typeof p === 'string' && p.endsWith('nextflow.config')
       );
       expect(calls.length).toBe(1);
       expect(calls[0][1]).toContain('cpus: 4');
@@ -535,7 +535,7 @@ describe('nextflow', () => {
       await runWorkflow(makeInstance(), {});
 
       const calls = writeSpy.mock.calls.filter(
-        ([p]) => typeof p === 'string' && p.endsWith('nextflow.config'),
+        ([p]) => typeof p === 'string' && p.endsWith('nextflow.config')
       );
       expect(calls.length).toBe(1);
       expect(calls[0][1]).toContain("memory: '8.GB'");
@@ -553,7 +553,7 @@ describe('nextflow', () => {
       await runWorkflow(makeInstance(), {});
 
       const calls = writeSpy.mock.calls.filter(
-        ([p]) => typeof p === 'string' && p.endsWith('nextflow.config'),
+        ([p]) => typeof p === 'string' && p.endsWith('nextflow.config')
       );
       expect(calls.length).toBe(1);
       expect(calls[0][1]).toContain('cpus: 4');
@@ -567,7 +567,7 @@ describe('nextflow', () => {
       await runWorkflow(makeInstance(), {});
 
       const calls = writeSpy.mock.calls.filter(
-        ([p]) => typeof p === 'string' && p.endsWith('nextflow.config'),
+        ([p]) => typeof p === 'string' && p.endsWith('nextflow.config')
       );
       expect(calls.length).toBe(0);
     });
@@ -582,7 +582,7 @@ describe('nextflow', () => {
       await runWorkflow(makeInstance(), {});
 
       const calls = writeSpy.mock.calls.filter(
-        ([p]) => typeof p === 'string' && p.endsWith('user.config'),
+        ([p]) => typeof p === 'string' && p.endsWith('user.config')
       );
       expect(calls.length).toBe(1);
       expect(calls[0][1]).toContain('trace { enabled = true }');
@@ -600,7 +600,7 @@ describe('nextflow', () => {
       expect(mockSpawn).toHaveBeenCalledWith(
         'nextflow',
         expect.arrayContaining(['-c', 'user.config']),
-        expect.anything(),
+        expect.anything()
       );
     });
 
@@ -614,7 +614,7 @@ describe('nextflow', () => {
       await runWorkflow(makeInstance(), {});
 
       const calls = writeSpy.mock.calls.filter(
-        ([p]) => typeof p === 'string' && p.endsWith('user.config'),
+        ([p]) => typeof p === 'string' && p.endsWith('user.config')
       );
       expect(calls.length).toBe(0);
     });

@@ -334,7 +334,6 @@ const InstanceAccordion = React.memo(function InstanceAccordion({
 });
 
 export default function InstancesPage({
-
   instancesList,
   refreshInstancesList,
   logMessage,

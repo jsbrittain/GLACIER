@@ -68,6 +68,13 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [navigateToSettingsPage, setNavigateToSettingsPage] = useState('');
   const [catalogueParseResults, setCatalogueParseResults] = useState([]);
   const [showCatalogueParseErrors, setShowCatalogueParseErrors] = useState(false);
+  const [wslMismatch, setWslMismatch] = useState<{
+    storedCpu: number;
+    storedMem: number;
+    fileCpu?: number;
+    fileMem?: number;
+  } | null>(null);
+  const [wslMismatchDismissed, setWslMismatchDismissed] = useState(false);
 
   const refreshInstancesList = useCallback(async () => {
     API.listWorkflowInstances().then((result) => {
@@ -137,6 +144,17 @@ export default function MainPage({ darkMode, setDarkMode }) {
           setShowCatalogueParseErrors(true);
         }
       }
+      // Check WSL config mismatch on startup
+      API.checkWslConfig().then((result) => {
+        if (result.ok && result.data) {
+          const d = result.data;
+          const storedActive = d.storedCpu > 0 || d.storedMem > 0;
+          const fileSet = d.fileCpu !== undefined || d.fileMem !== undefined;
+          if (storedActive && fileSet && (d.storedCpu !== d.fileCpu || d.storedMem !== d.fileMem)) {
+            setWslMismatch(d);
+          }
+        }
+      });
       const pathResult = await API.getCollectionsPath();
       if (pathResult.ok) setCollectionsPath(pathResult.data);
 
@@ -221,6 +239,24 @@ export default function MainPage({ darkMode, setDarkMode }) {
     const pathResult = await API.getCollectionsPath();
     if (pathResult.ok) setCollectionsPath(pathResult.data);
     refreshInstancesList();
+  };
+
+  const handleRestartWsl = () => {
+    API.restartWsl().then((result) => {
+      setWslMismatch(null);
+      setWslMismatchDismissed(true);
+      logMessage(
+        result.ok
+          ? 'WSL restarted successfully. Close and reopen the terminal to apply changes.'
+          : `Failed to restart WSL: ${result.error?.message || 'Unknown error'}`,
+        result.ok ? 'info' : 'error'
+      );
+    });
+  };
+
+  const handleDismissWslMismatch = () => {
+    setWslMismatch(null);
+    setWslMismatchDismissed(true);
   };
 
   const handleShowLogPanel = (value: boolean) => {
@@ -314,6 +350,26 @@ export default function MainPage({ darkMode, setDarkMode }) {
           </ListItem>
         </List>
       </Drawer>
+
+      {wslMismatch && !wslMismatchDismissed && (
+        <Alert
+          severity="warning"
+          sx={{ position: 'fixed', bottom: 16, right: 16, zIndex: 9999, maxWidth: 500 }}
+          onClose={handleDismissWslMismatch}
+          action={
+            <Button color="inherit" size="small" onClick={handleRestartWsl}>
+              Restart WSL
+            </Button>
+          }
+        >
+          GLACIER resource limits ({wslMismatch.storedCpu || '∞'} CPUs,{' '}
+          {wslMismatch.storedMem || '∞'} GB) don't match WSL config ({wslMismatch.fileCpu ?? '∞'}{' '}
+          CPUs, {wslMismatch.fileMem ?? '∞'} GB).{' '}
+          {wslMismatch.fileCpu === undefined && wslMismatch.fileMem === undefined
+            ? 'No .wslconfig found.'
+            : ''}
+        </Alert>
+      )}
 
       <PanelGroup direction="vertical" style={{ height: '100vh', width: '100%' }}>
         <Panel>

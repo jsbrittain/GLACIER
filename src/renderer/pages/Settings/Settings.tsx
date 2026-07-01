@@ -68,7 +68,7 @@ export default function SettingsPage({
 
   const configInputProps = React.useMemo(
     () => ({ input: { sx: { fontFamily: 'monospace', fontSize: '0.85rem' } } }),
-    [],
+    []
   );
 
   const handleLanguageChange = (e) => {
@@ -213,9 +213,7 @@ export default function SettingsPage({
         sx={{ width: '100%' }}
         {...other}
       >
-        {value === index && (
-          <Box sx={{ p: 3, width: '100%' }}>{children}</Box>
-        )}
+        {value === index && <Box sx={{ p: 3, width: '100%' }}>{children}</Box>}
       </Box>
     );
   };
@@ -268,10 +266,7 @@ export default function SettingsPage({
         </Box>
         <FormControlLabel
           control={
-            <Checkbox
-              checked={autoOutdir}
-              onChange={(e) => handleAutoOutdir(e.target.checked)}
-            />
+            <Checkbox checked={autoOutdir} onChange={(e) => handleAutoOutdir(e.target.checked)} />
           }
           label={t('settings.auto-outdir', 'Auto-resolve outdir parameter')}
         />
@@ -439,8 +434,13 @@ export default function SettingsPage({
               label={t('settings.resource-limits-cpu')}
               type="number"
               defaultValue={resourceLimitsCpu}
-              onChange={(e) => { cpuRef.current = parseInt(e.target.value) || 0; }}
-              onBlur={() => handleResourceLimitsCpu(cpuRef.current)}
+              onChange={(e) => {
+                cpuRef.current = parseInt(e.target.value) || 0;
+              }}
+              onBlur={() => {
+                handleResourceLimitsCpu(cpuRef.current);
+                API.writeWslconfig(cpuRef.current, memRef.current);
+              }}
               size="small"
               slotProps={{ htmlInput: { min: 0 } }}
               sx={{ width: 120 }}
@@ -449,8 +449,13 @@ export default function SettingsPage({
               label={t('settings.resource-limits-memory')}
               type="number"
               defaultValue={resourceLimitsMemory}
-              onChange={(e) => { memRef.current = parseInt(e.target.value) || 0; }}
-              onBlur={() => handleResourceLimitsMemory(memRef.current)}
+              onChange={(e) => {
+                memRef.current = parseInt(e.target.value) || 0;
+              }}
+              onBlur={() => {
+                handleResourceLimitsMemory(memRef.current);
+                API.writeWslconfig(cpuRef.current, memRef.current);
+              }}
               size="small"
               slotProps={{
                 htmlInput: { min: 0 },
@@ -465,7 +470,9 @@ export default function SettingsPage({
           <TextField
             label={t('settings.custom-nextflow-config')}
             defaultValue={customNextflowConfig}
-            onChange={(e) => { configRef.current = e.target.value; }}
+            onChange={(e) => {
+              configRef.current = e.target.value;
+            }}
             onBlur={() => handleCustomNextflowConfig(configRef.current)}
             multiline
             rows={6}

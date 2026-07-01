@@ -498,7 +498,13 @@ const filterTree = (items: any[], query: string): any[] => {
     .filter(Boolean);
 };
 
-export default function ProgressTracker({ instance, onRefresh }: { instance: any; onRefresh?: () => void }) {
+export default function ProgressTracker({
+  instance,
+  onRefresh
+}: {
+  instance: any;
+  onRefresh?: () => void;
+}) {
   const { t } = useTranslation();
   const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>(WorkflowStatus.Undefined);
   const [items, setItems] = useState<any[]>([]);
@@ -562,7 +568,8 @@ export default function ProgressTracker({ instance, onRefresh }: { instance: any
           notifiedCompletionRef.current = true;
           onRefresh();
         } else if (
-          workflowStatus !== WorkflowStatus.Completed && workflowStatus !== WorkflowStatus.Failed
+          workflowStatus !== WorkflowStatus.Completed &&
+          workflowStatus !== WorkflowStatus.Failed
         ) {
           notifiedCompletionRef.current = false;
         }
