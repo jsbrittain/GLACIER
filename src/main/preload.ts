@@ -58,6 +58,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setOutputPath: (path: string) => ipcRenderer.invoke('set-output-path', path),
   getStoreDirPath: () => ipcRenderer.invoke('get-store-dir-path'),
   setStoreDirPath: (path: string) => ipcRenderer.invoke('set-store-dir-path', path),
+  getInstanceResourceCheck: (instance: any) =>
+    ipcRenderer.invoke('get-instance-resource-check', instance),
   checkWslConfig: () => ipcRenderer.invoke('check-wsl-config'),
   writeWslconfig: (cpu: number, mem: number) => ipcRenderer.invoke('write-wslconfig', cpu, mem),
   restartWsl: () => ipcRenderer.invoke('restart-wsl'),

@@ -29,6 +29,16 @@
           "name": "outdir",
           "repo": "glacier/outdir",
           "version": "main"
+        },
+        {
+          "name": "low-resources",
+          "repo": "glacier/low-resources",
+          "version": "main"
+        },
+        {
+          "name": "high-resources",
+          "repo": "glacier/high-resources",
+          "version": "main"
         }
       ]
     }

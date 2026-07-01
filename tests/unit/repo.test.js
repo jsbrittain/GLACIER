@@ -357,3 +357,41 @@ describe('generateUniqueName', () => {
     expect(uniqueNamesGenerator).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('getWorkflowGlacierConfig', () => {
+  let configDir;
+
+  afterEach(() => {
+    if (configDir && fs.existsSync(configDir)) {
+      fs.rmSync(configDir, { recursive: true, force: true });
+    }
+  });
+
+  it('reads glacier.json and returns parsed config', async () => {
+    configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'glacier-config-'));
+    fs.writeFileSync(
+      path.join(configDir, 'glacier.json'),
+      JSON.stringify({
+        resources: { minimum: { cpus: 4, memory: 8 } }
+      })
+    );
+
+    const config = await repo.getWorkflowGlacierConfig(configDir);
+    expect(config).not.toBeNull();
+    expect(config.resources.minimum.cpus).toBe(4);
+    expect(config.resources.minimum.memory).toBe(8);
+  });
+
+  it('returns null when glacier.json does not exist', async () => {
+    const config = await repo.getWorkflowGlacierConfig('/nonexistent');
+    expect(config).toBeNull();
+  });
+
+  it('returns null on malformed JSON', async () => {
+    configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'glacier-config-'));
+    fs.writeFileSync(path.join(configDir, 'glacier.json'), 'not valid json');
+
+    const config = await repo.getWorkflowGlacierConfig(configDir);
+    expect(config).toBeNull();
+  });
+});

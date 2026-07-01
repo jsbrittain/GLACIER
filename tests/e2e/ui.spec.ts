@@ -232,3 +232,38 @@ test('outdir workflow — autoOutdir ON', async ({ page }) => {
   const instancePath = path.join(docs_path, 'instances', 'glacier', 'outdir@main', instanceName);
   expect(fs.existsSync(path.join(instancePath, 'results'))).toBe(false);
 });
+
+test('resource check — high resources banner', async ({ page }) => {
+  const local_collections_path = path.resolve(path.join(__dirname, '..', 'test-data'));
+  const docs_path = path.resolve(path.join(os.tmpdir(), 'GLACIER-docs-' + Date.now().toString()));
+  fs.mkdirSync(docs_path, { recursive: true });
+
+  await page.click('#sidebar-settings-button');
+  await page.click('#settings-general-panel');
+  await page.click('#settings-reopen-setup');
+  await page.fill('#setup-config-folder', `${local_collections_path}`);
+  await page.fill('#setup-documents-folder', `${docs_path}`);
+  await page.click('#setup-continue-button');
+
+  await page.click('#sidebar-library-button');
+  await page.click('#card-high-resources');
+  await page.waitForSelector('text=This workflow recommends at least', { timeout: TIMEOUT_10s });
+});
+
+test('resource check — low resources no banner', async ({ page }) => {
+  const local_collections_path = path.resolve(path.join(__dirname, '..', 'test-data'));
+  const docs_path = path.resolve(path.join(os.tmpdir(), 'GLACIER-docs-' + Date.now().toString()));
+  fs.mkdirSync(docs_path, { recursive: true });
+
+  await page.click('#sidebar-settings-button');
+  await page.click('#settings-general-panel');
+  await page.click('#settings-reopen-setup');
+  await page.fill('#setup-config-folder', `${local_collections_path}`);
+  await page.fill('#setup-documents-folder', `${docs_path}`);
+  await page.click('#setup-continue-button');
+
+  await page.click('#sidebar-library-button');
+  await page.click('#card-low-resources');
+  await page.waitForTimeout(2000);
+  await expect(page.getByText('This workflow recommends at least')).not.toBeVisible();
+});

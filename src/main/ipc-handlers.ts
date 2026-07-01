@@ -5,6 +5,7 @@ import os from 'os';
 import { execSync } from 'child_process';
 import { Collection } from './collection.js';
 import { settings, StoreSchema } from './settings.js';
+import { getWorkflowGlacierConfig } from './repo.js';
 import { Result } from '../types/types.js';
 
 const collection = Collection.getInstance();
@@ -254,6 +255,82 @@ export function registerIpcHandlers(resourceRoot?: string) {
       return { ok: true, data: null };
     } catch (err: any) {
       return { ok: false, error: { message: `Failed to restart WSL: ${err.message}` } };
+    }
+  });
+
+  ipcMain.handle('get-instance-resource-check', async (event, instance: any) => {
+    try {
+      const workflowPath = instance?.workflow_version?.path;
+      if (!workflowPath) return { ok: true, data: null };
+      const config = await getWorkflowGlacierConfig(workflowPath);
+      const min = config?.resources?.minimum;
+      if (!min || (min.cpus === undefined && min.memory === undefined)) {
+        return { ok: true, data: null };
+      }
+
+      // Gather effective limits (lowest of all layers)
+      let effectiveCpu = Infinity;
+      let effectiveMem = Infinity;
+      let cpuSource = 'System';
+      let memSource = 'System';
+
+      // Layer 1: GLACIER settings
+      const glCpu = settings.get('resourceLimitsCpu') || 0;
+      const glMem = settings.get('resourceLimitsMemory') || 0;
+      if (glCpu > 0) {
+        effectiveCpu = glCpu;
+        cpuSource = 'GLACIER settings';
+      }
+      if (glMem > 0) {
+        effectiveMem = glMem;
+        memSource = 'GLACIER settings';
+      }
+
+      // Layer 2: WSL config (Windows only)
+      const wslPath = path.join(os.homedir(), '.wslconfig');
+      if (process.platform === 'win32' && fs.existsSync(wslPath)) {
+        const wslContent = fs.readFileSync(wslPath, 'utf8');
+        const wslCpu = wslContent.match(/processors\s*=\s*(\d+)/);
+        const wslMem = wslContent.match(/memory\s*=\s*(\d+)/);
+        if (wslCpu && parseInt(wslCpu[1]) < effectiveCpu) {
+          effectiveCpu = parseInt(wslCpu[1]);
+          cpuSource = 'WSL config';
+        }
+        if (wslMem && parseInt(wslMem[1]) < effectiveMem) {
+          effectiveMem = parseInt(wslMem[1]);
+          memSource = 'WSL config';
+        }
+      }
+
+      // Layer 3: System hardware
+      const sysCpu = os.cpus().length;
+      const sysMem = Math.floor(os.totalmem() / (1024 * 1024 * 1024));
+      if (sysCpu < effectiveCpu) {
+        effectiveCpu = sysCpu;
+        cpuSource = 'System hardware';
+      }
+      if (sysMem < effectiveMem) {
+        effectiveMem = sysMem;
+        memSource = 'System hardware';
+      }
+
+      // Compare against minimums
+      if ((min.cpus && effectiveCpu < min.cpus) || (min.memory && effectiveMem < min.memory)) {
+        return {
+          ok: true,
+          data: {
+            minimumCpu: min.cpus,
+            minimumMem: min.memory,
+            effectiveCpu,
+            effectiveMem,
+            cpuSource: effectiveCpu >= sysCpu ? cpuSource : 'System hardware',
+            memSource: effectiveMem >= sysMem ? memSource : 'System hardware'
+          }
+        };
+      }
+      return { ok: true, data: null };
+    } catch {
+      return { ok: true, data: null };
     }
   });
 
