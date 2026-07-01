@@ -23,6 +23,7 @@ export interface StoreSchema {
   storeDirPath: string;
   resourceLimitsCpu: number;
   resourceLimitsMemory: number;
+  customNextflowConfig: string;
 }
 
 let _instance: any = null;
@@ -51,7 +52,8 @@ function getInstance() {
           outputPath: { type: 'string', default: '' },
           storeDirPath: { type: 'string', default: '' },
           resourceLimitsCpu: { type: 'number', default: 0 },
-          resourceLimitsMemory: { type: 'number', default: 0 }
+          resourceLimitsMemory: { type: 'number', default: 0 },
+          customNextflowConfig: { type: 'string', default: '' }
         },
         name: 'config',
         projectName: 'GLACIER',

@@ -62,6 +62,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [storeDirPath, setStoreDirPath] = useState('');
   const [resourceLimitsCpu, setResourceLimitsCpu] = useState(0);
   const [resourceLimitsMemory, setResourceLimitsMemory] = useState(0);
+  const [customNextflowConfig, setCustomNextflowConfig] = useState('');
   const [open, setOpen] = useState(false);
   const [item, setItem] = useState('');
   const [navigateToSettingsPage, setNavigateToSettingsPage] = useState('');
@@ -120,6 +121,9 @@ export default function MainPage({ darkMode, setDarkMode }) {
       });
       API.settingsGet(SettingsKey.ResourceLimitsMemory).then((result) => {
         if (result.ok) setResourceLimitsMemory(result.data);
+      });
+      API.settingsGet(SettingsKey.CustomNextflowConfig).then((result) => {
+        if (result.ok) setCustomNextflowConfig(result.data);
       });
       const r = await API.init();
       if (!r.ok) {
@@ -369,6 +373,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 setResourceLimitsCpu={setResourceLimitsCpu}
                 resourceLimitsMemory={resourceLimitsMemory}
                 setResourceLimitsMemory={setResourceLimitsMemory}
+                customNextflowConfig={customNextflowConfig}
+                setCustomNextflowConfig={setCustomNextflowConfig}
                 navigateToPage={navigateToSettingsPage}
                 setNavigateToPage={setNavigateToSettingsPage}
                 onReopenSetup={() => {

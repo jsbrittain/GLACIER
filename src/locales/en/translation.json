@@ -291,6 +291,8 @@
     "output-folder": "Output folder",
     "store-dir-folder": "Store dir folder",
     "resource-limits-desc": "Process resource limits (0 = no limit)",
+    "custom-nextflow-config": "Custom Nextflow config",
+    "custom-nextflow-config-desc": "Additional Nextflow config (applied via -c)",
     "resource-limits-cpu": "Max CPUs",
     "resource-limits-memory": "Max memory",
     "nextflow-syntax-parser": "Nextflow syntax parser",

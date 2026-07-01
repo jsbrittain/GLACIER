@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -51,6 +51,8 @@ export default function SettingsPage({
   setResourceLimitsCpu,
   resourceLimitsMemory,
   setResourceLimitsMemory,
+  customNextflowConfig,
+  setCustomNextflowConfig,
   navigateToPage,
   setNavigateToPage,
   onReopenSetup
@@ -60,6 +62,14 @@ export default function SettingsPage({
   const [language, setLanguage] = React.useState(i18n.language?.split('-')[0] || 'en');
   const [tabValue, setTabValue] = React.useState(0);
   const [disableSchemaValidation, setDisableSchemaValidation] = React.useState(false);
+  const configRef = useRef(customNextflowConfig);
+  const cpuRef = useRef(resourceLimitsCpu);
+  const memRef = useRef(resourceLimitsMemory);
+
+  const configInputProps = React.useMemo(
+    () => ({ input: { sx: { fontFamily: 'monospace', fontSize: '0.85rem' } } }),
+    [],
+  );
 
   const handleLanguageChange = (e) => {
     const newLang = e.target.value;
@@ -153,6 +163,13 @@ export default function SettingsPage({
     });
   };
 
+  const handleCustomNextflowConfig = (value) => {
+    setCustomNextflowConfig(value);
+    API.settingsSet(SettingsKey.CustomNextflowConfig, value).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
+  };
+
   const handleNextflowSyntaxParser = (value) => {
     setNextflowSyntaxParser(value);
     API.settingsSet(SettingsKey.NextflowSyntaxParser, value).then((result) => {
@@ -197,9 +214,7 @@ export default function SettingsPage({
         {...other}
       >
         {value === index && (
-          <Box sx={{ p: 3, width: '100%' }}>
-            <Typography>{children}</Typography>
-          </Box>
+          <Box sx={{ p: 3, width: '100%' }}>{children}</Box>
         )}
       </Box>
     );
@@ -423,8 +438,9 @@ export default function SettingsPage({
             <TextField
               label={t('settings.resource-limits-cpu')}
               type="number"
-              value={resourceLimitsCpu}
-              onChange={(e) => handleResourceLimitsCpu(parseInt(e.target.value) || 0)}
+              defaultValue={resourceLimitsCpu}
+              onChange={(e) => { cpuRef.current = parseInt(e.target.value) || 0; }}
+              onBlur={() => handleResourceLimitsCpu(cpuRef.current)}
               size="small"
               slotProps={{ htmlInput: { min: 0 } }}
               sx={{ width: 120 }}
@@ -432,8 +448,9 @@ export default function SettingsPage({
             <TextField
               label={t('settings.resource-limits-memory')}
               type="number"
-              value={resourceLimitsMemory}
-              onChange={(e) => handleResourceLimitsMemory(parseInt(e.target.value) || 0)}
+              defaultValue={resourceLimitsMemory}
+              onChange={(e) => { memRef.current = parseInt(e.target.value) || 0; }}
+              onBlur={() => handleResourceLimitsMemory(memRef.current)}
               size="small"
               slotProps={{
                 htmlInput: { min: 0 },
@@ -442,6 +459,20 @@ export default function SettingsPage({
               sx={{ width: 140 }}
             />
           </Box>
+          <Typography variant="body2" sx={{ mt: 2, mb: 1, color: 'text.secondary' }}>
+            {t('settings.custom-nextflow-config-desc')}
+          </Typography>
+          <TextField
+            label={t('settings.custom-nextflow-config')}
+            defaultValue={customNextflowConfig}
+            onChange={(e) => { configRef.current = e.target.value; }}
+            onBlur={() => handleCustomNextflowConfig(configRef.current)}
+            multiline
+            rows={6}
+            size="small"
+            sx={{ width: '100%' }}
+            slotProps={configInputProps}
+          />
         </Stack>
       </TabPanel>
 

@@ -571,5 +571,52 @@ describe('nextflow', () => {
       );
       expect(calls.length).toBe(0);
     });
+
+    it('writes user.config when customNextflowConfig is set', async () => {
+      mockSettings.get.mockImplementation((key) => {
+        if (key === 'customNextflowConfig') return 'trace { enabled = true }';
+        return 0;
+      });
+      const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+
+      await runWorkflow(makeInstance(), {});
+
+      const calls = writeSpy.mock.calls.filter(
+        ([p]) => typeof p === 'string' && p.endsWith('user.config'),
+      );
+      expect(calls.length).toBe(1);
+      expect(calls[0][1]).toContain('trace { enabled = true }');
+    });
+
+    it('appends -c user.config to spawn args when config is set', async () => {
+      mockSettings.get.mockImplementation((key) => {
+        if (key === 'customNextflowConfig') return 'some config';
+        return 0;
+      });
+      vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+
+      await runWorkflow(makeInstance(), {});
+
+      expect(mockSpawn).toHaveBeenCalledWith(
+        'nextflow',
+        expect.arrayContaining(['-c', 'user.config']),
+        expect.anything(),
+      );
+    });
+
+    it('does not write user.config when config is empty', async () => {
+      mockSettings.get.mockImplementation((key) => {
+        if (key === 'customNextflowConfig') return '';
+        return 0;
+      });
+      const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+
+      await runWorkflow(makeInstance(), {});
+
+      const calls = writeSpy.mock.calls.filter(
+        ([p]) => typeof p === 'string' && p.endsWith('user.config'),
+      );
+      expect(calls.length).toBe(0);
+    });
   });
 });

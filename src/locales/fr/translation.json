@@ -277,6 +277,8 @@
     "output-folder": "Dossier de sortie",
     "store-dir-folder": "Dossier store_dir",
     "resource-limits-desc": "Limites de ressources (0 = aucune limite)",
+    "custom-nextflow-config": "Configuration Nextflow personnalisée",
+    "custom-nextflow-config-desc": "Configuration Nextflow supplémentaire (appliquée via -c)",
     "resource-limits-cpu": "CPU max",
     "resource-limits-memory": "Mémoire max",
     "nextflow-syntax-parser": "Analyseur syntaxique Nextflow",
