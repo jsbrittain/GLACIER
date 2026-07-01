@@ -60,6 +60,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [autoOutdir, setAutoOutdir] = useState(true);
   const [outputPath, setOutputPath] = useState('');
   const [storeDirPath, setStoreDirPath] = useState('');
+  const [resourceLimitsCpu, setResourceLimitsCpu] = useState(0);
+  const [resourceLimitsMemory, setResourceLimitsMemory] = useState(0);
   const [open, setOpen] = useState(false);
   const [item, setItem] = useState('');
   const [navigateToSettingsPage, setNavigateToSettingsPage] = useState('');
@@ -112,6 +114,12 @@ export default function MainPage({ darkMode, setDarkMode }) {
       });
       API.getStoreDirPath().then((result) => {
         if (result.ok) setStoreDirPath(result.data);
+      });
+      API.settingsGet(SettingsKey.ResourceLimitsCpu).then((result) => {
+        if (result.ok) setResourceLimitsCpu(result.data);
+      });
+      API.settingsGet(SettingsKey.ResourceLimitsMemory).then((result) => {
+        if (result.ok) setResourceLimitsMemory(result.data);
       });
       const r = await API.init();
       if (!r.ok) {
@@ -357,6 +365,10 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 setOutputPath={setOutputPath}
                 storeDirPath={storeDirPath}
                 setStoreDirPath={setStoreDirPath}
+                resourceLimitsCpu={resourceLimitsCpu}
+                setResourceLimitsCpu={setResourceLimitsCpu}
+                resourceLimitsMemory={resourceLimitsMemory}
+                setResourceLimitsMemory={setResourceLimitsMemory}
                 navigateToPage={navigateToSettingsPage}
                 setNavigateToPage={setNavigateToSettingsPage}
                 onReopenSetup={() => {

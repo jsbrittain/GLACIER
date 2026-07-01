@@ -15,7 +15,9 @@ export const SettingsKey = {
   NextflowSyntaxParser: 'nextflowSyntaxParser',
   AutoOutdir: 'autoOutdir',
   OutputPath: 'outputPath',
-  StoreDirPath: 'storeDirPath'
+  StoreDirPath: 'storeDirPath',
+  ResourceLimitsCpu: 'resourceLimitsCpu',
+  ResourceLimitsMemory: 'resourceLimitsMemory'
 } as const;
 
 export type SettingsKey = (typeof SettingsKey)[keyof typeof SettingsKey];

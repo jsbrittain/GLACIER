@@ -21,6 +21,8 @@ export interface StoreSchema {
   autoOutdir: boolean;
   outputPath: string;
   storeDirPath: string;
+  resourceLimitsCpu: number;
+  resourceLimitsMemory: number;
 }
 
 let _instance: any = null;
@@ -47,7 +49,9 @@ function getInstance() {
           nextflowSyntaxParser: { type: 'string', default: '1' },
           autoOutdir: { type: 'boolean', default: true },
           outputPath: { type: 'string', default: '' },
-          storeDirPath: { type: 'string', default: '' }
+          storeDirPath: { type: 'string', default: '' },
+          resourceLimitsCpu: { type: 'number', default: 0 },
+          resourceLimitsMemory: { type: 'number', default: 0 }
         },
         name: 'config',
         projectName: 'GLACIER',

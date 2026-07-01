@@ -34,4 +34,14 @@ describe('settings', () => {
     settings.set('nextflowSyntaxParser', '1');
     expect(mockStore.set).toHaveBeenCalledWith('nextflowSyntaxParser', '1');
   });
+
+  it('get/set resourceLimitsCpu and resourceLimitsMemory', () => {
+    mockStore.get.mockReturnValueOnce(4).mockReturnValueOnce(8);
+    expect(settings.get('resourceLimitsCpu')).toBe(4);
+    expect(settings.get('resourceLimitsMemory')).toBe(8);
+    settings.set('resourceLimitsCpu', 6);
+    expect(mockStore.set).toHaveBeenCalledWith('resourceLimitsCpu', 6);
+    settings.set('resourceLimitsMemory', 16);
+    expect(mockStore.set).toHaveBeenCalledWith('resourceLimitsMemory', 16);
+  });
 });
