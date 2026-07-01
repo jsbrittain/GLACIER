@@ -152,6 +152,10 @@ app.post('/api/delete-workflow-instance', async (req, res) =>
   post_response(res, call(collection.deleteWorkflowInstance.bind(collection), req.body.instance))
 );
 
+app.post('/api/delete-instance-output', async (req, res) =>
+  post_response(res, call(collection.deleteInstanceOutput.bind(collection), req.body.instance))
+);
+
 app.post('/api/open-results-folder', async (req, res) =>
   post_response(res, call(collection.openResultsFolder.bind(collection), req.body.instance))
 );
@@ -162,6 +166,18 @@ app.post('/api/get-instance-disk-usage', async (req, res) =>
 
 app.post('/api/delete-orphaned-instances', async (req, res) =>
   post_response(res, call(collection.deleteOrphanedInstances.bind(collection)))
+);
+
+app.post('/api/get-instance-reports-list', async (req, res) =>
+  post_response(res, call(collection.getInstanceReportsList.bind(collection), req.body.instance))
+);
+
+app.post('/api/get-path-reports-list', async (req, res) =>
+  post_response(res, call(collection.getPathReportsList.bind(collection), req.body.reportsPath))
+);
+
+app.post('/api/get-output-path-for-instance', async (req, res) =>
+  post_response(res, call(collection.getOutputPathForInstance.bind(collection), req.body.instance))
 );
 
 app.post('/api/hide-workflow-instance', async (req, res) =>
@@ -388,6 +404,22 @@ app.post('/api/get-documents-path', async (req, res) =>
 
 app.post('/api/set-documents-path', async (req, res) =>
   post_response(res, call(collection.setDocumentsPath.bind(collection), req.body.path))
+);
+
+app.post('/api/get-output-path', async (req, res) =>
+  post_response(res, call(collection.getOutputPath.bind(collection)))
+);
+
+app.post('/api/set-output-path', async (req, res) =>
+  post_response(res, call(collection.setOutputPath.bind(collection), req.body.path))
+);
+
+app.post('/api/get-store-dir-path', async (req, res) =>
+  post_response(res, call(collection.getStoreDirPath.bind(collection)))
+);
+
+app.post('/api/set-store-dir-path', async (req, res) =>
+  post_response(res, call(collection.setStoreDirPath.bind(collection), req.body.path))
 );
 
 app.post('/api/get-default-paths', async (req, res) =>

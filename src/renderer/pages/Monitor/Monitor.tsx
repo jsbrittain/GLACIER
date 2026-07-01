@@ -81,7 +81,7 @@ export default function MonitorPage({
       )}
       <Tabs value={tabSelected} onChange={handleTabChange}>
         <Tab label={t('monitor.progress.title')} />
-        <Tab label={t('monitor.reports')} />
+        <Tab label={t('monitor.reports.title')} />
         <Tab label={t('monitor.logs.title')} />
       </Tabs>
       <TabPanel value={tabSelected} index={0}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Drawer,
@@ -57,13 +57,16 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [showLogPanel, setShowLogPanel] = useState(false);
   const [autoStoreDir, setAutoStoreDir] = useState(false);
   const [nextflowSyntaxParser, setNextflowSyntaxParser] = useState('1');
+  const [autoOutdir, setAutoOutdir] = useState(true);
+  const [outputPath, setOutputPath] = useState('');
+  const [storeDirPath, setStoreDirPath] = useState('');
   const [open, setOpen] = useState(false);
   const [item, setItem] = useState('');
   const [navigateToSettingsPage, setNavigateToSettingsPage] = useState('');
   const [catalogueParseResults, setCatalogueParseResults] = useState([]);
   const [showCatalogueParseErrors, setShowCatalogueParseErrors] = useState(false);
 
-  const refreshInstancesList = async () => {
+  const refreshInstancesList = useCallback(async () => {
     API.listWorkflowInstances().then((result) => {
       if (!result.ok) return;
       setInstancesList(
@@ -73,7 +76,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
         }))
       );
     });
-  };
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -100,6 +103,15 @@ export default function MainPage({ darkMode, setDarkMode }) {
       });
       API.settingsGet(SettingsKey.NextflowSyntaxParser).then((result) => {
         if (result.ok) setNextflowSyntaxParser(result.data);
+      });
+      API.settingsGet(SettingsKey.AutoOutdir).then((result) => {
+        if (result.ok) setAutoOutdir(result.data);
+      });
+      API.getOutputPath().then((result) => {
+        if (result.ok) setOutputPath(result.data);
+      });
+      API.getStoreDirPath().then((result) => {
+        if (result.ok) setStoreDirPath(result.data);
       });
       const r = await API.init();
       if (!r.ok) {
@@ -339,6 +351,12 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 setAutoStoreDir={setAutoStoreDir}
                 nextflowSyntaxParser={nextflowSyntaxParser}
                 setNextflowSyntaxParser={setNextflowSyntaxParser}
+                autoOutdir={autoOutdir}
+                setAutoOutdir={setAutoOutdir}
+                outputPath={outputPath}
+                setOutputPath={setOutputPath}
+                storeDirPath={storeDirPath}
+                setStoreDirPath={setStoreDirPath}
                 navigateToPage={navigateToSettingsPage}
                 setNavigateToPage={setNavigateToSettingsPage}
                 onReopenSetup={() => {

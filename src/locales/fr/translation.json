@@ -151,7 +151,8 @@
     "wipe": "Effacer du disque",
     "wipe_title": "Supprimer l'instance de l'ordinateur",
     "wipe_confirm": "Êtes-vous sûr de vouloir supprimer définitivement l'instance {{name}} de l'ordinateur ?",
-    "wipe_warning": "Attention : Les fichiers de sortie dans le dossier de l'instance seront également supprimés définitivement. Cette action est irréversible.",
+    "wipe_warning": "Attention : Cette action est irréversible.",
+    "wipe_outputs": "Supprimer également les fichiers de sortie",
     "wipe_success": "L'instance {{name}} a été supprimée de l'ordinateur.",
     "delete_orphaned": "Supprimer les instances orphelines",
     "delete_orphaned_confirm": "Êtes-vous sûr de vouloir supprimer toutes les instances orphelines (non démarrées) ?",
@@ -207,8 +208,13 @@
       "open-folder": "Ouvrir le dossier",
       "open-in-editor": "Ouvrir dans l'éditeur"
     },
-    "reports": "Rapports",
-    "select-report": "Sélectionner le rapport",
+    "reports": {
+      "title": "Rapports",
+      "instance": "Instance",
+      "output": "Sortie",
+      "no-reports": "Aucun rapport trouvé",
+      "select-report": "Sélectionner le rapport"
+    },
     "execution": {
       "actions": "Actions",
       "cancel": "Annuler",
@@ -252,6 +258,7 @@
   "settings": {
     "title": "Paramètres",
     "general": "Général",
+    "library": "Bibliothèque",
     "dark-mode": "Mode sombre",
     "show-log-panel": "Afficher le journal",
     "collections-path": "Chemin de la bibliothèque",
@@ -266,6 +273,9 @@
     "disable-schema-validation": "Désactiver la validation stricte du schéma",
     "show-hidden-params": "Afficher les paramètres cachés",
     "auto-store-dir": "Résolution automatique du paramètre store_dir",
+    "auto-outdir": "Résolution automatique du paramètre outdir",
+    "output-folder": "Dossier de sortie",
+    "store-dir-folder": "Dossier store_dir",
     "nextflow-syntax-parser": "Analyseur syntaxique Nextflow",
     "nextflow-syntax-parser-desc": "Version de l'analyseur syntaxique Nextflow",
     "project-options": "Projets",

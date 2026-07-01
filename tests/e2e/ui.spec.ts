@@ -51,6 +51,9 @@ test('clone a repository', async ({ page }) => {
   await page.fill('#setup-documents-folder', `${docs_path}`);
   await page.click('#setup-continue-button');
 
+  // Navigate to Library tab (permissions switches were moved here)
+  await page.click('#settings-library-panel');
+
   // Ensure repositories and catalogues can be modified in settings
   await page.check('#settings-permit-add-catalogues');
   await page.check('#settings-permit-catalogue-modifications');
@@ -145,4 +148,87 @@ test('launch local workflow', async ({ page }) => {
   await expect(page.getByText('Completed')).toBeVisible({
     timeout: TIMEOUT_30s
   });
+});
+
+async function runOutdirWorkflow(
+  page: Page,
+  docsPath: string,
+  autoOutdirOn: boolean,
+): Promise<string> {
+  // Set autoOutdir to desired state
+  await page.click('#sidebar-settings-button');
+  await page.click('#settings-general-panel');
+  const checkbox = page.getByLabel('Auto-resolve outdir parameter');
+  if (autoOutdirOn) {
+    await checkbox.check();
+  } else {
+    await checkbox.uncheck();
+  }
+
+  // Navigate to Library and select outdir workflow
+  await page.click('#sidebar-library-button');
+  await page.click('#card-outdir');
+
+  // Extract instance name from Parameters page header: "[<name>] <workflow name>"
+  const headerText = await page.locator('h6').filter({ hasText: /\[/ }).first().textContent();
+  const instanceName = headerText?.match(/\[(.+?)\]/)?.[1];
+  if (!instanceName) throw new Error('Could not extract instance name from header');
+
+  // Launch workflow
+  await page.getByRole('button', { name: 'Launch Workflow' }).click();
+
+  // Wait for completion
+  await expect(page.getByText('Completed')).toBeVisible({ timeout: TIMEOUT_60s });
+
+  return instanceName;
+}
+
+test('outdir workflow — autoOutdir OFF', async ({ page }) => {
+  const local_collections_path = path.resolve(path.join(__dirname, '..', 'test-data'));
+  const docs_path = path.resolve(path.join(os.tmpdir(), 'GLACIER-docs-' + Date.now().toString()));
+  fs.mkdirSync(docs_path, { recursive: true });
+
+  // Setup paths
+  await page.click('#sidebar-settings-button');
+  await page.click('#settings-general-panel');
+  await page.click('#settings-reopen-setup');
+  await page.fill('#setup-config-folder', `${local_collections_path}`);
+  await page.fill('#setup-documents-folder', `${docs_path}`);
+  await page.click('#setup-continue-button');
+
+  const instanceName = await runOutdirWorkflow(page, docs_path, false);
+
+  // With autoOutdir OFF, outdir defaults to ./results inside the instance path
+  const instancePath = path.join(docs_path, 'instances', 'glacier', 'outdir@main', instanceName);
+  expect(fs.existsSync(path.join(instancePath, 'results', 'output.txt'))).toBe(true);
+  expect(fs.existsSync(path.join(instancePath, 'results', 'report.html'))).toBe(true);
+
+  // Output directory should not contain these files
+  const outputPath = path.join(docs_path, 'output', 'glacier', 'outdir@main', instanceName);
+  expect(fs.existsSync(path.join(outputPath, 'output.txt'))).toBe(false);
+});
+
+test('outdir workflow — autoOutdir ON', async ({ page }) => {
+  const local_collections_path = path.resolve(path.join(__dirname, '..', 'test-data'));
+  const docs_path = path.resolve(path.join(os.tmpdir(), 'GLACIER-docs-' + Date.now().toString()));
+  fs.mkdirSync(docs_path, { recursive: true });
+
+  // Setup paths
+  await page.click('#sidebar-settings-button');
+  await page.click('#settings-general-panel');
+  await page.click('#settings-reopen-setup');
+  await page.fill('#setup-config-folder', `${local_collections_path}`);
+  await page.fill('#setup-documents-folder', `${docs_path}`);
+  await page.click('#setup-continue-button');
+
+  const instanceName = await runOutdirWorkflow(page, docs_path, true);
+
+  // With autoOutdir ON, files should be in the output directory
+  const outputPath = path.join(docs_path, 'output', 'glacier', 'outdir@main', instanceName);
+  expect(fs.existsSync(path.join(outputPath, 'output.txt'))).toBe(true);
+  expect(fs.existsSync(path.join(outputPath, 'report.html'))).toBe(true);
+
+  // Instance path should not have a results folder (files went to outdir instead)
+  const instancePath = path.join(docs_path, 'instances', 'glacier', 'outdir@main', instanceName);
+  expect(fs.existsSync(path.join(instancePath, 'results'))).toBe(false);
 });

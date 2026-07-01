@@ -4,6 +4,7 @@ import {
   Typography,
   TextField,
   Switch,
+  Checkbox,
   FormControlLabel,
   Select,
   Stack,
@@ -40,6 +41,12 @@ export default function SettingsPage({
   setAutoStoreDir,
   nextflowSyntaxParser,
   setNextflowSyntaxParser,
+  autoOutdir,
+  setAutoOutdir,
+  outputPath,
+  setOutputPath,
+  storeDirPath,
+  setStoreDirPath,
   navigateToPage,
   setNavigateToPage,
   onReopenSetup
@@ -105,6 +112,29 @@ export default function SettingsPage({
     });
   };
 
+  const handleAutoOutdir = (value) => {
+    setAutoOutdir(value);
+    API.settingsSet(SettingsKey.AutoOutdir, value).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
+  };
+
+  const handlePickOutputPath = async () => {
+    const result = await API.pickDirectory();
+    if (result.ok && result.data) {
+      setOutputPath(result.data);
+      API.setOutputPath(result.data);
+    }
+  };
+
+  const handlePickStoreDirPath = async () => {
+    const result = await API.pickDirectory();
+    if (result.ok && result.data) {
+      setStoreDirPath(result.data);
+      API.setStoreDirPath(result.data);
+    }
+  };
+
   const handleNextflowSyntaxParser = (value) => {
     setNextflowSyntaxParser(value);
     API.settingsSet(SettingsKey.NextflowSyntaxParser, value).then((result) => {
@@ -132,7 +162,7 @@ export default function SettingsPage({
 
   useEffect(() => {
     if (navigateToPage === 'environment') {
-      setTabValue(3);
+      setTabValue(4);
       setNavigateToPage('');
     }
   }, [navigateToPage]);
@@ -173,6 +203,7 @@ export default function SettingsPage({
         sx={{ borderRight: 1, borderColor: 'divider' }}
       >
         <Tab id="settings-general-panel" label={t('settings.general')} />
+        <Tab id="settings-library-panel" label={t('settings.library')} />
         <Tab id="settings-visual-panel" label={t('settings.visual-options')} />
         <Tab id="settings-language-panel" label={t('settings.language-select')} />
         <Tab id="settings-environment-panel" label={t('settings.environment-options')} />
@@ -204,47 +235,100 @@ export default function SettingsPage({
         </Box>
         <FormControlLabel
           control={
-            <Switch
-              id="settings-permit-add-catalogues"
-              checked={permitAddCatalogues}
-              onChange={(_, checked) => handlePermitAddCatalogues(checked)}
+            <Checkbox
+              checked={autoOutdir}
+              onChange={(e) => handleAutoOutdir(e.target.checked)}
             />
           }
-          label={t('settings.permit-add-catalogues')}
+          label={t('settings.auto-outdir', 'Auto-resolve outdir parameter')}
         />
+        <Box sx={{ pl: 4, mb: 2, opacity: autoOutdir ? 1 : 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TextField
+              label={t('settings.output-folder', 'Output folder')}
+              value={outputPath || ''}
+              fullWidth
+              size="small"
+              disabled={!autoOutdir}
+              slotProps={{ input: { readOnly: true } }}
+            />
+            <Button variant="outlined" onClick={handlePickOutputPath} disabled={!autoOutdir}>
+              {t('setup.browse', 'Browse')}
+            </Button>
+          </Box>
+        </Box>
         <FormControlLabel
           control={
-            <Switch
-              id="settings-permit-catalogue-modifications"
-              checked={permitCatalogueModifications}
-              onChange={(_, checked) => handlePermitCatalogueModifications(checked)}
+            <Checkbox
+              checked={autoStoreDir}
+              onChange={(e) => handleAutoStoreDir(e.target.checked)}
             />
           }
-          label={t('settings.permit-catalogue-modifications')}
+          label={t('settings.auto-store-dir')}
         />
-        <FormControlLabel
-          control={
-            <Switch
-              id="settings-permit-import-shards"
-              checked={permitImportShards}
-              onChange={(_, checked) => handlePermitImportShards(checked)}
+        <Box sx={{ pl: 4, mb: 2, opacity: autoStoreDir ? 1 : 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TextField
+              label={t('settings.store-dir-folder', 'Store dir folder')}
+              value={storeDirPath || ''}
+              fullWidth
+              size="small"
+              disabled={!autoStoreDir}
+              slotProps={{ input: { readOnly: true } }}
             />
-          }
-          label={t('settings.permit-import-shards')}
-        />
-        <FormControlLabel
-          control={
-            <Switch
-              id="settings-permit-add-repos"
-              checked={permitAddRepos}
-              onChange={(_, checked) => handlePermitAddRepos(checked)}
-            />
-          }
-          label={t('settings.permit-add-repos')}
-        />
+            <Button variant="outlined" onClick={handlePickStoreDirPath} disabled={!autoStoreDir}>
+              {t('setup.browse', 'Browse')}
+            </Button>
+          </Box>
+        </Box>
       </TabPanel>
 
       <TabPanel value={tabValue} index={1}>
+        <Stack spacing={2} sx={{ mt: 2 }}>
+          <FormControlLabel
+            control={
+              <Switch
+                id="settings-permit-add-catalogues"
+                checked={permitAddCatalogues}
+                onChange={(_, checked) => handlePermitAddCatalogues(checked)}
+              />
+            }
+            label={t('settings.permit-add-catalogues')}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                id="settings-permit-catalogue-modifications"
+                checked={permitCatalogueModifications}
+                onChange={(_, checked) => handlePermitCatalogueModifications(checked)}
+              />
+            }
+            label={t('settings.permit-catalogue-modifications')}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                id="settings-permit-import-shards"
+                checked={permitImportShards}
+                onChange={(_, checked) => handlePermitImportShards(checked)}
+              />
+            }
+            label={t('settings.permit-import-shards')}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                id="settings-permit-add-repos"
+                checked={permitAddRepos}
+                onChange={(_, checked) => handlePermitAddRepos(checked)}
+              />
+            }
+            label={t('settings.permit-add-repos')}
+          />
+        </Stack>
+      </TabPanel>
+
+      <TabPanel value={tabValue} index={2}>
         <Stack spacing={2}>
           <FormControlLabel
             control={
@@ -261,7 +345,7 @@ export default function SettingsPage({
         </Stack>
       </TabPanel>
 
-      <TabPanel value={tabValue} index={2}>
+      <TabPanel value={tabValue} index={3}>
         <Select
           labelId="settings-language-select-label"
           id="settings-language-select"
@@ -275,11 +359,11 @@ export default function SettingsPage({
       </TabPanel>
 
       {/* Update useEffect if environment tab index changes */}
-      <TabPanel value={tabValue} index={3}>
+      <TabPanel value={tabValue} index={4}>
         <EnvironmentPage />
       </TabPanel>
 
-      <TabPanel value={tabValue} index={4}>
+      <TabPanel value={tabValue} index={5}>
         <Stack spacing={2}>
           <Box>
             <Typography variant="body2" sx={{ mb: 1, color: 'text.secondary' }}>
@@ -314,19 +398,10 @@ export default function SettingsPage({
             }
             label={t('settings.show-hidden-params')}
           />
-          <FormControlLabel
-            control={
-              <Switch
-                checked={autoStoreDir}
-                onChange={(_, checked) => handleAutoStoreDir(checked)}
-              />
-            }
-            label={t('settings.auto-store-dir')}
-          />
         </Stack>
       </TabPanel>
 
-      <TabPanel value={tabValue} index={5}>
+      <TabPanel value={tabValue} index={6}>
         <LicensesPage />
       </TabPanel>
     </Paper>

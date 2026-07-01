@@ -54,6 +54,22 @@ export function getDocumentsPath(): string {
   return store.get('documentsPath') || getDefaultDocumentsDir();
 }
 
+export function getDefaultOutputDir(): string {
+  return path.join(getDocumentsPath(), 'output');
+}
+
+export function getDefaultStoreDir(): string {
+  return path.join(getDocumentsPath(), 'store_dir');
+}
+
+export function getStoreDirPath(): string {
+  return store.get('storeDirPath') || getDefaultStoreDir();
+}
+
+export function getOutputPath(): string {
+  return store.get('outputPath') || getDefaultOutputDir();
+}
+
 // Backward-compat aliases
 export function getCollectionsPath(): string {
   return getConfigPath();

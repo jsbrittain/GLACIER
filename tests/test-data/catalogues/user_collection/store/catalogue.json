@@ -6,11 +6,6 @@
       "name": "My Workflows",
       "workflows": [
         {
-          "name": "sleep",
-          "repo": "glacier/sleep",
-          "version": "main"
-        },
-        {
           "name": "exit1",
           "repo": "glacier/exit1",
           "version": "main"
@@ -21,8 +16,18 @@
           "version": "main"
         },
         {
+          "name": "sleep",
+          "repo": "glacier/sleep",
+          "version": "main"
+        },
+        {
           "name": "timeout",
           "repo": "glacier/timeout",
+          "version": "main"
+        },
+        {
+          "name": "outdir",
+          "repo": "glacier/outdir",
           "version": "main"
         }
       ]
