@@ -124,6 +124,17 @@ export async function runWorkflow(
     await fs.writeFile(paramsFile, JSON.stringify(params, null, 2), 'utf8');
   }
 
+  // Write resource limits nextflow.config if configured
+  const limitsCpu = settings.get('resourceLimitsCpu');
+  const limitsMem = settings.get('resourceLimitsMemory');
+  if (limitsCpu || limitsMem) {
+    const lines: string[] = ['process {', '    resourceLimits = ['];
+    if (limitsCpu) lines.push(`        cpus: ${limitsCpu},`);
+    if (limitsMem) lines.push(`        memory: '${limitsMem}.GB',`);
+    lines.push('    ]', '}');
+    await fs.writeFile(path.resolve(instancePath, 'nextflow.config'), lines.join('\n'), 'utf8');
+  }
+
   // Clear logs and set to append
   if (!fs_sync.existsSync(instancePath)) {
     fs_sync.mkdirSync(instancePath, { recursive: true });

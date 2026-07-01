@@ -47,6 +47,10 @@ export default function SettingsPage({
   setOutputPath,
   storeDirPath,
   setStoreDirPath,
+  resourceLimitsCpu,
+  setResourceLimitsCpu,
+  resourceLimitsMemory,
+  setResourceLimitsMemory,
   navigateToPage,
   setNavigateToPage,
   onReopenSetup
@@ -133,6 +137,20 @@ export default function SettingsPage({
       setStoreDirPath(result.data);
       API.setStoreDirPath(result.data);
     }
+  };
+
+  const handleResourceLimitsCpu = (value) => {
+    setResourceLimitsCpu(value);
+    API.settingsSet(SettingsKey.ResourceLimitsCpu, value).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
+  };
+
+  const handleResourceLimitsMemory = (value) => {
+    setResourceLimitsMemory(value);
+    API.settingsSet(SettingsKey.ResourceLimitsMemory, value).then((result) => {
+      if (!result.ok) console.error(result.error.message);
+    });
   };
 
   const handleNextflowSyntaxParser = (value) => {
@@ -398,6 +416,32 @@ export default function SettingsPage({
             }
             label={t('settings.show-hidden-params')}
           />
+          <Typography variant="body2" sx={{ mt: 2, mb: 1, color: 'text.secondary' }}>
+            {t('settings.resource-limits-desc')}
+          </Typography>
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField
+              label={t('settings.resource-limits-cpu')}
+              type="number"
+              value={resourceLimitsCpu}
+              onChange={(e) => handleResourceLimitsCpu(parseInt(e.target.value) || 0)}
+              size="small"
+              slotProps={{ htmlInput: { min: 0 } }}
+              sx={{ width: 120 }}
+            />
+            <TextField
+              label={t('settings.resource-limits-memory')}
+              type="number"
+              value={resourceLimitsMemory}
+              onChange={(e) => handleResourceLimitsMemory(parseInt(e.target.value) || 0)}
+              size="small"
+              slotProps={{
+                htmlInput: { min: 0 },
+                input: { endAdornment: <Typography variant="caption">GB</Typography> }
+              }}
+              sx={{ width: 140 }}
+            />
+          </Box>
         </Stack>
       </TabPanel>
 

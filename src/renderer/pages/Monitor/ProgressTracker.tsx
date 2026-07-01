@@ -498,7 +498,7 @@ const filterTree = (items: any[], query: string): any[] => {
     .filter(Boolean);
 };
 
-export default function ProgressTracker({ instance }: { instance: any }) {
+export default function ProgressTracker({ instance, onRefresh }: { instance: any; onRefresh?: () => void }) {
   const { t } = useTranslation();
   const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>(WorkflowStatus.Undefined);
   const [items, setItems] = useState<any[]>([]);
@@ -509,6 +509,7 @@ export default function ProgressTracker({ instance }: { instance: any }) {
   const [changedItemIds, setChangedItemIds] = useState<Set<string>>(new Set());
   const itemIdRef = useRef(0);
   const prevItemsRef = useRef<any[]>([]);
+  const notifiedCompletionRef = useRef(false);
 
   // Force re-render every second so live duration updates smoothly
   const [, forceRender] = useReducer((x: number) => x + 1, 0);
@@ -550,6 +551,21 @@ export default function ProgressTracker({ instance }: { instance: any }) {
           workflowStatus = s as WorkflowStatus;
         }
         setWorkflowStatus(workflowStatus);
+
+        // Notify parent once when workflow completes (triggers refreshInstancesList
+        // so instance.last_update becomes available immediately)
+        if (
+          onRefresh &&
+          !notifiedCompletionRef.current &&
+          (workflowStatus === WorkflowStatus.Completed || workflowStatus === WorkflowStatus.Failed)
+        ) {
+          notifiedCompletionRef.current = true;
+          onRefresh();
+        } else if (
+          workflowStatus !== WorkflowStatus.Completed && workflowStatus !== WorkflowStatus.Failed
+        ) {
+          notifiedCompletionRef.current = false;
+        }
 
         let hint: string | undefined;
         if (workflowStatus === WorkflowStatus.Failed && workflowEvents) {

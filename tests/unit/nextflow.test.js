@@ -507,5 +507,69 @@ describe('nextflow', () => {
         recursive: true
       });
     });
+
+    it('writes nextflow.config with CPU limit', async () => {
+      mockSettings.get.mockImplementation((key) => {
+        if (key === 'resourceLimitsCpu') return 4;
+        return 0;
+      });
+      const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+
+      await runWorkflow(makeInstance(), {});
+
+      const calls = writeSpy.mock.calls.filter(
+        ([p]) => typeof p === 'string' && p.endsWith('nextflow.config'),
+      );
+      expect(calls.length).toBe(1);
+      expect(calls[0][1]).toContain('cpus: 4');
+      expect(calls[0][1]).not.toContain('memory');
+    });
+
+    it('writes nextflow.config with memory limit', async () => {
+      mockSettings.get.mockImplementation((key) => {
+        if (key === 'resourceLimitsMemory') return 8;
+        return 0;
+      });
+      const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+
+      await runWorkflow(makeInstance(), {});
+
+      const calls = writeSpy.mock.calls.filter(
+        ([p]) => typeof p === 'string' && p.endsWith('nextflow.config'),
+      );
+      expect(calls.length).toBe(1);
+      expect(calls[0][1]).toContain("memory: '8.GB'");
+      expect(calls[0][1]).not.toContain('cpus');
+    });
+
+    it('writes nextflow.config with both limits', async () => {
+      mockSettings.get.mockImplementation((key) => {
+        if (key === 'resourceLimitsCpu') return 4;
+        if (key === 'resourceLimitsMemory') return 8;
+        return 0;
+      });
+      const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+
+      await runWorkflow(makeInstance(), {});
+
+      const calls = writeSpy.mock.calls.filter(
+        ([p]) => typeof p === 'string' && p.endsWith('nextflow.config'),
+      );
+      expect(calls.length).toBe(1);
+      expect(calls[0][1]).toContain('cpus: 4');
+      expect(calls[0][1]).toContain("memory: '8.GB'");
+    });
+
+    it('does not write nextflow.config when limits are 0', async () => {
+      mockSettings.get.mockImplementation((key) => 0);
+      const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+
+      await runWorkflow(makeInstance(), {});
+
+      const calls = writeSpy.mock.calls.filter(
+        ([p]) => typeof p === 'string' && p.endsWith('nextflow.config'),
+      );
+      expect(calls.length).toBe(0);
+    });
   });
 });
