@@ -225,7 +225,11 @@ export async function readNextflowLog(path: string) {
           progress['workflow'].push({ time: ts, status: WorkflowStatus.Failed, cause: m[1] });
           break;
         case 'config_error':
-          progress['workflow'].push({ time: ts, status: WorkflowStatus.Failed, cause: 'Config parsing failed' });
+          progress['workflow'].push({
+            time: ts,
+            status: WorkflowStatus.Failed,
+            cause: 'Config parsing failed'
+          });
           break;
         case 'wf_done':
           progress['workflow'].push({ time: ts, status: WorkflowStatus.Completed });

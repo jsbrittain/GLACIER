@@ -153,7 +153,7 @@ test('launch local workflow', async ({ page }) => {
 async function runOutdirWorkflow(
   page: Page,
   docsPath: string,
-  autoOutdirOn: boolean,
+  autoOutdirOn: boolean
 ): Promise<string> {
   // Set autoOutdir to desired state
   await page.click('#sidebar-settings-button');

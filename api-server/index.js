@@ -422,6 +422,18 @@ app.post('/api/set-store-dir-path', async (req, res) =>
   post_response(res, call(collection.setStoreDirPath.bind(collection), req.body.path))
 );
 
+app.post('/api/check-wsl-config', async (req, res) =>
+  post_response(res, { ok: true, data: null })
+);
+
+app.post('/api/write-wslconfig', async (req, res) =>
+  post_response(res, { ok: true, data: null })
+);
+
+app.post('/api/restart-wsl', async (req, res) =>
+  post_response(res, { ok: true, data: null })
+);
+
 app.post('/api/get-default-paths', async (req, res) =>
   post_response(res, call(collection.getDefaultPaths.bind(collection)))
 );

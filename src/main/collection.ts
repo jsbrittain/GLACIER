@@ -1824,9 +1824,7 @@ export class Collection {
 
   getOutputPathForInstance(instance: IWorkflowInstance): string | null {
     // Look up the workflow to get owner/repo
-    const workflow = this.workflows.find(
-      (w) => w.id === instance.workflow_version.parent_id,
-    );
+    const workflow = this.workflows.find((w) => w.id === instance.workflow_version.parent_id);
     if (!workflow) return null;
     const version = instance.workflow_version.version || 'latest';
     const repoAndVersion = `${workflow.repo}@${version}`;
