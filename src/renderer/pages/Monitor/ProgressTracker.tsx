@@ -10,7 +10,7 @@ import {
   Chip,
   Collapse,
   Menu,
-  MenuItem,
+  MenuItem
 } from '@mui/material';
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
 import { TreeItem, TreeItemProps } from '@mui/x-tree-view/TreeItem';
@@ -42,7 +42,7 @@ import {
   collectErrorPaths,
   addGroup,
   ascendStatus,
-  computeOverallProgress,
+  computeOverallProgress
 } from './progressTree.js';
 
 const SECOND = 1000;
@@ -78,7 +78,11 @@ const StatusIcon = ({ status }: { status: ProcessStatus | undefined }) => {
     case ProcessStatus.Error:
       return <CancelIcon sx={{ ...iconSx, color: 'error.main' }} />;
     case ProcessStatus.Submitted:
-      return <PlayCircleIcon sx={{ ...iconSx, color: 'info.main', animation: `${pulse} 1.5s infinite` }} />;
+      return (
+        <PlayCircleIcon
+          sx={{ ...iconSx, color: 'info.main', animation: `${pulse} 1.5s infinite` }}
+        />
+      );
     case ProcessStatus.Starting:
     case ProcessStatus.Created:
       return <HourglassEmptyIcon sx={{ ...iconSx, color: 'text.disabled' }} />;
@@ -118,7 +122,7 @@ function CustomLabel({
   progress: progressVal,
   work_folder,
   exitStatus,
-  commandError,
+  commandError
 }: CustomLabelProps) {
   const { t } = useTranslation();
   const [showLog, setShowLog] = useState(false);
@@ -143,8 +147,7 @@ function CustomLabel({
     setAnchorEl(null);
   };
 
-  const hasCustomError =
-    status === ProcessStatus.Error && commandError && exitStatus;
+  const hasCustomError = status === ProcessStatus.Error && commandError && exitStatus;
 
   const finished = isFinished(status as ProcessStatus);
 
@@ -156,7 +159,7 @@ function CustomLabel({
         flexDirection: 'column',
         width: '100%',
         animation: changedIds.has(id) ? `${flash} 1.5s ease-out` : undefined,
-        borderRadius: 1,
+        borderRadius: 1
       }}
     >
       <Box
@@ -165,7 +168,7 @@ function CustomLabel({
           alignItems: 'center',
           width: '100%',
           gap: 1,
-          py: 0.5,
+          py: 0.5
         }}
       >
         <StatusIcon status={status} />
@@ -178,7 +181,7 @@ function CustomLabel({
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
-            fontWeight: status === ProcessStatus.Error ? 600 : 400,
+            fontWeight: status === ProcessStatus.Error ? 600 : 400
           }}
         >
           {children}
@@ -191,7 +194,12 @@ function CustomLabel({
         )}
 
         {!finished && !isWorkflowRunning && (
-          <Chip label={t('monitor.progress.stopped')} size="small" variant="outlined" color="warning" />
+          <Chip
+            label={t('monitor.progress.stopped')}
+            size="small"
+            variant="outlined"
+            color="warning"
+          />
         )}
 
         {status !== ProcessStatus.Created && status !== ProcessStatus.Starting && (
@@ -208,8 +216,8 @@ function CustomLabel({
                     transition: 'all 0.5s ease',
                     '& .MuiLinearProgress-bar': {
                       borderRadius: 3,
-                      transition: 'transform 0.5s ease',
-                    },
+                      transition: 'transform 0.5s ease'
+                    }
                   }}
                 />
               </Tooltip>
@@ -220,7 +228,7 @@ function CustomLabel({
                   sx={{
                     height: 6,
                     borderRadius: 3,
-                    transition: 'all 0.5s ease',
+                    transition: 'all 0.5s ease'
                   }}
                 />
               )
@@ -248,11 +256,7 @@ function CustomLabel({
       </Box>
 
       {showLog && (
-        <ProcessLogViewer
-          instance={instance}
-          workFolder={work_folder}
-          onHide={handleHideLog}
-        />
+        <ProcessLogViewer instance={instance} workFolder={work_folder} onHide={handleHideLog} />
       )}
 
       {hasCustomError && (
@@ -264,7 +268,7 @@ function CustomLabel({
             mt: 1,
             width: '100%',
             bgcolor: 'error.light',
-            overflow: 'hidden',
+            overflow: 'hidden'
           }}
         >
           <Box
@@ -275,7 +279,7 @@ function CustomLabel({
               p: 1.5,
               pb: showError ? 0 : 1.5,
               cursor: 'pointer',
-              userSelect: 'none',
+              userSelect: 'none'
             }}
             onClick={() => setShowError(!showError)}
           >
@@ -284,7 +288,12 @@ function CustomLabel({
               {t('monitor.progress.command-error')}
             </Typography>
             {exitStatus === '137' && (
-              <Chip label={t('monitor.progress.oom-killed')} size="small" color="error" variant="outlined" />
+              <Chip
+                label={t('monitor.progress.oom-killed')}
+                size="small"
+                color="error"
+                variant="outlined"
+              />
             )}
             {exitStatus && exitStatus !== '137' && (
               <Chip
@@ -296,7 +305,11 @@ function CustomLabel({
             )}
             <Box sx={{ flex: 1 }} />
             <IconButton size="small" sx={{ p: 0 }}>
-              {showError ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+              {showError ? (
+                <ExpandLessIcon fontSize="small" />
+              ) : (
+                <ExpandMoreIcon fontSize="small" />
+              )}
             </IconButton>
           </Box>
           <Collapse in={showError}>
@@ -311,7 +324,7 @@ function CustomLabel({
                 whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
                 maxHeight: 200,
-                overflow: 'auto',
+                overflow: 'auto'
               }}
             >
               {commandError}
@@ -342,8 +355,8 @@ const CustomTreeItem = React.forwardRef(function CustomTreeItem(
           progress: item?.progress,
           work_folder: item?.work_folder,
           exitStatus: item?.exitStatus,
-          commandError: item?.commandError,
-        } as CustomLabelProps,
+          commandError: item?.commandError
+        } as CustomLabelProps
       }}
     />
   );
@@ -378,7 +391,7 @@ const FormatWorkflowStatus = ({
   launchTime,
   lastUpdate,
   onCollapseAll,
-  onExpandAll,
+  onExpandAll
 }: {
   workflowStatus: WorkflowStatus;
   isWorkflowRunning: boolean;
@@ -394,8 +407,7 @@ const FormatWorkflowStatus = ({
   let chipColor: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' =
     'default';
   let chipLabel: string;
-  let progressColor: 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' =
-    'primary';
+  let progressColor: 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' = 'primary';
 
   const statusLabel =
     workflowStatus === WorkflowStatus.Undefined
@@ -412,7 +424,10 @@ const FormatWorkflowStatus = ({
   } else if (workflowStatus === WorkflowStatus.Completed) {
     chipColor = 'success';
     progressColor = 'success';
-  } else if (workflowStatus === WorkflowStatus.Running || workflowStatus === WorkflowStatus.Undefined) {
+  } else if (
+    workflowStatus === WorkflowStatus.Running ||
+    workflowStatus === WorkflowStatus.Undefined
+  ) {
     chipColor = 'info';
     progressColor = 'info';
   }
@@ -459,8 +474,8 @@ const FormatWorkflowStatus = ({
             transition: 'all 0.5s ease',
             '& .MuiLinearProgress-bar': {
               borderRadius: 4,
-              transition: 'transform 0.5s ease',
-            },
+              transition: 'transform 0.5s ease'
+            }
           }}
         />
       )}
@@ -473,9 +488,7 @@ const filterTree = (items: any[], query: string): any[] => {
   const lower = query.toLowerCase();
   return items
     .map((item) => {
-      const childMatch = item.children?.length
-        ? filterTree(item.children, query)
-        : [];
+      const childMatch = item.children?.length ? filterTree(item.children, query) : [];
       const selfMatch = item.label.toLowerCase().includes(lower);
       if (selfMatch || childMatch.length > 0) {
         return { ...item, children: childMatch.length > 0 ? childMatch : item.children };
@@ -524,7 +537,10 @@ export default function ProgressTracker({ instance }: { instance: any }) {
         if (workflowEvents && workflowEvents.length > 0) {
           let s: string = WorkflowStatus.Created;
           for (let i = workflowEvents.length - 1; i >= 0; i--) {
-            if (s === WorkflowStatus.Completed && workflowEvents[i].status !== WorkflowStatus.Completed) {
+            if (
+              s === WorkflowStatus.Completed &&
+              workflowEvents[i].status !== WorkflowStatus.Completed
+            ) {
               s = workflowEvents[i].status;
               break;
             } else {
@@ -549,9 +565,7 @@ export default function ProgressTracker({ instance }: { instance: any }) {
         itemIdRef.current = 0;
         const newItems: any[] = [];
         const newProcessMap = new Map<string, string>();
-        report?.group?.forEach((group: any) =>
-          addGroup(newItems, group, itemIdRef, newProcessMap),
-        );
+        report?.group?.forEach((group: any) => addGroup(newItems, group, itemIdRef, newProcessMap));
         processByFullNameRef.current = newProcessMap;
         newItems.forEach((group) => ascendStatus(group, isRunning));
 
@@ -633,8 +647,10 @@ export default function ProgressTracker({ instance }: { instance: any }) {
             sx={{ mt: 1 }}
             slotProps={{
               input: {
-                startAdornment: <SearchIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />,
-              },
+                startAdornment: (
+                  <SearchIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                )
+              }
             }}
           />
         )}
@@ -644,12 +660,12 @@ export default function ProgressTracker({ instance }: { instance: any }) {
             <LogIDContext.Provider value={{ logID, setLogID }}>
               <GetInstanceContext.Provider value={{ instance, isWorkflowRunning }}>
                 <ChangedContext.Provider value={changedItemIds}>
-                <RichTreeView
-                  items={filteredItems}
-                  slots={{ item: CustomTreeItem }}
-                  expandedItems={expandedItems}
-                  onExpandedItemsChange={(event, value) => setExpandedItems(value)}
-                />
+                  <RichTreeView
+                    items={filteredItems}
+                    slots={{ item: CustomTreeItem }}
+                    expandedItems={expandedItems}
+                    onExpandedItemsChange={(event, value) => setExpandedItems(value)}
+                  />
                 </ChangedContext.Provider>
               </GetInstanceContext.Provider>
             </LogIDContext.Provider>

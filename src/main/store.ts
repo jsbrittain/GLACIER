@@ -17,6 +17,7 @@ export interface StoreSchema {
   instanceSortDir: string;
   showLogPanel: boolean;
   autoStoreDir: boolean;
+  nextflowSyntaxParser: string;
 }
 
 let _instance: any = null;
@@ -39,7 +40,8 @@ function getInstance() {
           instanceSortBy: { type: 'string', default: 'name' },
           instanceSortDir: { type: 'string', default: 'asc' },
           showLogPanel: { type: 'boolean', default: false },
-          autoStoreDir: { type: 'boolean', default: true }
+          autoStoreDir: { type: 'boolean', default: true },
+          nextflowSyntaxParser: { type: 'string', default: '1' }
         },
         name: 'config',
         projectName: 'GLACIER',

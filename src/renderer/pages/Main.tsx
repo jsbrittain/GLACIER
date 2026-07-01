@@ -56,6 +56,7 @@ export default function MainPage({ darkMode, setDarkMode }) {
   const [showHiddenParams, setShowHiddenParams] = useState(false);
   const [showLogPanel, setShowLogPanel] = useState(false);
   const [autoStoreDir, setAutoStoreDir] = useState(false);
+  const [nextflowSyntaxParser, setNextflowSyntaxParser] = useState('1');
   const [open, setOpen] = useState(false);
   const [item, setItem] = useState('');
   const [navigateToSettingsPage, setNavigateToSettingsPage] = useState('');
@@ -96,6 +97,9 @@ export default function MainPage({ darkMode, setDarkMode }) {
       });
       API.settingsGet(SettingsKey.AutoStoreDir).then((result) => {
         if (result.ok) setAutoStoreDir(result.data);
+      });
+      API.settingsGet(SettingsKey.NextflowSyntaxParser).then((result) => {
+        if (result.ok) setNextflowSyntaxParser(result.data);
       });
       const r = await API.init();
       if (!r.ok) {
@@ -333,6 +337,8 @@ export default function MainPage({ darkMode, setDarkMode }) {
                 onShowLogPanelChange={handleShowLogPanel}
                 autoStoreDir={autoStoreDir}
                 setAutoStoreDir={setAutoStoreDir}
+                nextflowSyntaxParser={nextflowSyntaxParser}
+                setNextflowSyntaxParser={setNextflowSyntaxParser}
                 navigateToPage={navigateToSettingsPage}
                 setNavigateToPage={setNavigateToSettingsPage}
                 onReopenSetup={() => {

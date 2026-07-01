@@ -280,6 +280,8 @@
     "disable-schema-validation": "Disable strict schema validation",
     "show-hidden-params": "Show hidden parameters",
     "auto-store-dir": "Auto-resolve store_dir parameter",
+    "nextflow-syntax-parser": "Nextflow syntax parser",
+    "nextflow-syntax-parser-desc": "Nextflow syntax parser version",
     "project-options": "Projects",
     "projects": {
       "url": "URL",
