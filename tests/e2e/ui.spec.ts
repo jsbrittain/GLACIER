@@ -141,8 +141,8 @@ test('launch local workflow', async ({ page }) => {
   // Launch workflow
   await page.getByRole('button', { name: 'Launch Workflow' }).click();
 
-  // Check that workflow completes (3 second workflow)
-  await expect(page.locator('h6').filter({ hasText: 'Completed' })).toBeVisible({
+  // Check that workflow completes (5 second workflow)
+  await expect(page.getByText('Completed')).toBeVisible({
     timeout: TIMEOUT_30s
   });
 });
