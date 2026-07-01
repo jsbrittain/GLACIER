@@ -124,6 +124,7 @@ export default function ParametersPage({
     logMessage(`Launched test workflow ${instance.name}`);
     refreshInstancesList();
     if (onLaunchSuccess) onLaunchSuccess(instance.id);
+    if (onEditComplete) onEditComplete();
   };
 
   useEffect(() => {
