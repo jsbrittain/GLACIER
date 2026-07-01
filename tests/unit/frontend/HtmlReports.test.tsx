@@ -5,22 +5,28 @@ import HtmlReports from '../../../src/renderer/pages/Monitor/HtmlReports';
 
 const mockInstance = { id: 'test-instance' };
 
-const { mockGetInstanceReportsList } = vi.hoisted(() => ({
+const { mockGetInstanceReportsList, mockGetOutputPathForInstance } = vi.hoisted(() => ({
   mockGetInstanceReportsList: vi.fn().mockResolvedValue({
     ok: true,
     data: [{ id: 'r1', name: 'Report 1', path: '/reports/r1.html' }]
+  }),
+  mockGetOutputPathForInstance: vi.fn().mockResolvedValue({
+    ok: true,
+    data: null
   })
 }));
 
 vi.mock('../../../src/renderer/services/api.js', () => ({
   API: {
-    getInstanceReportsList: mockGetInstanceReportsList
+    getInstanceReportsList: mockGetInstanceReportsList,
+    getOutputPathForInstance: mockGetOutputPathForInstance
   }
 }));
 
 describe('HtmlReports', () => {
   beforeEach(() => {
     mockGetInstanceReportsList.mockClear();
+    mockGetOutputPathForInstance.mockClear();
   });
 
   it('renders report list after fetch', async () => {

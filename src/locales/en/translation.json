@@ -154,7 +154,8 @@
     "wipe": "Wipe from disk",
     "wipe_title": "Delete instance from computer",
     "wipe_confirm": "Are you sure you want to permanently delete instance {{name}} from the computer?",
-    "wipe_warning": "Warning: Any output files in the instance folder will also be permanently deleted. This action cannot be undone.",
+    "wipe_warning": "Warning: This action cannot be undone.",
+    "wipe_outputs": "Also delete output files",
     "wipe_success": "Instance {{name}} has been deleted from the computer.",
     "delete_orphaned": "Delete orphaned instances",
     "delete_orphaned_confirm": "Are you sure you want to delete all orphaned (not started) instances?",
@@ -214,8 +215,13 @@
       "open-folder": "Open Folder",
       "open-in-editor": "Open in Editor"
     },
-    "reports": "Reports",
-    "select-report": "Select Report",
+    "reports": {
+      "title": "Reports",
+      "select-report": "Select Report",
+      "instance": "Instance",
+      "output": "Output",
+      "no-reports": "No reports found"
+    },
     "execution": {
       "actions": "Actions",
       "cancel": "Cancel",
@@ -264,6 +270,7 @@
   "settings": {
     "title": "Settings",
     "general": "General",
+    "library": "Library",
     "dark-mode": "Dark Mode",
     "show-log-panel": "Show log panel",
     "collections-path": "Library path",
@@ -280,6 +287,9 @@
     "disable-schema-validation": "Disable strict schema validation",
     "show-hidden-params": "Show hidden parameters",
     "auto-store-dir": "Auto-resolve store_dir parameter",
+    "auto-outdir": "Auto-resolve outdir parameter",
+    "output-folder": "Output folder",
+    "store-dir-folder": "Store dir folder",
     "nextflow-syntax-parser": "Nextflow syntax parser",
     "nextflow-syntax-parser-desc": "Nextflow syntax parser version",
     "project-options": "Projects",

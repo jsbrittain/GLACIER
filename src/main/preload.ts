@@ -19,11 +19,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   killWorkflowInstance: (instance: any) => ipcRenderer.invoke('kill-workflow-instance', instance),
   deleteWorkflowInstance: (instance: any) =>
     ipcRenderer.invoke('delete-workflow-instance', instance),
+  deleteInstanceOutput: (instance: any) =>
+    ipcRenderer.invoke('delete-instance-output', instance),
   openResultsFolder: (instance: any) => ipcRenderer.invoke('open-results-folder', instance),
   updateWorkflowInstanceStatus: (instance: any) =>
     ipcRenderer.invoke('update-workflow-instance-status', instance),
   getInstanceReportsList: (instance: any) =>
     ipcRenderer.invoke('get-instance-reports-list', instance),
+  getPathReportsList: (reportsPath: string) =>
+    ipcRenderer.invoke('get-path-reports-list', reportsPath),
+  getOutputPathForInstance: (instance: any) =>
+    ipcRenderer.invoke('get-output-path-for-instance', instance),
   openWorkFolder: (instance: any, work_id: string) =>
     ipcRenderer.invoke('open-work-folder', instance, work_id),
   openLogFile: (instance: any, log_type: string) =>
@@ -49,6 +55,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setConfigPath: (path: string) => ipcRenderer.invoke('set-config-path', path),
   getDocumentsPath: () => ipcRenderer.invoke('get-documents-path'),
   setDocumentsPath: (path: string) => ipcRenderer.invoke('set-documents-path', path),
+  getOutputPath: () => ipcRenderer.invoke('get-output-path'),
+  setOutputPath: (path: string) => ipcRenderer.invoke('set-output-path', path),
+  getStoreDirPath: () => ipcRenderer.invoke('get-store-dir-path'),
+  setStoreDirPath: (path: string) => ipcRenderer.invoke('set-store-dir-path', path),
   getDefaultPaths: () => ipcRenderer.invoke('get-default-paths'),
   getMissingPaths: () => ipcRenderer.invoke('get-missing-paths'),
   getCollectionRepos: () => ipcRenderer.invoke('get-collection-repos'),

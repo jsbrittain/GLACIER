@@ -27,6 +27,8 @@ import {
 import {
   getConfigPath,
   getDocumentsPath,
+  getOutputPath,
+  getStoreDirPath,
   locateReports,
   getDefaultConfigDir,
   getDefaultDocumentsDir
@@ -335,6 +337,22 @@ function findStoreDirKey(schema: Record<string, any>): string | null {
   for (const defKey of Object.keys(defs)) {
     const defProps = defs[defKey]?.properties ?? {};
     for (const key of storeDirKeys) {
+      if (key in defProps) return key;
+    }
+  }
+  return null;
+}
+
+function findOutdirKey(schema: Record<string, any>): string | null {
+  const outdirKeys = ['outdir', 'outputDir', 'output_dir'];
+  const props = schema?.properties ?? {};
+  for (const key of outdirKeys) {
+    if (key in props) return key;
+  }
+  const defs = schema?.$defs || schema?.definitions || {};
+  for (const defKey of Object.keys(defs)) {
+    const defProps = defs[defKey]?.properties ?? {};
+    for (const key of outdirKeys) {
       if (key in defProps) return key;
     }
   }
@@ -948,6 +966,22 @@ export class Collection {
     await this.parseCollection();
   }
 
+  getOutputPath(): string {
+    return getOutputPath();
+  }
+
+  getStoreDirPath(): string {
+    return getStoreDirPath();
+  }
+
+  async setOutputPath(path: string) {
+    settings.set('outputPath', path);
+  }
+
+  async setStoreDirPath(path: string) {
+    settings.set('storeDirPath', path);
+  }
+
   async createWorkflowInstance(workflow_id: string, version: string): Promise<IWorkflowInstance> {
     const { owner, repo } = parseRepoUrl(workflow_id);
     const workflow = this.workflows.find((wf) => wf.id === `${owner}/${repo}`);
@@ -971,15 +1005,29 @@ export class Collection {
     const instance_path = path.join(this.instances_path, owner, repo_and_version, instance_name);
     this.ensurePathExists(instance_path);
 
-    // Auto-set store_dir if the setting is enabled and the workflow schema has it
-    if (this.settingsGet('autoStoreDir')) {
+    // Auto-set store_dir and outdir if enabled
+    if (this.settingsGet('autoStoreDir') || this.settingsGet('autoOutdir')) {
       const schema = await getWorkflowSchema(workflow_version.path);
-      const storeDirKey = findStoreDirKey(schema);
-      if (storeDirKey) {
-        const storeDirPath = path.join(getDocumentsPath(), 'store_dir');
+      const params: Record<string, string> = {};
+      if (this.settingsGet('autoStoreDir')) {
+        const storeDirKey = findStoreDirKey(schema);
+        if (storeDirKey) {
+          const storeDirPath = getStoreDirPath();
+          params[storeDirKey] = storeDirPath;
+          safeFs.mkdirSync(storeDirPath, { recursive: true });
+        }
+      }
+      if (this.settingsGet('autoOutdir')) {
+        const outdirKey = findOutdirKey(schema);
+        if (outdirKey) {
+          const outputDir = path.join(getOutputPath(), owner, repo_and_version, instance_name);
+          params[outdirKey] = outputDir;
+          safeFs.mkdirSync(outputDir, { recursive: true });
+        }
+      }
+      if (Object.keys(params).length > 0) {
         const paramsFile = path.join(instance_path, 'glacier-params.json');
-        safeFs.writeFileSync(paramsFile, JSON.stringify({ [storeDirKey]: storeDirPath }, null, 2));
-        safeFs.mkdirSync(storeDirPath, { recursive: true });
+        safeFs.writeFileSync(paramsFile, JSON.stringify(params, null, 2));
       }
     }
 
@@ -1302,6 +1350,13 @@ export class Collection {
           console.error(`Failed to update instance database: ${err}`);
         }
       }
+    }
+  }
+
+  async deleteInstanceOutput(instance: IWorkflowInstance): Promise<void> {
+    const outputPath = this.getOutputPathForInstance(instance);
+    if (outputPath && safeFs.existsSync(outputPath)) {
+      safeFs.rmSync(outputPath, { recursive: true, force: true });
     }
   }
 
@@ -1761,6 +1816,23 @@ export class Collection {
 
   getInstanceReportsList(instance: IWorkflowInstance): Record<string, string>[] {
     return locateReports(instance.path);
+  }
+
+  getPathReportsList(reportsPath: string): Record<string, string>[] {
+    return locateReports(reportsPath);
+  }
+
+  getOutputPathForInstance(instance: IWorkflowInstance): string | null {
+    // Look up the workflow to get owner/repo
+    const workflow = this.workflows.find(
+      (w) => w.id === instance.workflow_version.parent_id,
+    );
+    if (!workflow) return null;
+    const version = instance.workflow_version.version || 'latest';
+    const repoAndVersion = `${workflow.repo}@${version}`;
+    const outputDir = path.join(getOutputPath(), workflow.owner, repoAndVersion, instance.name);
+    if (!safeFs.existsSync(outputDir)) return null;
+    return outputDir;
   }
 
   getInstallableReposList(): IRepoVersions[] {

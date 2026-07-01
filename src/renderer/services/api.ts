@@ -18,6 +18,7 @@ const electronAPI = isElectron
         window.electronAPI.resetWorkflowInstanceStatus(instance),
       killWorkflowInstance: (instance) => window.electronAPI.killWorkflowInstance(instance),
       deleteWorkflowInstance: (instance) => window.electronAPI.deleteWorkflowInstance(instance),
+      deleteInstanceOutput: (instance) => window.electronAPI.deleteInstanceOutput(instance),
       openResultsFolder: (instance) => window.electronAPI.openResultsFolder(instance),
       openLogFile: (instance, logType) => window.electronAPI.openLogFile(instance, logType),
       openWorkLogFile: (instance, workID, logType) =>
@@ -25,6 +26,8 @@ const electronAPI = isElectron
       updateWorkflowInstanceStatus: (instance) =>
         window.electronAPI.updateWorkflowInstanceStatus(instance),
       getInstanceReportsList: (instance) => window.electronAPI.getInstanceReportsList(instance),
+      getPathReportsList: (reportsPath) => window.electronAPI.getPathReportsList(reportsPath),
+      getOutputPathForInstance: (instance) => window.electronAPI.getOutputPathForInstance(instance),
       getInstanceReport: (instance, reportFile) =>
         window.electronAPI.getInstanceReport(instance, reportFile),
       openWorkFolder: (instance, workID) => window.electronAPI.openWorkFolder(instance, workID),
@@ -79,6 +82,10 @@ const electronAPI = isElectron
       setConfigPath: (path) => window.electronAPI.setConfigPath(path),
       getDocumentsPath: () => window.electronAPI.getDocumentsPath(),
       setDocumentsPath: (path) => window.electronAPI.setDocumentsPath(path),
+      getOutputPath: () => window.electronAPI.getOutputPath(),
+      setOutputPath: (path) => window.electronAPI.setOutputPath(path),
+      getStoreDirPath: () => window.electronAPI.getStoreDirPath(),
+      setStoreDirPath: (path) => window.electronAPI.setStoreDirPath(path),
       getDefaultPaths: () => window.electronAPI.getDefaultPaths(),
       getMissingPaths: () => window.electronAPI.getMissingPaths(),
       getContainerLogs: (containerId) => window.electronAPI.getContainerLogs(containerId),
@@ -149,6 +156,8 @@ const httpAPI = {
     httpDispatch('/api/kill-workflow-instance', 'POST', { instance }),
   deleteWorkflowInstance: async (instance) =>
     httpDispatch('/api/delete-workflow-instance', 'POST', { instance }),
+  deleteInstanceOutput: async (instance) =>
+    httpDispatch('/api/delete-instance-output', 'POST', { instance }),
   openResultsFolder: async (instance) =>
     httpDispatch('/api/open-results-folder', 'POST', { instance }),
   openLogFile: async (instance, logType) =>
@@ -159,6 +168,10 @@ const httpAPI = {
     httpDispatch('/api/update-workflow-instance-status', 'POST', { instance }),
   getInstanceReportsList: async (instance) =>
     httpDispatch('/api/get-instance-reports-list', 'POST', { instance }),
+  getPathReportsList: async (reportsPath) =>
+    httpDispatch('/api/get-path-reports-list', 'POST', { reportsPath }),
+  getOutputPathForInstance: async (instance) =>
+    httpDispatch('/api/get-output-path-for-instance', 'POST', { instance }),
   getInstanceReport: async (instance, reportFile) =>
     httpDispatch('/api/get-instance-report', 'POST', { instance, reportFile }),
   openWorkFolder: async (instance, workID) =>
@@ -237,6 +250,10 @@ const httpAPI = {
   setConfigPath: async (path) => httpDispatch('/api/set-config-path', 'POST', { path }),
   getDocumentsPath: async () => httpDispatch('/api/get-documents-path', 'POST', {}),
   setDocumentsPath: async (path) => httpDispatch('/api/set-documents-path', 'POST', { path }),
+  getOutputPath: async () => httpDispatch('/api/get-output-path', 'POST', {}),
+  setOutputPath: async (path) => httpDispatch('/api/set-output-path', 'POST', { path }),
+  getStoreDirPath: async () => httpDispatch('/api/get-store-dir-path', 'POST', {}),
+  setStoreDirPath: async (path) => httpDispatch('/api/set-store-dir-path', 'POST', { path }),
   getDefaultPaths: async () => httpDispatch('/api/get-default-paths', 'POST', {}),
   getMissingPaths: async () => httpDispatch('/api/get-missing-paths', 'POST', {}),
   getContainerLogs: async (containerId) =>

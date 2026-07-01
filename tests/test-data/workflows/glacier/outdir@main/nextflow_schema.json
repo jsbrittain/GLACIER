@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "type": "object",
+  "title": "with-outdir test workflow",
+  "description": "Simple workflow with outdir parameter for testing output isolation.",
+  "properties": {
+    "outdir": {
+      "type": "string",
+      "default": "results",
+      "format": "directory-path",
+      "title": "Output directory",
+      "description": "The output directory for workflow results."
+    },
+    "message": {
+      "type": "string",
+      "default": "hello",
+      "title": "Message",
+      "description": "A message to include in the output."
+    }
+  }
+}

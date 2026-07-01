@@ -100,6 +100,10 @@ export function registerIpcHandlers(resourceRoot?: string) {
     return call(collection.deleteWorkflowInstance.bind(collection), instance);
   });
 
+  ipcMain.handle('delete-instance-output', async (event, instance: any) => {
+    return call(collection.deleteInstanceOutput.bind(collection), instance);
+  });
+
   ipcMain.handle('open-results-folder', async (event, instance: any) => {
     return call(collection.openResultsFolder.bind(collection), instance);
   });
@@ -130,6 +134,14 @@ export function registerIpcHandlers(resourceRoot?: string) {
 
   ipcMain.handle('get-instance-reports-list', async (event, instance: any) => {
     return call(collection.getInstanceReportsList.bind(collection), instance);
+  });
+
+  ipcMain.handle('get-path-reports-list', async (event, reportsPath: string) => {
+    return call(collection.getPathReportsList.bind(collection), reportsPath);
+  });
+
+  ipcMain.handle('get-output-path-for-instance', async (event, instance: any) => {
+    return call(collection.getOutputPathForInstance.bind(collection), instance);
   });
 
   ipcMain.handle('open-work-folder', async (event, instance: any, work_id: string) => {
@@ -177,6 +189,22 @@ export function registerIpcHandlers(resourceRoot?: string) {
 
   ipcMain.handle('set-documents-path', (event, path) => {
     return call(collection.setDocumentsPath.bind(collection), path);
+  });
+
+  ipcMain.handle('get-output-path', () => {
+    return call(collection.getOutputPath.bind(collection));
+  });
+
+  ipcMain.handle('set-output-path', (event, path) => {
+    return call(collection.setOutputPath.bind(collection), path);
+  });
+
+  ipcMain.handle('get-store-dir-path', () => {
+    return call(collection.getStoreDirPath.bind(collection));
+  });
+
+  ipcMain.handle('set-store-dir-path', (event, path) => {
+    return call(collection.setStoreDirPath.bind(collection), path);
   });
 
   ipcMain.handle('get-default-paths', () => {

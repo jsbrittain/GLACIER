@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Box,
   Container,
@@ -21,7 +21,9 @@ import {
   InputAdornment,
   Select,
   FormControl,
-  InputLabel
+  InputLabel,
+  FormControlLabel,
+  Checkbox
 } from '@mui/material';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
@@ -97,7 +99,7 @@ const statusColor = (status: string | undefined) => {
   }
 };
 
-const InstanceAccordion = ({
+const InstanceAccordion = React.memo(function InstanceAccordion({
   instance,
   instanceName,
   workflowName,
@@ -107,7 +109,7 @@ const InstanceAccordion = ({
   handleWipeInstance,
   expanded,
   onToggle
-}) => {
+}) {
   const { t } = useTranslation();
   const [diskUsage, setDiskUsage] = useState<number | null>(null);
   const [diskLoading, setDiskLoading] = useState(false);
@@ -329,9 +331,10 @@ const InstanceAccordion = ({
       </Dialog>
     </>
   );
-};
+});
 
 export default function InstancesPage({
+
   instancesList,
   refreshInstancesList,
   logMessage,
@@ -341,12 +344,13 @@ export default function InstancesPage({
 }) {
   const { t } = useTranslation();
 
-  const [rows, setRows] = useState([]);
   const [editingInstance, setEditingInstance] = useState<string | null>(null);
   const [justLaunchedId, setJustLaunchedId] = useState<string | null>(null);
   const [initialMonitorTab, setInitialMonitorTab] = useState(0);
   const [wipeDialogOpen, setWipeDialogOpen] = useState(false);
   const [wipeTarget, setWipeTarget] = useState<{ instance: any; name: string } | null>(null);
+  const [wipeOutputs, setWipeOutputs] = useState(false);
+  const [wipeOutputAvailable, setWipeOutputAvailable] = useState(false);
   const [expandedAccordion, setExpandedAccordion] = useState<string | null>(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [hiddenDialogOpen, setHiddenDialogOpen] = useState(false);
@@ -396,19 +400,6 @@ export default function InstancesPage({
     if (item === '') setJustLaunchedId(null);
   }, [item]);
 
-  useEffect(() => {
-    setRows(
-      instancesList.map((item) =>
-        createData(
-          item.instance.status,
-          item.instance.id,
-          item.name,
-          item.instance.workflow_version.name
-        )
-      )
-    );
-  }, [instancesList]);
-
   // Poll instances list every 5 seconds when in list view
   useEffect(() => {
     if (item !== '') return;
@@ -429,24 +420,29 @@ export default function InstancesPage({
     refreshInstancesList();
   };
 
-  const createData = (status: string, id: string, name: string, workflow: string) => {
-    return { status, id, name, workflow };
-  };
-
-  const handleWipeInstance = (instance, name) => {
+  const handleWipeInstance = useCallback((instance, name) => {
     setWipeTarget({ instance, name });
+    setWipeOutputs(false);
+    API.getOutputPathForInstance(instance).then((result) => {
+      setWipeOutputAvailable(result.ok && !!result.data);
+    });
     setWipeDialogOpen(true);
-  };
+  }, []);
 
   const confirmWipe = async () => {
     if (!wipeTarget) return;
     const result = await API.deleteWorkflowInstance(wipeTarget.instance);
     if (result.ok) {
+      if (wipeOutputs) {
+        await API.deleteInstanceOutput(wipeTarget.instance);
+      }
       logMessage(t('instances.wipe_success', { name: wipeTarget.name }), 'info');
       refreshInstancesList();
     }
     setWipeDialogOpen(false);
     setWipeTarget(null);
+    setWipeOutputs(false);
+    setWipeOutputAvailable(false);
   };
 
   const handleDeleteOrphaned = async () => {
@@ -624,6 +620,17 @@ export default function InstancesPage({
               <Typography>
                 {t('instances.wipe_confirm', { name: wipeTarget?.name || '' })}
               </Typography>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={wipeOutputs}
+                    disabled={!wipeOutputAvailable}
+                    onChange={(e) => setWipeOutputs(e.target.checked)}
+                  />
+                }
+                label={t('instances.wipe_outputs')}
+                sx={{ mt: 2 }}
+              />
               <Typography variant="body2" color="error" sx={{ mt: 1 }}>
                 {t('instances.wipe_warning')}
               </Typography>
@@ -679,7 +686,7 @@ export default function InstancesPage({
         instancesList
           .filter(({ name }) => name === item)
           .map(({ name, instance }) => {
-            const status = rows.find((r) => r.name === name)?.status;
+            const status = instancesList.find((r) => r.name === name)?.instance?.status;
             return status == WorkflowStatus.Created || editingInstance === name ? (
               <ParametersPage
                 key={instance.id}
