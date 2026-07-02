@@ -192,6 +192,7 @@ export async function runWorkflow(
     const p = spawn('wsl.exe', ['-d', 'glacier', '-e', 'bash', '-lc', bashCmd], {
       cwd: instancePath,
       stdio: 'ignore',
+      detached: true,
       windowsHide: true
     });
 
