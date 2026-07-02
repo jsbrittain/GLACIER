@@ -25,6 +25,7 @@ const electronAPI = isElectron
         window.electronAPI.openWorkLogFile(instance, workID, logType),
       updateWorkflowInstanceStatus: (instance) =>
         window.electronAPI.updateWorkflowInstanceStatus(instance),
+      getInstanceResourceCheck: (instance) => window.electronAPI.getInstanceResourceCheck(instance),
       getInstanceReportsList: (instance) => window.electronAPI.getInstanceReportsList(instance),
       getPathReportsList: (reportsPath) => window.electronAPI.getPathReportsList(reportsPath),
       getOutputPathForInstance: (instance) => window.electronAPI.getOutputPathForInstance(instance),
@@ -169,6 +170,8 @@ const httpAPI = {
     httpDispatch('/api/open-work-log-file', 'POST', { instance, workID, logType }),
   updateWorkflowInstanceStatus: async (instance) =>
     httpDispatch('/api/update-workflow-instance-status', 'POST', { instance }),
+  getInstanceResourceCheck: async (instance) =>
+    httpDispatch('/api/get-instance-resource-check', 'POST', { instance }),
   getInstanceReportsList: async (instance) =>
     httpDispatch('/api/get-instance-reports-list', 'POST', { instance }),
   getPathReportsList: async (reportsPath) =>

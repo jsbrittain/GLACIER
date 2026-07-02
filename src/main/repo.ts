@@ -238,6 +238,17 @@ export async function getWorkflowSchema(repoPath: string) {
   }
 }
 
+export async function getWorkflowGlacierConfig(repoPath: string): Promise<any | null> {
+  const configPath = path.join(repoPath, 'glacier.json');
+  try {
+    if (!fs.existsSync(configPath)) return null;
+    const content = fs.readFileSync(configPath, 'utf8');
+    return JSON.parse(content);
+  } catch {
+    return null;
+  }
+}
+
 export async function isValidWorkflowRepo(repoPath: string) {
   const nextflowSchemaPath = path.join(repoPath, 'nextflow_schema.json');
   const dockerfilePath = path.join(repoPath, 'Dockerfile');

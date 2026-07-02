@@ -33,6 +33,23 @@ The **Profiles** dropdown lists profiles extracted from `nextflow.config`. These
 
 If a `test` profile exists, a **Test launch** button appears alongside **Launch**. Use this to run the workflow with the `test` profile combined with your other selections.
 
+## Resource requirements
+
+Workflow repositories can include a `glacier.json` file at the root to specify minimum CPU and memory requirements:
+
+```json
+{
+  "resources": {
+    "minimum": {
+      "cpus": 4,
+      "memory": 8
+    }
+  }
+}
+```
+
+When you open the Parameters page for a workflow that has a `glacier.json`, GLACIER checks your system against the minimums. A warning banner appears if your effective resources (accounting for GLACIER resource limits, WSL config on Windows, and system hardware) are below the workflow's recommendations. You can still launch the workflow despite the warning.
+
 ## Launching a workflow
 
 When you click **Launch**, GLACIER:

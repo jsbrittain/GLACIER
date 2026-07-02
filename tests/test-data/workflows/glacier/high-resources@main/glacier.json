@@ -1,0 +1,8 @@
+{
+  "resources": {
+    "minimum": {
+      "cpus": 999,
+      "memory": 99999
+    }
+  }
+}

@@ -434,6 +434,39 @@ app.post('/api/restart-wsl', async (req, res) =>
   post_response(res, { ok: true, data: null })
 );
 
+app.post('/api/get-instance-resource-check', async (req, res) => {
+  try {
+    const workflowPath = req.body.instance?.workflow_version?.path;
+    if (!workflowPath) return post_response(res, { ok: true, data: null });
+    const { getWorkflowGlacierConfig } = await import('../dist/main/repo.js');
+    const config = await getWorkflowGlacierConfig(workflowPath);
+    const min = config?.resources?.minimum;
+    if (!min || (min.cpus === undefined && min.memory === undefined)) {
+      return post_response(res, { ok: true, data: null });
+    }
+
+    let effectiveCpu = Infinity;
+    let effectiveMem = Infinity;
+    let cpuSource = 'System';
+    let memSource = 'System';
+
+    const sysCpu = os.cpus().length;
+    const sysMem = Math.floor(os.totalmem() / (1024 * 1024 * 1024));
+    if (sysCpu < effectiveCpu) { effectiveCpu = sysCpu; cpuSource = 'System hardware'; }
+    if (sysMem < effectiveMem) { effectiveMem = sysMem; memSource = 'System hardware'; }
+
+    if ((min.cpus && effectiveCpu < min.cpus) || (min.memory && effectiveMem < min.memory)) {
+      return post_response(res, {
+        ok: true,
+        data: { minimumCpu: min.cpus, minimumMem: min.memory, effectiveCpu, effectiveMem, cpuSource, memSource }
+      });
+    }
+    return post_response(res, { ok: true, data: null });
+  } catch {
+    return post_response(res, { ok: true, data: null });
+  }
+});
+
 app.post('/api/get-default-paths', async (req, res) =>
   post_response(res, call(collection.getDefaultPaths.bind(collection)))
 );

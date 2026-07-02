@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Paper, Stack, Tabs, Tab, Typography, Button, Tooltip } from '@mui/material';
+import { Box, Paper, Stack, Tabs, Tab, Typography, Button, Tooltip, Alert } from '@mui/material';
 import { JsonForms } from '@jsonforms/react';
 import Ajv, { ErrorObject } from 'ajv'; // ajv is also used by jsonforms
 import addMetaSchema2020 from 'ajv/dist/refs/json-schema-2020-12/index.js';
@@ -57,6 +57,14 @@ export default function ParametersPage({
   const [readme, setReadme] = useState<string>('');
   const [license, setLicense] = useState<string>('');
   const [isValidWorkflow, setIsValidWorkflow] = useState<boolean>(true);
+  const [resourceWarning, setResourceWarning] = useState<{
+    minimumCpu?: number;
+    minimumMem?: number;
+    effectiveCpu: number;
+    effectiveMem: number;
+    cpuSource: string;
+    memSource: string;
+  } | null>(null);
 
   const paramsFilter = 'JSON';
   const paramsFileFilters = [{ name: paramsFilter, extensions: ['json'] }];
@@ -201,6 +209,10 @@ export default function ParametersPage({
       fetchLicense();
       checkValidWorkflow();
     });
+
+    API.getInstanceResourceCheck(instance).then((result) => {
+      if (result.ok) setResourceWarning(result.data);
+    });
   }, [instance]);
 
   // Read schema and compile with AJV
@@ -270,6 +282,17 @@ export default function ParametersPage({
           )}
         </Box>
       </Box>
+
+      {resourceWarning && (
+        <Alert severity="warning" sx={{ mt: 1, mb: 1 }}>
+          This workflow recommends at least
+          {resourceWarning.minimumCpu ? ` ${resourceWarning.minimumCpu} CPUs` : ''}
+          {resourceWarning.minimumCpu && resourceWarning.minimumMem ? ' and' : ''}
+          {resourceWarning.minimumMem ? ` ${resourceWarning.minimumMem} GB RAM` : ''}. Effective
+          limits: {resourceWarning.effectiveCpu} CPUs ({resourceWarning.cpuSource}) ,{' '}
+          {resourceWarning.effectiveMem} GB RAM ({resourceWarning.memSource}).
+        </Alert>
+      )}
 
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <Tabs value={tabSelected} onChange={handleTabChange} sx={{ flex: 1 }}>
