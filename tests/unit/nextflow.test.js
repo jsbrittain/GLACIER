@@ -187,7 +187,9 @@ describe('nextflow', () => {
     });
   });
 
-  describe('runWorkflow — Unix, non-electron', () => {
+  const describeUnixNix = process.platform === 'win32' ? describe.skip : describe;
+
+  describeUnixNix('runWorkflow — Unix, non-electron', () => {
     let unixRunWorkflow;
     let origPlatformDarwin;
 
