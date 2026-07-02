@@ -8,6 +8,7 @@ import { API } from '../../services/api.js';
 
 export default function ActionMenu({
   setCatalogues,
+  setRefresh,
   permitAddCatalogues,
   permitImportShards,
   permitAddRepos,
@@ -39,6 +40,7 @@ export default function ActionMenu({
     return API.getCatalogues().then((result) => {
       if (result.ok) {
         setCatalogues(result.data);
+        setRefresh(prev => !prev);
       } else {
         throw new Error(result.error.message);
       }
