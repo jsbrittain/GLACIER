@@ -191,7 +191,11 @@ export async function runWorkflow(
     const bashCmd = bashArgs.join(' ');
 
     console.log(`Spawning nextflow with command: ${cmd} from ${instancePath}`);
-    const p = spawn('wsl.exe', ['-d', 'glacier', '-e', 'bash', '-lc', bashCmd], {
+
+    // Show the run name in the minimized WSL console so the user can identify it
+    const titledBashCmd = `echo "GLACIER run: ${name}" && ${bashCmd}`;
+
+    const p = spawn('cmd.exe', ['/c', 'start', '/MIN', '/WAIT', 'wsl.exe', '-d', 'glacier', '-e', 'bash', '-lc', titledBashCmd], {
       cwd: instancePath,
       stdio: 'ignore',
       detached: true,
