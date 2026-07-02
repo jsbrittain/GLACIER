@@ -311,7 +311,9 @@ describe('nextflow', () => {
     });
   });
 
-  describe('runWorkflow — Unix, electron mode', () => {
+  const describeUnixElectron = process.platform === 'win32' ? describe.skip : describe;
+
+  describeUnixElectron('runWorkflow — Unix, electron mode', () => {
     let electronRunWorkflow;
     let origPlatformDarwin;
     let origVersions;
@@ -475,7 +477,9 @@ describe('nextflow', () => {
     });
   });
 
-  describe('runWorkflow — error paths', () => {
+  const describeErrorPaths = process.platform === 'win32' ? describe.skip : describe;
+
+  describeErrorPaths('runWorkflow — error paths', () => {
     let errorRunWorkflow;
     let origPlatformDarwin;
 
