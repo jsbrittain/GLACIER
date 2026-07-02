@@ -6,20 +6,9 @@
 
 Documentation: [ReadTheDocs](https://glacier.readthedocs.io/en/latest)
 
-## Quick start
+## Download
 
-To build and run the electron app:
-
-```
-npm install
-npm start
-```
-
-You can also package the app for distribution (the app will be placed in `/dist`):
-
-```
-npm run dist
-```
+Pre-built installers are available on the [Releases page](https://github.com/ARTIC-Kraemer-Lab/GLACIER/releases).
 
 ## Usage
 
@@ -28,6 +17,6 @@ Within the application:
 - Click Actions - Add a Catalogue, and enter e.g. `artic-network`
 - Click Install, then Run on a workflow card to launch the container/workflow
 
-## Web deployment
+## Building from source
 
-The application is build using Electron, but this repository also supports web server deployment. To run the web server, run `npm run server` (after building the app). This will serve the electron front-end while providing an API that calls the backend code. The same code is as in the electron app, noting that the API interface must be maintained in-line with Electron's interface (see `src/renderer/services/api.ts`).
+See [`dev/README.md`](dev/README.md) for build prerequisites, packaging, and testing instructions.
