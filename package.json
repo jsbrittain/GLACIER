@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build:icons": "node scripts/generate-icons.js && electron-icon-builder --input=assets/icon-1024.png --output=.",
+    "build:icons": "node scripts/generate-icons.js",
     "build:backend": "tsc",
     "build:frontend": "vite build",
     "build:bundle": "node scripts/prepare_bundle.js",
@@ -16,7 +16,7 @@
     "format": "prettier --write src/ tests/ scripts/",
     "start": "npm run build && electron .",
     "test": "vitest run  --coverage",
-    "dist": "npm run build:icons && npm run build && electron-builder",
+    "dist": "npm run build && electron-builder",
     "server": "npm run build && cd api-server && npm install && npm run dev"
   },
   "author": "ARTIC Kraemer Lab",
@@ -72,7 +72,6 @@
     "css.escape": "^1.5.1",
     "electron": "^37.3.1",
     "electron-builder": "^26.0.12",
-    "electron-icon-builder": "^2.0.1",
     "eslint": "^9.30.1",
     "eslint-config-prettier": "^10.1.5",
     "eslint-import-resolver-typescript": "^4.4.4",
