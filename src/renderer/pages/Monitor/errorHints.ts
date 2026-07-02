@@ -10,6 +10,8 @@ export const ERROR_HINTS: ErrorHintEntry[] = [
       /OutOfMemoryError/,
       /\boom\b/i,
       /cannot allocate memory/i,
+      /requirement exceeds available memory/i,
+      /exceeds available memory/i,
       /std::bad_alloc/,
       /\bKilled\b/,
       /exit\s*(?:code|status)\s*137/,

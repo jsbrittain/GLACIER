@@ -4,6 +4,7 @@ import path from 'path';
 import os from 'os';
 
 import { getShell } from '../../src/main/shell.js';
+import { spawnSync } from 'child_process';
 
 vi.mock('../../src/main/shell.js', () => ({
   getShell: vi.fn().mockResolvedValue({
@@ -47,6 +48,15 @@ vi.mock('../../src/runners/nextflow/nextflow.js', () => ({
 vi.mock('../../src/runners/nextflow/nf-parse.js', () => ({
   parseNextflowLog: vi.fn()
 }));
+
+vi.mock('child_process', async () => {
+  const actual = await vi.importActual('child_process');
+  return {
+    ...actual,
+    spawnSync: vi.fn().mockReturnValue({ status: 0 }),
+    execSync: vi.fn().mockReturnValue('')
+  };
+});
 
 import { Collection } from '../../src/main/collection.js';
 import * as repo from '../../src/main/repo.js';
@@ -1238,7 +1248,10 @@ describe('Collection', () => {
     });
   });
 
-  describe('killPID', () => {
+  const describeUnix = process.platform === 'win32' ? describe.skip : describe;
+  const describeWin = process.platform !== 'win32' ? describe.skip : describe;
+
+  describeUnix('killPID — Unix', () => {
     it('sends SIGINT on Unix', () => {
       const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => {});
 
@@ -1285,6 +1298,38 @@ describe('Collection', () => {
       });
 
       const result = collection.killPID(789, 'kill');
+
+      expect(result).toBe(false);
+    });
+  });
+
+  describeWin('killPID — Windows', () => {
+    let spawnSyncMock;
+
+    beforeEach(() => {
+      spawnSyncMock = vi.mocked(spawnSync);
+      spawnSyncMock.mockReset();
+      spawnSyncMock.mockReturnValue({ status: 0 });
+    });
+
+    it('calls taskkill with /PID and /T in graceful mode', () => {
+      const result = collection.killPID(123, 'graceful');
+
+      expect(spawnSyncMock).toHaveBeenCalledWith('taskkill', ['/PID', '123', '/T'], { stdio: 'inherit' });
+      expect(result).toBe(true);
+    });
+
+    it('adds /F flag in kill mode', () => {
+      const result = collection.killPID(123, 'kill');
+
+      expect(spawnSyncMock).toHaveBeenCalledWith('taskkill', ['/PID', '123', '/T', '/F'], { stdio: 'inherit' });
+      expect(result).toBe(true);
+    });
+
+    it('returns false when taskkill fails', () => {
+      spawnSyncMock.mockReturnValue({ status: 1 });
+
+      const result = collection.killPID(123, 'graceful');
 
       expect(result).toBe(false);
     });

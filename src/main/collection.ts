@@ -3,6 +3,7 @@
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
+import { spawnSync, execSync } from 'child_process';
 import * as safeFs from './safe-fs.js';
 import { IRepo, IRepoVersions } from './types.js';
 import { getShell } from './shell.js';
@@ -386,6 +387,7 @@ export class Collection {
   root_path: string = '';
   documents_root_path: string = '';
   starting_up: boolean = true;
+  private _resourceRoot: string | undefined = undefined;
 
   catalogues: Catalogue[] = [];
   catalogueParseErrors: CatalogueParseError[] = [];
@@ -412,9 +414,14 @@ export class Collection {
     return path.join(this.root_path, 'catalogues');
   }
 
+  get resourceRoot(): string | undefined {
+    return this._resourceRoot;
+  }
+
   // --- Logic -------------------------------------------------------------------------
 
   async init(resourceRoot?: string): Promise<Record<string, boolean>> {
+    this._resourceRoot = resourceRoot;
     // Re-read paths from store in case they were changed
     this.root_path = getConfigPath();
     this.documents_root_path = getDocumentsPath();
@@ -1183,11 +1190,41 @@ export class Collection {
     const isWin = process.platform === 'win32';
 
     if (isWin) {
-      const { spawnSync } = require('child_process');
-      const args = ['/PID', String(pid), '/T'];
-      if (mode === 'kill') args.push('/F');
-      const res = spawnSync('taskkill', args, { stdio: 'inherit' });
-      return res.status === 0;
+      const taskkill = (targetPid: number, force: boolean) => {
+        const args = ['/PID', String(targetPid), '/T'];
+        if (force) args.push('/F');
+        return spawnSync('taskkill', args, { stdio: 'inherit' }).status === 0;
+      };
+
+      // Direct kill (works for direct wsl.exe spawns)
+      if (taskkill(pid, mode === 'kill')) return true;
+
+      // The stored PID may be cmd.exe from a start /MIN wrapper.
+      // Walk the process tree recursively via PowerShell to find wsl.exe.
+      const findWslChild = (parentPid: number): number | null => {
+        try {
+          const out = execSync(
+            `powershell.exe -NoProfile -Command "Get-WmiObject Win32_Process -Filter 'ParentProcessId=${parentPid}' | ForEach-Object { $_.ProcessId; $_.Name }"`,
+            { encoding: 'utf8', timeout: 3000 }
+          );
+          const lines = out.trim().split(/\r?\n/);
+          for (let i = 0; i < lines.length - 1; i += 2) {
+            const childPid = parseInt(lines[i].trim(), 10);
+            const name = lines[i + 1]?.trim();
+            if (!isNaN(childPid) && name) {
+              if (name.toLowerCase() === 'wsl.exe') return childPid;
+              const deeper = findWslChild(childPid);
+              if (deeper) return deeper;
+            }
+          }
+        } catch { /* process may have exited */ }
+        return null;
+      };
+
+      const wslPid = findWslChild(pid);
+      if (wslPid) return taskkill(wslPid, true);
+
+      return false;
     } else {
       const sig = mode === 'kill' ? 'SIGKILL' : mode === 'term' ? 'SIGTERM' : 'SIGINT';
       try {
@@ -1213,16 +1250,15 @@ export class Collection {
     const isWin = process.platform === 'win32';
     try {
       if (isWin) {
-        const { execSync } = require('child_process');
-        const out = execSync(`wmic process where processid=${pid} get commandline /format:list`, {
-          encoding: 'utf-8',
-          timeout: 3000
-        });
-        const match = out.match(/CommandLine=(.+)/);
-        return match ? match[1].trim() : null;
+        const out = execSync(
+          `powershell.exe -NoProfile -Command "Get-WmiObject Win32_Process -Filter 'ProcessId=${pid}' | Select-Object -ExpandProperty CommandLine"`,
+          { encoding: 'utf-8', timeout: 3000 }
+        );
+        const cmd = out.trim();
+        return cmd || null;
       } else {
         // macOS / Linux — read /proc/<pid>/cmdline (works on both)
-        const cmdline = require('fs').readFileSync(`/proc/${pid}/cmdline`, 'utf-8');
+        const cmdline = fs.readFileSync(`/proc/${pid}/cmdline`, 'utf-8');
         return cmdline.replace(/\0/g, ' ').trim();
       }
     } catch {
@@ -1793,6 +1829,7 @@ export class Collection {
       const s = await getShell();
       return s.openInEditor(logFile);
     }
+    throw new Error(`Log file ${logFile} does not exist.`);
   }
 
   async openWorkLogFile(instance: IWorkflowInstance, workID: string, log_type: string) {
@@ -1964,8 +2001,8 @@ export class Collection {
     return getEnvironmentStatus(key);
   }
 
-  async performEnvironmentAction(key: string, action: string) {
-    return performEnvironmentAction(key, action);
+  async performEnvironmentAction(key: string, action: string, onProgress?: (msg: string) => void) {
+    return performEnvironmentAction(key, action, onProgress);
   }
 
   async parseCatalogues() {
@@ -2787,19 +2824,22 @@ export class Collection {
       console.error(`Failed to parse manifest: ${err}`);
       return;
     }
-    if (manifest.catalogues && Array.isArray(manifest.catalogues)) {
-      for (const cat of manifest.catalogues) {
-        const url = cat.url;
-        const version = cat?.version || '';
-        try {
-          await this.addCatalogue(url, version);
-          console.log(`Successfully imported catalogue from ${url}`);
-        } catch (err) {
-          console.error(`Failed to import catalogue from ${url}: ${err}`);
-        }
+    if (manifest.catalogues === undefined) {
+      return;
+    }
+    if (!Array.isArray(manifest.catalogues)) {
+      console.error('Invalid manifest format: "catalogues" must be an array.');
+      return;
+    }
+    for (const cat of manifest.catalogues) {
+      const url = cat.url;
+      const version = cat?.version || '';
+      try {
+        await this.addCatalogue(url, version);
+        console.log(`Successfully imported catalogue from ${url}`);
+      } catch (err) {
+        console.error(`Failed to import catalogue from ${url}: ${err}`);
       }
-    } else {
-      console.error('Invalid manifest format: "catalogues" array is missing.');
     }
   }
 

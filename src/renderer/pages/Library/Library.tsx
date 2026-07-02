@@ -450,8 +450,8 @@ function SectionCard({
       <Grid container spacing={2} sx={{ px: 1, pb: 1 }}>
         {(section?.workflows || [])
           .filter((workflow) => !(workflow?.hidden || false))
-          .map((workflow) => (
-            <Grid size={3}>
+            .map((workflow) => (
+            <Grid size={3} key={`${workflow.repo}@${workflow.version || 'latest'}`}>
               <WorkflowCard
                 workflow={workflow}
                 hideWorkflow={() => hideWorkflow(workflow)}
@@ -723,7 +723,7 @@ function CatalogueCard({
         {(catalogue?.sections || [])
           .filter((section) => !(section?.hidden || false))
           .map((section) => (
-            <SectionCard
+            <SectionCard key={section.name}
               section={section}
               deleteSection={() => deleteSection(section)}
               hideWorkflow={(workflow) => hideWorkflow(section, workflow)}
@@ -1114,6 +1114,7 @@ export default function LibraryPage({
         <Box sx={{ flex: '0 0 auto' }}>
           <ActionMenu
             setCatalogues={setCatalogues}
+            setRefresh={setRefresh}
             permitAddCatalogues={permitAddCatalogues}
             permitImportShards={permitImportShards}
             permitAddRepos={permitAddRepos}
@@ -1135,7 +1136,7 @@ export default function LibraryPage({
       />
       <Stack spacing={2}>
         {(catalogues || []).map((catalogue) => (
-          <CatalogueCard
+          <CatalogueCard key={catalogue.name}
             catalogue={catalogue}
             deleteCatalogue={() => deleteCatalogue(catalogue)}
             deleteSection={(section) => deleteSection(catalogue, section)}

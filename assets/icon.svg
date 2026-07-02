@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
+  <defs>
+    <linearGradient id="ice" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4FC3F7"/>
+      <stop offset="100%" stop-color="#1565C0"/>
+    </linearGradient>
+
+    <linearGradient id="glow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#E1F5FE"/>
+      <stop offset="100%" stop-color="#B3E5FC"/>
+    </linearGradient>
+
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0D47A1" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <!-- Icon -->
+    <g transform="translate(10,0)">
+    <!-- Hexagonal frame -->
+    <polygon
+      points="70,10 130,45 130,115 70,150 10,115 10,45"
+      fill="none"
+      stroke="url(#ice)"
+      stroke-width="6"
+      stroke-linejoin="round"/>
+
+  <g transform="translate(-3,-5)">
+    <!-- Glacier -->
+    <path
+      d="M30 112
+         L55 68
+         L74 95
+         L92 55
+         L112 112 Z"
+      fill="url(#ice)"/>
+
+    <!-- Ice highlight -->
+    <path
+
+  d="M55 68
+
+     L92 55
+
+     L74 95
+
+     Z"
+
+  fill="url(#glow)"
+
+  opacity="0.8"/>
+
+    <!-- Network nodes -->
+    <g fill="#1565C0">
+      <circle cx="30" cy="112" r="4"/>
+      <circle cx="55" cy="68" r="4"/>
+      <circle cx="74" cy="95" r="4"/>
+      <circle cx="92" cy="55" r="4"/>
+      <circle cx="112" cy="112" r="4"/>
+    </g>
+
+    <!-- Connections -->
+    <g stroke="#4FC3F7" stroke-width="2" fill="none" opacity="0.8">
+      <path d="M30 112 L55 68 L74 95 L92 55 L112 112"/>
+    </g>
+  </g>
+  </g>
+</svg>

@@ -220,10 +220,12 @@ async function main() {
     fs.writeFileSync(existingManifest, JSON.stringify(manifestData, null, 2));
     log('Manifest written to', existingManifest);
 
-    // Detect OS; match original behavior: check RUNNER_OS env or uname
-    const RUNNER_OS = process.env.RUNNER_OS || os.type(); // e.g. 'Linux', 'Darwin', or 'Windows_NT'
-    if (/windows/i.test(RUNNER_OS) || process.platform === 'win32') {
-      log('Windows OS detected. No bundle preparation required.');
+    // On Windows, build the pre-configured WSL image instead of JRE+Nextflow
+    if (process.platform === 'win32') {
+      log('Windows OS detected. Building WSL image...');
+      const buildWslScript = path.join(scriptDir, 'build-wsl-image.js');
+      run(`node "${buildWslScript}" "${bundleDir}"`);
+      log('WSL image built successfully.');
       process.exit(0);
     }
 

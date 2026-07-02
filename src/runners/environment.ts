@@ -10,10 +10,14 @@ export async function getEnvironmentStatus(key: string) {
   }
 }
 
-export async function performEnvironmentAction(key: string, action: string) {
+export async function performEnvironmentAction(
+  key: string,
+  action: string,
+  onProgress?: (msg: string) => void
+) {
   switch (key) {
     case EnvironmentKey.Nextflow:
-      return nextflowAction(action);
+      return nextflowAction(action, onProgress);
     default:
       throw new Error(`Unknown environment key: ${key}`);
   }

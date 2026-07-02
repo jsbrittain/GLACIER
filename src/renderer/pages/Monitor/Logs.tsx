@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Box, Button, Tabs, Tab, Paper, Stack } from '@mui/material';
+import { Alert, Box, Button, Tabs, Tab, Paper, Stack } from '@mui/material';
 import AnsiLog from './AnsiLog.js';
 import { useTranslation } from 'react-i18next';
 import { API } from '../../services/api.js';
@@ -45,18 +45,29 @@ const ShowLog = ({ instance, log_type }: { instance: any; log_type: string }) =>
 export default function LogsPage({ instance }: { instance: any }) {
   const { t } = useTranslation();
   const [tabSelected, setTabSelected] = React.useState(0);
+  const [openError, setOpenError] = React.useState<string | null>(null);
   const logTypes = ['stdout', 'stderr', 'nextflow'];
 
   const handleTabChange = (event, newValue) => {
     setTabSelected(newValue);
   };
 
-  const handleOpenFolder = () => {
-    API.openResultsFolder(instance);
+  const handleOpenFolder = async () => {
+    const result = await API.openResultsFolder(instance);
+    if (!result.ok) {
+      setOpenError(result.error?.message || 'Unable to open folder.');
+      return;
+    }
+    setOpenError(null);
   };
 
-  const handleOpenInEditor = () => {
-    API.openLogFile(instance, logTypes[tabSelected]);
+  const handleOpenInEditor = async () => {
+    const result = await API.openLogFile(instance, logTypes[tabSelected]);
+    if (!result.ok) {
+      setOpenError(result.error?.message || 'Unable to open log file.');
+      return;
+    }
+    setOpenError(null);
   };
 
   return (
@@ -76,6 +87,11 @@ export default function LogsPage({ instance }: { instance: any }) {
           </Button>
         </Box>
       </Stack>
+      {openError && (
+        <Alert severity="error" sx={{ mx: 1, mb: 1 }} onClose={() => setOpenError(null)}>
+          {openError}
+        </Alert>
+      )}
       <TabPanel value={tabSelected} index={0}>
         <ShowLog instance={instance} log_type="stdout" />
       </TabPanel>

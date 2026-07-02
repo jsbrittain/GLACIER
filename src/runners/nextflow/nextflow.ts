@@ -109,13 +109,18 @@ export async function runWorkflow(
   const name = `${instance.name}-${Date.now().toString(36)}`;
   const instancePath = instance.path; // launch from Windows path (on win32)
   const workPath = resolvePath(instancePath, 'work');
-  await fs.mkdir(workPath, { recursive: true });
+  await fs.mkdir(path.resolve(instancePath, 'work'), { recursive: true });
   const projectPath = instance.workflow_version?.path || instancePath;
   const collectionsPath = getConfigPath();
 
   if (is_windows) {
     // Convert all file and folder paths in params to posix and redirect
     params = paramsToPosix(params);
+  }
+
+  // Ensure instance directory exists before any file writes
+  if (!fs_sync.existsSync(instancePath)) {
+    fs_sync.mkdirSync(instancePath, { recursive: true });
   }
 
   // Save parameters to a file in the instance folder
@@ -142,9 +147,6 @@ export async function runWorkflow(
   }
 
   // Clear logs and set to append
-  if (!fs_sync.existsSync(instancePath)) {
-    fs_sync.mkdirSync(instancePath, { recursive: true });
-  }
   if (!fs_sync.existsSync(path.resolve(instancePath, 'stdout.log'))) {
     fs_sync.writeFileSync(path.resolve(instancePath, 'stdout.log'), '');
   }
@@ -189,11 +191,15 @@ export async function runWorkflow(
     const bashCmd = bashArgs.join(' ');
 
     console.log(`Spawning nextflow with command: ${cmd} from ${instancePath}`);
-    const p = spawn('wsl.exe', ['-d', 'glacier', '-e', 'bash', '-lc', bashCmd], {
+
+    // Show the run name in the minimized WSL console so the user can identify it
+    const titledBashCmd = `echo "GLACIER run: ${name}" && ${bashCmd}`;
+
+    const p = spawn('cmd.exe', ['/c', 'start', '/MIN', '/WAIT', 'wsl.exe', '-d', 'glacier', '-e', 'bash', '-lc', titledBashCmd], {
       cwd: instancePath,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true,
-      detached: true
+      stdio: 'ignore',
+      detached: true,
+      windowsHide: true
     });
 
     // Catch asynchronous child process failures (includes nextflow not found)

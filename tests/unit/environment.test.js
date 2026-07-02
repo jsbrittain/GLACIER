@@ -29,7 +29,7 @@ describe('environment dispatcher', () => {
   it('performEnvironmentAction delegates to nextflowAction for nextflow key', async () => {
     nextflowAction.mockResolvedValue({ ok: true });
     const result = await performEnvironmentAction('nextflow', 'install.nextflow');
-    expect(nextflowAction).toHaveBeenCalledWith('install.nextflow');
+    expect(nextflowAction).toHaveBeenCalledWith('install.nextflow', undefined);
     expect(result).toEqual({ ok: true });
   });
 
