@@ -104,7 +104,7 @@ export function locateReports(reportsDir: string): Record<string, string>[] {
           id: (reportFiles.length + 1).toString(),
           name: path.basename(file, '.html'),
           path: fullPath,
-          shortPath: path.relative(reportsDir, fullPath)
+          shortPath: path.relative(reportsDir, fullPath).replace(/\\/g, '/')
         });
       }
     }
@@ -113,12 +113,12 @@ export function locateReports(reportsDir: string): Record<string, string>[] {
   walkDir(reportsDir);
 
   reportFiles.sort((a, b) => {
-    const aSep = a.shortPath.includes(path.sep);
-    const bSep = b.shortPath.includes(path.sep);
+    const aSep = a.shortPath.includes('/');
+    const bSep = b.shortPath.includes('/');
     const aIndexOrReport = !aSep && (a.name === 'index' || a.name === 'report');
     const bIndexOrReport = !bSep && (b.name === 'index' || b.name === 'report');
-    const aPipelineInfo = a.shortPath.split(path.sep).includes('pipeline_info');
-    const bPipelineInfo = b.shortPath.split(path.sep).includes('pipeline_info');
+    const aPipelineInfo = a.shortPath.split('/').includes('pipeline_info');
+    const bPipelineInfo = b.shortPath.split('/').includes('pipeline_info');
 
     const priority = (indexOrReport: boolean, topLevel: boolean, nf: boolean): number => {
       if (indexOrReport) return 0;

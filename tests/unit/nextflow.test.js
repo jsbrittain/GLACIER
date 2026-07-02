@@ -188,8 +188,25 @@ describe('nextflow', () => {
   });
 
   describe('runWorkflow — Unix, non-electron', () => {
+    let unixRunWorkflow;
+    let origPlatformDarwin;
+
+    beforeEach(async () => {
+      origPlatformDarwin = Object.getOwnPropertyDescriptor(process, 'platform');
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+      vi.resetModules();
+      const mod = await import('../../src/runners/nextflow/nextflow.js');
+      unixRunWorkflow = mod.runWorkflow;
+    });
+
+    afterEach(() => {
+      if (origPlatformDarwin) {
+        Object.defineProperty(process, 'platform', origPlatformDarwin);
+      }
+    });
+
     it('spawns nextflow with correct base arguments', async () => {
-      await runWorkflow(makeInstance(), {});
+      await unixRunWorkflow(makeInstance(), {});
 
       expect(mockSpawn).toHaveBeenCalledWith(
         'nextflow',
@@ -214,26 +231,26 @@ describe('nextflow', () => {
     });
 
     it('returns the spawned process PID', async () => {
-      const pid = await runWorkflow(makeInstance(), {});
+      const pid = await unixRunWorkflow(makeInstance(), {});
 
       expect(pid.pid).toBe(12345);
       expect(pid.cmd).toContain('-log');
     });
 
     it('calls unref on the child process', async () => {
-      await runWorkflow(makeInstance(), {});
+      await unixRunWorkflow(makeInstance(), {});
 
       expect(mockChildProcess.unref).toHaveBeenCalled();
     });
 
     it('attaches error handler to the process', async () => {
-      await runWorkflow(makeInstance(), {});
+      await unixRunWorkflow(makeInstance(), {});
 
       expect(mockChildProcess.on).toHaveBeenCalledWith('error', expect.any(Function));
     });
 
     it('uses specified profile', async () => {
-      await runWorkflow(makeInstance(), {}, { profile: 'test' });
+      await unixRunWorkflow(makeInstance(), {}, { profile: 'test' });
 
       expect(mockSpawn).toHaveBeenCalledWith(
         'nextflow',
@@ -243,7 +260,7 @@ describe('nextflow', () => {
     });
 
     it('appends -resume flag when resume is true', async () => {
-      await runWorkflow(makeInstance(), {}, { resume: true });
+      await unixRunWorkflow(makeInstance(), {}, { resume: true });
 
       expect(mockSpawn).toHaveBeenCalledWith(
         'nextflow',
@@ -253,7 +270,7 @@ describe('nextflow', () => {
     });
 
     it('does not append -resume when resume is false', async () => {
-      await runWorkflow(makeInstance(), {}, { resume: false });
+      await unixRunWorkflow(makeInstance(), {}, { resume: false });
 
       const callArgs = mockSpawn.mock.calls[0][1];
       expect(callArgs).not.toContain('-resume');
@@ -262,7 +279,7 @@ describe('nextflow', () => {
     it('injects NXF_SYNTAX_PARSER=v2 when set to 2', async () => {
       mockSettings.get.mockReturnValue('2');
 
-      await runWorkflow(makeInstance(), {});
+      await unixRunWorkflow(makeInstance(), {});
 
       expect(mockSpawn).toHaveBeenCalledWith(
         'nextflow',
@@ -276,7 +293,7 @@ describe('nextflow', () => {
     it('injects NXF_SYNTAX_PARSER=v1 when set to 1', async () => {
       mockSettings.get.mockReturnValue('1');
 
-      await runWorkflow(makeInstance(), {});
+      await unixRunWorkflow(makeInstance(), {});
 
       const env = mockSpawn.mock.calls[0][2].env;
       expect(env.NXF_SYNTAX_PARSER).toBe('v1');
@@ -285,7 +302,7 @@ describe('nextflow', () => {
     it('does not inject NXF_SYNTAX_PARSER when unset', async () => {
       mockSettings.get.mockReturnValue(undefined);
 
-      await runWorkflow(makeInstance(), {});
+      await unixRunWorkflow(makeInstance(), {});
 
       const env = mockSpawn.mock.calls[0][2].env;
       expect(env.NXF_SYNTAX_PARSER).toBeUndefined();
@@ -293,17 +310,27 @@ describe('nextflow', () => {
   });
 
   describe('runWorkflow — Unix, electron mode', () => {
+    let electronRunWorkflow;
+    let origPlatformDarwin;
     let origVersions;
 
-    beforeEach(() => {
+    beforeEach(async () => {
+      origPlatformDarwin = Object.getOwnPropertyDescriptor(process, 'platform');
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
       origVersions = process.versions;
       Object.defineProperty(process, 'versions', {
         value: { ...process.versions, electron: '28.0.0' },
         configurable: true
       });
+      vi.resetModules();
+      const mod = await import('../../src/runners/nextflow/nextflow.js');
+      electronRunWorkflow = mod.runWorkflow;
     });
 
     afterEach(() => {
+      if (origPlatformDarwin) {
+        Object.defineProperty(process, 'platform', origPlatformDarwin);
+      }
       Object.defineProperty(process, 'versions', {
         value: origVersions,
         configurable: true
@@ -311,7 +338,7 @@ describe('nextflow', () => {
     });
 
     it('spawns java with bundled JRE', async () => {
-      await runWorkflow(makeInstance(), {});
+      await electronRunWorkflow(makeInstance(), {});
 
       expect(mockSpawn).toHaveBeenCalledWith(
         expect.stringContaining('java'),
@@ -331,7 +358,7 @@ describe('nextflow', () => {
     });
 
     it('passes JVM flags in electron mode', async () => {
-      await runWorkflow(makeInstance(), {});
+      await electronRunWorkflow(makeInstance(), {});
 
       const javaArgs = mockSpawn.mock.calls[0][1];
       expect(javaArgs).toEqual(
@@ -340,7 +367,7 @@ describe('nextflow', () => {
     });
 
     it('uses java binary path as executable', async () => {
-      await runWorkflow(makeInstance(), {});
+      await electronRunWorkflow(makeInstance(), {});
 
       const binary = mockSpawn.mock.calls[0][0];
       expect(binary).toMatch(/java$/);
@@ -349,7 +376,7 @@ describe('nextflow', () => {
     it('electron mode injects NXF_SYNTAX_PARSER=v2', async () => {
       mockSettings.get.mockReturnValue('2');
 
-      await runWorkflow(makeInstance(), {});
+      await electronRunWorkflow(makeInstance(), {});
 
       expect(mockSpawn).toHaveBeenCalledWith(
         expect.stringContaining('java'),
@@ -367,14 +394,16 @@ describe('nextflow', () => {
     it('electron mode does not inject NXF_SYNTAX_PARSER when unset', async () => {
       mockSettings.get.mockReturnValue(undefined);
 
-      await runWorkflow(makeInstance(), {});
+      await electronRunWorkflow(makeInstance(), {});
 
       const env = mockSpawn.mock.calls[0][2].env;
       expect(env.NXF_SYNTAX_PARSER).toBeUndefined();
     });
   });
 
-  describe('runWorkflow — Windows WSL', () => {
+  const describeWsl = process.platform === 'win32' ? describe.skip : describe;
+
+  describeWsl('runWorkflow — Windows WSL', () => {
     // Note: is_windows is a module-level constant evaluated at import time.
     // These tests dynamically re-import the module after setting process.platform.
 
@@ -445,10 +474,27 @@ describe('nextflow', () => {
   });
 
   describe('runWorkflow — error paths', () => {
+    let errorRunWorkflow;
+    let origPlatformDarwin;
+
+    beforeEach(async () => {
+      origPlatformDarwin = Object.getOwnPropertyDescriptor(process, 'platform');
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+      vi.resetModules();
+      const mod = await import('../../src/runners/nextflow/nextflow.js');
+      errorRunWorkflow = mod.runWorkflow;
+    });
+
+    afterEach(() => {
+      if (origPlatformDarwin) {
+        Object.defineProperty(process, 'platform', origPlatformDarwin);
+      }
+    });
+
     it('returns null when spawned process has no pid', async () => {
       mockSpawn.mockReturnValue({ pid: null, on: vi.fn(), unref: vi.fn() });
 
-      const result = await runWorkflow(makeInstance(), {});
+      const result = await errorRunWorkflow(makeInstance(), {});
 
       expect(result).toBeNull();
     });
@@ -458,7 +504,7 @@ describe('nextflow', () => {
         throw new Error('spawn error');
       });
 
-      const result = await runWorkflow(makeInstance(), {});
+      const result = await errorRunWorkflow(makeInstance(), {});
       expect(result).toBeNull();
     });
 
@@ -468,7 +514,7 @@ describe('nextflow', () => {
         if (event === 'error') errorHandler = handler;
       });
 
-      await runWorkflow(makeInstance(), {});
+      await errorRunWorkflow(makeInstance(), {});
 
       expect(() => errorHandler(new Error('async error'))).not.toThrow();
       const result = errorHandler(new Error('async error'));
@@ -476,11 +522,30 @@ describe('nextflow', () => {
     });
   });
 
+  const itOnUnix = process.platform === 'win32' ? it.skip : it;
+
   describe('runWorkflow — params handling', () => {
+    let paramsRunWorkflow;
+    let origPlatformDarwin;
+
+    beforeEach(async () => {
+      origPlatformDarwin = Object.getOwnPropertyDescriptor(process, 'platform');
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+      vi.resetModules();
+      const mod = await import('../../src/runners/nextflow/nextflow.js');
+      paramsRunWorkflow = mod.runWorkflow;
+    });
+
+    afterEach(() => {
+      if (origPlatformDarwin) {
+        Object.defineProperty(process, 'platform', origPlatformDarwin);
+      }
+    });
+
     it('writes params to glacier-params.json', async () => {
       const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
 
-      await runWorkflow(makeInstance(), { key: 'value', num: 42 });
+      await paramsRunWorkflow(makeInstance(), { key: 'value', num: 42 });
 
       expect(writeSpy).toHaveBeenCalledWith(
         expect.stringContaining('glacier-params.json'),
@@ -492,15 +557,15 @@ describe('nextflow', () => {
     it('skips writing glacier-params.json on resume', async () => {
       const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
 
-      await runWorkflow(makeInstance(), {}, { resume: true });
+      await paramsRunWorkflow(makeInstance(), {}, { resume: true });
 
       expect(writeSpy).not.toHaveBeenCalled();
     });
 
-    it('creates work directory before spawning', async () => {
+    itOnUnix('creates work directory before spawning', async () => {
       const mkdirSpy = vi.spyOn(fs.promises, 'mkdir').mockResolvedValue(undefined);
 
-      await runWorkflow(makeInstance(), {});
+      await paramsRunWorkflow(makeInstance(), {});
 
       expect(mkdirSpy).toHaveBeenCalledWith(expect.stringContaining('/work'), {
         recursive: true
@@ -514,7 +579,7 @@ describe('nextflow', () => {
       });
       const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
 
-      await runWorkflow(makeInstance(), {});
+      await paramsRunWorkflow(makeInstance(), {});
 
       const calls = writeSpy.mock.calls.filter(
         ([p]) => typeof p === 'string' && p.endsWith('nextflow.config')
@@ -531,7 +596,7 @@ describe('nextflow', () => {
       });
       const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
 
-      await runWorkflow(makeInstance(), {});
+      await paramsRunWorkflow(makeInstance(), {});
 
       const calls = writeSpy.mock.calls.filter(
         ([p]) => typeof p === 'string' && p.endsWith('nextflow.config')
@@ -549,7 +614,7 @@ describe('nextflow', () => {
       });
       const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
 
-      await runWorkflow(makeInstance(), {});
+      await paramsRunWorkflow(makeInstance(), {});
 
       const calls = writeSpy.mock.calls.filter(
         ([p]) => typeof p === 'string' && p.endsWith('nextflow.config')
@@ -563,7 +628,7 @@ describe('nextflow', () => {
       mockSettings.get.mockImplementation((key) => 0);
       const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
 
-      await runWorkflow(makeInstance(), {});
+      await paramsRunWorkflow(makeInstance(), {});
 
       const calls = writeSpy.mock.calls.filter(
         ([p]) => typeof p === 'string' && p.endsWith('nextflow.config')
@@ -578,7 +643,7 @@ describe('nextflow', () => {
       });
       const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
 
-      await runWorkflow(makeInstance(), {});
+      await paramsRunWorkflow(makeInstance(), {});
 
       const calls = writeSpy.mock.calls.filter(
         ([p]) => typeof p === 'string' && p.endsWith('user.config')
@@ -594,7 +659,7 @@ describe('nextflow', () => {
       });
       vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
 
-      await runWorkflow(makeInstance(), {});
+      await paramsRunWorkflow(makeInstance(), {});
 
       expect(mockSpawn).toHaveBeenCalledWith(
         'nextflow',
@@ -610,7 +675,7 @@ describe('nextflow', () => {
       });
       const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
 
-      await runWorkflow(makeInstance(), {});
+      await paramsRunWorkflow(makeInstance(), {});
 
       const calls = writeSpy.mock.calls.filter(
         ([p]) => typeof p === 'string' && p.endsWith('user.config')

@@ -35,10 +35,10 @@ const RES = [
 
 const DEBUG = process.env.DEBUG === '1';
 
-export async function readNextflowLog(path: string) {
-  const root_path = path.split('/').slice(0, -1).join('/');
+export async function readNextflowLog(logFilePath: string) {
+  const root_path = path.dirname(logFilePath);
   const rl = readline.createInterface({
-    input: fs.createReadStream(path, { encoding: 'utf8' }),
+    input: fs.createReadStream(logFilePath, { encoding: 'utf8' }),
     crlfDelay: Infinity
   });
 
