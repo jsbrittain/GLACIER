@@ -54,14 +54,24 @@ afterEach(() => {
       fs.rmSync(p, { recursive: true, force: true });
     }
   });
+  // Cleanup default instance test directory
+  const defaultDir = path.resolve(DEFAULT_INSTANCE_PATH);
+  if (fs.existsSync(defaultDir)) {
+    fs.rmSync(defaultDir, { recursive: true, force: true });
+  }
   vi.restoreAllMocks();
 });
 
+const DEFAULT_INSTANCE_PATH = '/tmp/instances/test';
+
 function makeInstance(opts = {}) {
+  if (!opts.path) {
+    fs.mkdirSync(path.resolve(DEFAULT_INSTANCE_PATH), { recursive: true });
+  }
   return {
     id: 'test-instance',
     name: 'test-name',
-    path: '/tmp/instances/test',
+    path: DEFAULT_INSTANCE_PATH,
     workflow_version: { path: '/tmp/workflows/owner/repo', version: 'v1.0' },
     ...opts
   };
@@ -187,9 +197,7 @@ describe('nextflow', () => {
     });
   });
 
-  const describeUnixNix = process.platform === 'win32' ? describe.skip : describe;
-
-  describeUnixNix('runWorkflow — Unix, non-electron', () => {
+  describe('runWorkflow — Unix, non-electron', () => {
     let unixRunWorkflow;
     let origPlatformDarwin;
 
@@ -311,9 +319,7 @@ describe('nextflow', () => {
     });
   });
 
-  const describeUnixElectron = process.platform === 'win32' ? describe.skip : describe;
-
-  describeUnixElectron('runWorkflow — Unix, electron mode', () => {
+  describe('runWorkflow — Unix, electron mode', () => {
     let electronRunWorkflow;
     let origPlatformDarwin;
     let origVersions;
@@ -405,14 +411,13 @@ describe('nextflow', () => {
     });
   });
 
-  const describeWsl = process.platform === 'win32' ? describe.skip : describe;
-
-  describeWsl('runWorkflow — Windows WSL', () => {
+  describe('runWorkflow — Windows WSL', () => {
     // Note: is_windows is a module-level constant evaluated at import time.
     // These tests dynamically re-import the module after setting process.platform.
 
     let origPlatformWin;
     let winRunWorkflow;
+    let wslDir;
 
     beforeEach(async () => {
       origPlatformWin = Object.getOwnPropertyDescriptor(process, 'platform');
@@ -420,26 +425,23 @@ describe('nextflow', () => {
       vi.resetModules();
       const mod = await import('../../src/runners/nextflow/nextflow.js');
       winRunWorkflow = mod.runWorkflow;
+      wslDir = fs.mkdtempSync(path.join(os.tmpdir(), 'glacier-wsl-'));
     });
 
     afterEach(() => {
       if (origPlatformWin) {
         Object.defineProperty(process, 'platform', origPlatformWin);
       }
-      // On non-Windows, the Windows paths 'C:\\Users\\test' and 'C:\\test'
-      // are treated as relative paths and created under CWD by the real fs
-      // calls inside runWorkflow. Clean them up to avoid untracked files.
-      ['C:\\Users\\test', 'C:\\test'].forEach((p) => {
-        if (fs.existsSync(p)) {
-          fs.rmSync(p, { recursive: true, force: true });
-        }
-      });
+      if (wslDir && fs.existsSync(wslDir)) {
+        fs.rmSync(wslDir, { recursive: true, force: true });
+      }
     });
 
     it('spawns wsl.exe with bash wrapper', async () => {
       mockSpawn.mockReturnValue({ pid: 999, on: vi.fn(), unref: vi.fn() });
+      const instPath = path.join(wslDir, 'Users', 'test');
 
-      await winRunWorkflow(makeInstance({ path: 'C:\\Users\\test' }), {});
+      await winRunWorkflow(makeInstance({ path: instPath }), {});
 
       expect(mockSpawn).toHaveBeenCalledWith(
         'wsl.exe',
@@ -452,7 +454,7 @@ describe('nextflow', () => {
           expect.stringContaining('nextflow')
         ]),
         expect.objectContaining({
-          cwd: 'C:\\Users\\test',
+          cwd: instPath,
           stdio: 'ignore',
           windowsHide: true
         })
@@ -461,8 +463,9 @@ describe('nextflow', () => {
 
     it('returns wsl process PID', async () => {
       mockSpawn.mockReturnValue({ pid: 999, on: vi.fn(), unref: vi.fn() });
+      const instPath = path.join(wslDir, 'test');
 
-      const pid = await winRunWorkflow(makeInstance({ path: 'C:\\test' }), {});
+      const pid = await winRunWorkflow(makeInstance({ path: instPath }), {});
 
       expect(pid.pid).toBe(999);
       expect(pid.cmd).toContain('-log');
@@ -470,16 +473,15 @@ describe('nextflow', () => {
 
     it('throws when wsl process has no pid', async () => {
       mockSpawn.mockReturnValue({ pid: null, on: vi.fn(), unref: vi.fn() });
+      const instPath = path.join(wslDir, 'test2');
 
-      await expect(winRunWorkflow(makeInstance({ path: 'C:\\test' }), {})).rejects.toThrow(
+      await expect(winRunWorkflow(makeInstance({ path: instPath }), {})).rejects.toThrow(
         'Failed to spawn'
       );
     });
   });
 
-  const describeErrorPaths = process.platform === 'win32' ? describe.skip : describe;
-
-  describeErrorPaths('runWorkflow — error paths', () => {
+  describe('runWorkflow — error paths', () => {
     let errorRunWorkflow;
     let origPlatformDarwin;
 
@@ -528,8 +530,6 @@ describe('nextflow', () => {
     });
   });
 
-  const itOnUnix = process.platform === 'win32' ? it.skip : it;
-
   describe('runWorkflow — params handling', () => {
     let paramsRunWorkflow;
     let origPlatformDarwin;
@@ -568,12 +568,12 @@ describe('nextflow', () => {
       expect(writeSpy).not.toHaveBeenCalled();
     });
 
-    itOnUnix('creates work directory before spawning', async () => {
+    it('creates work directory before spawning', async () => {
       const mkdirSpy = vi.spyOn(fs.promises, 'mkdir').mockResolvedValue(undefined);
 
       await paramsRunWorkflow(makeInstance(), {});
 
-      expect(mkdirSpy).toHaveBeenCalledWith(expect.stringContaining('/work'), {
+      expect(mkdirSpy).toHaveBeenCalledWith(expect.stringContaining('work'), {
         recursive: true
       });
     });
