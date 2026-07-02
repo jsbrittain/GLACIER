@@ -19,6 +19,12 @@ describe('findErrorHint', () => {
       expect(findErrorHint('Cannot allocate memory')).toBe('monitor.progress.hint-oom');
     });
 
+    it('detects Nextflow memory requirement failures', () => {
+      expect(
+        findErrorHint('Process requirement exceeds available memory -- req: 14 GB; avail: 13.7 GB')
+      ).toBe('monitor.progress.hint-oom');
+    });
+
     it('detects "std::bad_alloc"', () => {
       expect(findErrorHint('terminate called after throwing an instance of std::bad_alloc')).toBe(
         'monitor.progress.hint-oom'

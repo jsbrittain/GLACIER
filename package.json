@@ -8,6 +8,7 @@
     "build:backend": "tsc",
     "build:frontend": "vite build",
     "build:bundle": "node scripts/prepare_bundle.js",
+    "build:wsl": "node scripts/build-wsl-image.js",
     "build": "npm run build:backend && npm run build:frontend && npm run build:bundle",
     "preview": "vite preview",
     "lint": "eslint .",

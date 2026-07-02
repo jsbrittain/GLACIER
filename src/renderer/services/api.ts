@@ -108,6 +108,8 @@ const electronAPI = isElectron
       getEnvironmentStatus: (key) => window.electronAPI.getEnvironmentStatus(key),
       performEnvironmentAction: (key, action) =>
         window.electronAPI.performEnvironmentAction(key, action),
+      onEnvironmentActionProgress: (callback) =>
+        window.electronAPI.onEnvironmentActionProgress(callback),
       getSystemResources: () => window.electronAPI.getSystemResources(),
       pickFile: (filters) => window.electronAPI.pickFile(filters),
       pickDirectory: () => window.electronAPI.pickDirectory(),

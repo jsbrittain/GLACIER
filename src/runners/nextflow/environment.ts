@@ -1,6 +1,6 @@
 import https from 'https';
-import { mkdirSync, chmodSync, createWriteStream } from 'fs';
-import { execFileSync, spawn } from 'child_process';
+import { existsSync, mkdirSync, chmodSync, createWriteStream } from 'fs';
+import { execFileSync, execFile, spawn } from 'child_process';
 import path from 'path';
 
 const is_windows = process.platform === 'win32';
@@ -20,8 +20,40 @@ function getNextflowPath(): string {
   return path.join(getGlacierDir(), 'bin', 'nextflow');
 }
 
-function getDistroPath(): string {
-  return path.join(getGlacierDir(), 'wsl', 'ubuntu-22.04.tar.xz');
+function getWslDistroDir(): string {
+  return path.join(getGlacierDir(), 'wsl');
+}
+
+async function getBundledWslImage(): Promise<{
+  imagePath: string | null;
+  searchedPaths: string[];
+}> {
+  const candidates: string[] = [];
+
+  try {
+    const { Collection } = await import('../../main/collection.js');
+    const root = Collection.getInstance().resourceRoot;
+    if (root) candidates.push(path.join(root, 'wsl', 'glacier-wsl.tar'));
+  } catch {
+    // Collection is not always available in non-Electron contexts.
+  }
+
+  try {
+    const electron = await import('electron');
+    const app = (electron as any).app;
+    if (app) {
+      const root = path.join(app.isPackaged ? process.resourcesPath : app.getAppPath(), 'bundle');
+      candidates.push(path.join(root, 'wsl', 'glacier-wsl.tar'));
+    }
+  } catch {
+    // Electron is not available in web/server contexts.
+  }
+
+  const searchedPaths = [...new Set(candidates)];
+  for (const img of searchedPaths) {
+    if (existsSync(img)) return { imagePath: img, searchedPaths };
+  }
+  return { imagePath: null, searchedPaths };
 }
 
 export async function nextflowStatus() {
@@ -32,14 +64,16 @@ export async function nextflowStatus() {
   }
 }
 
-export async function nextflowAction(action: string) {
+export async function nextflowAction(action: string, onProgress?: (msg: string) => void) {
   switch (action) {
     case 'install.nextflow':
       return installNextflow();
     case 'install.wsl2':
       return installWSL2();
+    case 'update.wsl2':
+      return updateWSL2();
     case 'install.wsl2.distro':
-      return installWSL2distro();
+      return installWSL2distro(onProgress);
     case 'install.docker':
       return installDocker();
     default:
@@ -47,9 +81,9 @@ export async function nextflowAction(action: string) {
   }
 }
 
-function nextflowStatus_win() {
-  // Windows Nextflow installation process
-  if (!wslCheck()) {
+async function nextflowStatus_win() {
+  const wslInfo = await checkWslVersion();
+  if (!wslInfo.exists) {
     return [
       {
         title: 'Windows Subsystem for Linux (v2)',
@@ -65,8 +99,23 @@ function nextflowStatus_win() {
       }
     ];
   }
-  // WSL is installed, check for glacier distribution
-  if (!wslCheckDistro()) {
+  if (!wslInfo.supportsSystemd) {
+    const versionStr = wslInfo.version ? ` (version ${wslInfo.version})` : '';
+    return [
+      {
+        title: 'Windows Subsystem for Linux (Update Required)',
+        description: `WSL${versionStr} is installed but does not support systemd. GLACIER requires WSL ${MIN_WSL_SYSTEMD_VERSION} or higher. Run 'wsl --update' or click Update WSL below.`,
+        status: 'warning',
+        actions: [
+          {
+            action: 'update.wsl2',
+            label: 'Update WSL'
+          }
+        ]
+      }
+    ];
+  }
+  if (!(await wslCheckDistroAsync())) {
     return [
       {
         title: 'Windows Subsystem for Linux (Configuration)',
@@ -76,13 +125,24 @@ function nextflowStatus_win() {
         actions: [
           {
             action: 'install.wsl2.distro',
-            label: 'Configure WSL2'
+            label: 'Install Distro'
           }
         ]
       }
     ];
   }
-  return [
+  const status = [
+    {
+      title: 'Windows Subsystem for Linux',
+      description: 'A GLACIER managed WSL distribution is installed.',
+      status: 'info',
+      actions: [
+        {
+          action: 'install.wsl2.distro',
+          label: 'Reinstall'
+        }
+      ]
+    },
     {
       title: 'Nextflow',
       description: 'A GLACIER managed version of Nextflow is installed and accessible.',
@@ -90,10 +150,71 @@ function nextflowStatus_win() {
       actions: []
     }
   ];
+  if (await wslCheckDockerAsync()) {
+    status.push({
+      title: 'Docker',
+      description: 'Docker is accessible inside the GLACIER WSL distribution.',
+      status: 'info',
+      actions: []
+    });
+  } else {
+    status.push({
+      title: 'Docker',
+      description:
+        'Docker is not currently accessible inside the GLACIER WSL distribution. Workflows that use Docker containers may fail, but workflows that do not need Docker can still run.',
+      status: 'warning',
+      actions: []
+    });
+  }
+  return status;
 }
+
+const MIN_WSL_SYSTEMD_VERSION = '0.67.6';
 
 function wslCheck() {
   return checkExecutable('wsl', ['--version']);
+}
+
+function wslVersionCheck(): { version: string; supportsSystemd: boolean } {
+  try {
+    const output = execFileSync('wsl', ['--version'], { encoding: 'utf8' });
+    const clean = output.replace(/\0/g, '');
+    const match = clean.match(/WSL\s+version:\s*(\d+\.\d+\.\d+)/);
+    if (!match) return { version: '', supportsSystemd: false };
+    const version = match[1];
+    const supportsSystemd = compareSemver(version, MIN_WSL_SYSTEMD_VERSION) >= 0;
+    return { version, supportsSystemd };
+  } catch {
+    return { version: '', supportsSystemd: false };
+  }
+}
+
+async function checkWslVersion(): Promise<{
+  exists: boolean;
+  version: string;
+  supportsSystemd: boolean;
+}> {
+  try {
+    const output = await execFileAsync('wsl', ['--version']);
+    const match = output.match(/WSL\s+version:\s*(\d+\.\d+\.\d+)/);
+    if (!match) return { exists: true, version: '', supportsSystemd: false };
+    const version = match[1];
+    const supportsSystemd = compareSemver(version, MIN_WSL_SYSTEMD_VERSION) >= 0;
+    return { exists: true, version, supportsSystemd };
+  } catch {
+    return { exists: false, version: '', supportsSystemd: false };
+  }
+}
+
+function compareSemver(a: string, b: string): number {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const va = pa[i] || 0;
+    const vb = pb[i] || 0;
+    if (va !== vb) return va - vb;
+  }
+  return 0;
 }
 
 function wslCheckDistro() {
@@ -171,10 +292,98 @@ function checkExecutable(filePath: string, args: string[] = []) {
 
 function callExecutable(filePath: string, args: string[] = []) {
   try {
-    return execFileSync(filePath, args, { encoding: 'utf8' });
+    return execFileSync(filePath, args, { encoding: 'utf8' }).replace(/\0/g, '');
   } catch {
     return '';
   }
+}
+
+function commandText(filePath: string, args: string[] = []) {
+  return [filePath, ...args].join(' ');
+}
+
+function execErrorMessage(err: any): string {
+  const stderr = err?.stderr?.toString?.().trim?.().replace(/\0/g, '');
+  const stdout = err?.stdout?.toString?.().trim?.().replace(/\0/g, '');
+  return stderr || stdout || err?.message || String(err);
+}
+
+function execFileAsync(filePath: string, args: string[] = []): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile(filePath, args, { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 }, (error, stdout) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(stdout ? stdout.replace(/\0/g, '') : '');
+      }
+    });
+  });
+}
+
+async function checkExecutableAsync(filePath: string, args: string[] = []): Promise<boolean> {
+  try {
+    await execFileAsync(filePath, args);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function callExecutableAsync(filePath: string, args: string[] = []): Promise<string> {
+  try {
+    return await execFileAsync(filePath, args);
+  } catch {
+    return '';
+  }
+}
+
+function runExecutable(filePath: string, args: string[] = [], timeout?: number) {
+  const options: any = { encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 };
+  if (timeout !== undefined) options.timeout = timeout;
+  try {
+    return execFileSync(filePath, args, options);
+  } catch (err) {
+    throw new Error(`${commandText(filePath, args)} failed: ${execErrorMessage(err)}`);
+  }
+}
+
+function wslCheckDocker() {
+  return checkExecutable('wsl', [
+    '-d',
+    'glacier',
+    '-u',
+    'root',
+    '--',
+    'sh',
+    '-lc',
+    wslDockerScript()
+  ]);
+}
+
+function wslDockerScript() {
+  const script = [
+    'service docker start >/dev/null 2>&1 || true',
+    'for i in 1 2 3 4 5 6 7 8 9 10; do docker info >/dev/null 2>&1 && exit 0; sleep 1; done',
+    'exit 1'
+  ].join('\n');
+  return script;
+}
+
+async function wslCheckDistroAsync(): Promise<boolean> {
+  return checkExecutableAsync('wsl', ['-d', 'glacier', '--', 'nextflow', '-version']);
+}
+
+async function wslCheckDockerAsync(): Promise<boolean> {
+  return checkExecutableAsync('wsl', [
+    '-d',
+    'glacier',
+    '-u',
+    'root',
+    '--',
+    'sh',
+    '-lc',
+    wslDockerScript()
+  ]);
 }
 
 function installNextflow() {
@@ -201,136 +410,58 @@ function installWSL2() {
   return checkExecutable('wsl', []); // trigger installation
 }
 
-function installWSL2distro() {
-  // Ensure old / broken distribution is removed
+function updateWSL2() {
+  try {
+    execFileSync('wsl', ['--update'], { stdio: 'inherit' });
+    return { ok: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`WSL update failed: ${message}`);
+  }
+}
+
+async function installWSL2distro(onProgress?: (msg: string) => void) {
+  const { version, supportsSystemd } = wslVersionCheck();
+  if (!supportsSystemd) {
+    const versionStr = version ? ` (version ${version})` : '';
+    throw new Error(
+      `WSL${versionStr} does not support systemd. GLACIER requires WSL ${MIN_WSL_SYSTEMD_VERSION} or higher. Run 'wsl --update' first.`
+    );
+  }
+
+  const { imagePath: bundledImage, searchedPaths } = await getBundledWslImage();
+  if (!bundledImage) {
+    const searched = searchedPaths.length ? ` Searched: ${searchedPaths.join(', ')}` : '';
+    throw new Error(
+      `Bundled GLACIER WSL image not found. Expected bundle/wsl/glacier-wsl.tar.${searched}`
+    );
+  }
+
+  const distroDir = getWslDistroDir();
+  mkdirSync(distroDir, { recursive: true });
+
+  onProgress?.('Terminating old WSL distro...');
+  callExecutable('wsl', ['--terminate', 'glacier']);
   callExecutable('wsl', ['--unregister', 'glacier']);
-  // Download base distribution tarball
-  return new Promise((resolve, reject) => {
-    mkdirSync(path.dirname(getDistroPath()), { recursive: true });
-    https
-      .get(
-        'https://cloud-images.ubuntu.com/releases/jammy/release/ubuntu-22.04-server-cloudimg-amd64-root.tar.xz',
-        (res) => {
-          if (res.statusCode !== 200) return reject({ ok: false });
-          const file = createWriteStream(getDistroPath());
-          res.pipe(file);
-          file.on('finish', () => {
-            // Import distribution into WSL
-            callExecutable('wsl', [
-              '--import',
-              'glacier',
-              path.dirname(getDistroPath()),
-              getDistroPath()
-            ]);
-            // Configure user account
-            callExecutable('wsl', [
-              '-d',
-              'glacier',
-              '-u',
-              'root',
-              '--',
-              'useradd',
-              '-m',
-              '-s',
-              '/bin/bash',
-              'user'
-            ]);
-            callExecutable('wsl', [
-              '-d',
-              'glacier',
-              '-u',
-              'root',
-              '--',
-              'bash',
-              '-c',
-              'echo "user:user" | chpasswd'
-            ]);
-            callExecutable('wsl', [
-              '-d',
-              'glacier',
-              '-u',
-              'root',
-              '--',
-              'bash',
-              '-c',
-              'echo -e "[user]\ndefault=user" > /etc/wsl.conf'
-            ]);
-            callExecutable('wsl', [
-              '-d',
-              'glacier',
-              '-u',
-              'root',
-              '--',
-              'bash',
-              '-c',
-              "sed -i 's/127.0.1.1.*/127.0.1.1 glacier/' /etc/hosts"
-            ]);
-            callExecutable('wsl', ['-t', 'glacier']);
-            // Install JAVA
-            callExecutable('wsl', ['-d', 'glacier', '-u', 'root', '--', 'apt', 'update', '-y']);
-            callExecutable('wsl', [
-              '-d',
-              'glacier',
-              '-u',
-              'root',
-              '--',
-              'apt',
-              'install',
-              '-y',
-              'openjdk-17-jre-headless'
-            ]);
-            callExecutable('wsl', ['-d', 'glacier', '-u', 'root', '--', 'java', '-version']);
-            // Install Docker
-            callExecutable('wsl', [
-              '-d',
-              'glacier',
-              '-u',
-              'root',
-              '--',
-              'apt',
-              'install',
-              '-y',
-              'docker.io'
-            ]);
-            callExecutable('wsl', [
-              '-d',
-              'glacier',
-              '-u',
-              'root',
-              '--',
-              'usermod',
-              '-aG',
-              'docker',
-              'user'
-            ]);
-            // Install nextflow
-            callExecutable('wsl', [
-              '-d',
-              'glacier',
-              '-u',
-              'user',
-              '--',
-              'bash',
-              '-c',
-              'curl -s https://get.nextflow.io -o ~/nextflow && chmod +x ~/nextflow'
-            ]);
-            callExecutable('wsl', [
-              '-d',
-              'glacier',
-              '-u',
-              'root',
-              '--',
-              'mv',
-              '/home/user/nextflow',
-              '/usr/local/bin/'
-            ]);
-            callExecutable('wsl', ['-d', 'glacier', '--', 'nextflow', '-version']); // init
-            resolve({ ok: true });
-          });
-        }
-      )
-      .on('error', () => reject({ ok: false }));
-  });
+
+  onProgress?.('Importing WSL distro...');
+  try {
+    runExecutable('wsl', ['--import', 'glacier', distroDir, bundledImage], 600_000);
+
+    onProgress?.('Verifying Nextflow installation...');
+    runExecutable('wsl', ['-d', 'glacier', '--', 'nextflow', '-version']);
+
+    onProgress?.('Checking Docker...');
+    if (!wslCheckDocker()) {
+      console.warn('Docker is not currently accessible inside the GLACIER WSL distribution.');
+    }
+    return { ok: true };
+  } catch (err) {
+    callExecutable('wsl', ['--terminate', 'glacier']);
+    callExecutable('wsl', ['--unregister', 'glacier']);
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Bundled GLACIER WSL distro install failed: ${message}`);
+  }
 }
 
 let _shell: any;

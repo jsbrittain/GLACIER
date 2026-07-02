@@ -420,9 +420,8 @@ describe('nextflow', () => {
         ]),
         expect.objectContaining({
           cwd: 'C:\\Users\\test',
-          stdio: ['ignore', 'pipe', 'pipe'],
-          windowsHide: true,
-          detached: true
+          stdio: 'ignore',
+          windowsHide: true
         })
       );
     });

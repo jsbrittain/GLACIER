@@ -133,6 +133,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getEnvironmentStatus: (key: string) => ipcRenderer.invoke('get-environment-status', key),
   performEnvironmentAction: (key: string, action: string) =>
     ipcRenderer.invoke('perform-environment-action', key, action),
+  onEnvironmentActionProgress: (callback: (data: { action: string; message: string }) => void) => {
+    const handler = (_event: any, data: any) => callback(data);
+    ipcRenderer.on('environment-action-progress', handler);
+    return () => {
+      ipcRenderer.removeListener('environment-action-progress', handler);
+    };
+  },
   getInstanceDiskUsage: (instance: any) => ipcRenderer.invoke('get-instance-disk-usage', instance),
   deleteOrphanedInstances: () => ipcRenderer.invoke('delete-orphaned-instances'),
   hideWorkflowInstance: (instance: any) => ipcRenderer.invoke('hide-workflow-instance', instance),

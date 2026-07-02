@@ -310,8 +310,9 @@ class ImportShard {
         const cmd = `docker load -i ${posixPath}`;
         const docker = spawn('wsl.exe', ['-d', 'glacier', '-e', 'bash', '-lc', cmd], spawnOpts);
         docker.stdout.on('data', (data) => {
-          stdout += data.toString();
-          process.stdout.write(data);
+          const text = data.toString().replace(/\0/g, '');
+          stdout += text;
+          process.stdout.write(text);
         });
         docker.stderr.on('data', (data) => {
           process.stderr.write(data);

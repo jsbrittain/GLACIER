@@ -386,6 +386,7 @@ export class Collection {
   root_path: string = '';
   documents_root_path: string = '';
   starting_up: boolean = true;
+  private _resourceRoot: string | undefined = undefined;
 
   catalogues: Catalogue[] = [];
   catalogueParseErrors: CatalogueParseError[] = [];
@@ -412,9 +413,14 @@ export class Collection {
     return path.join(this.root_path, 'catalogues');
   }
 
+  get resourceRoot(): string | undefined {
+    return this._resourceRoot;
+  }
+
   // --- Logic -------------------------------------------------------------------------
 
   async init(resourceRoot?: string): Promise<Record<string, boolean>> {
+    this._resourceRoot = resourceRoot;
     // Re-read paths from store in case they were changed
     this.root_path = getConfigPath();
     this.documents_root_path = getDocumentsPath();
@@ -1793,6 +1799,7 @@ export class Collection {
       const s = await getShell();
       return s.openInEditor(logFile);
     }
+    throw new Error(`Log file ${logFile} does not exist.`);
   }
 
   async openWorkLogFile(instance: IWorkflowInstance, workID: string, log_type: string) {
@@ -1964,8 +1971,8 @@ export class Collection {
     return getEnvironmentStatus(key);
   }
 
-  async performEnvironmentAction(key: string, action: string) {
-    return performEnvironmentAction(key, action);
+  async performEnvironmentAction(key: string, action: string, onProgress?: (msg: string) => void) {
+    return performEnvironmentAction(key, action, onProgress);
   }
 
   async parseCatalogues() {
@@ -2787,19 +2794,22 @@ export class Collection {
       console.error(`Failed to parse manifest: ${err}`);
       return;
     }
-    if (manifest.catalogues && Array.isArray(manifest.catalogues)) {
-      for (const cat of manifest.catalogues) {
-        const url = cat.url;
-        const version = cat?.version || '';
-        try {
-          await this.addCatalogue(url, version);
-          console.log(`Successfully imported catalogue from ${url}`);
-        } catch (err) {
-          console.error(`Failed to import catalogue from ${url}: ${err}`);
-        }
+    if (manifest.catalogues === undefined) {
+      return;
+    }
+    if (!Array.isArray(manifest.catalogues)) {
+      console.error('Invalid manifest format: "catalogues" must be an array.');
+      return;
+    }
+    for (const cat of manifest.catalogues) {
+      const url = cat.url;
+      const version = cat?.version || '';
+      try {
+        await this.addCatalogue(url, version);
+        console.log(`Successfully imported catalogue from ${url}`);
+      } catch (err) {
+        console.error(`Failed to import catalogue from ${url}: ${err}`);
       }
-    } else {
-      console.error('Invalid manifest format: "catalogues" array is missing.');
     }
   }
 

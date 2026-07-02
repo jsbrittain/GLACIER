@@ -37,6 +37,41 @@ describe('ProgressTracker — error hints', () => {
     expect(await screen.findByText('monitor.progress.hint-oom')).toBeInTheDocument();
   });
 
+  it('shows OOM hint when failed process requirement exceeds available memory', async () => {
+    const groupEntry = {
+      name: 'ARTIC_MINION',
+      process: [
+        {
+          time: '12:00:00',
+          full_name: 'ARTIC_MINION',
+          status: 'error',
+          cause: 'Process requirement exceeds available memory -- req: 14 GB; avail: 13.7 GB'
+        }
+      ],
+      group: []
+    };
+    mockGetInstanceProgress.mockResolvedValue({
+      ok: true,
+      data: makeProgress(
+        [
+          { time: '12:00:00', status: 'running' },
+          { time: '12:00:01', status: 'failed', cause: 'Pipeline failed' },
+          { time: '12:00:02', status: 'completed' }
+        ],
+        [groupEntry]
+      )
+    });
+
+    render(<ProgressTracker instance={mockInstance} />);
+
+    expect(await screen.findByText('monitor.progress.hint-oom')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        'Process requirement exceeds available memory -- req: 14 GB; avail: 13.7 GB'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('shows disk hint when cause contains "disk quota"', async () => {
     mockGetInstanceProgress.mockResolvedValue({
       ok: true,

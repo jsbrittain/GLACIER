@@ -390,7 +390,10 @@ export function registerIpcHandlers(resourceRoot?: string) {
   });
 
   ipcMain.handle('perform-environment-action', async (event, key, action) => {
-    return call(collection.performEnvironmentAction.bind(collection), key, action);
+    const onProgress = (message: string) => {
+      event.sender.send('environment-action-progress', { action, message });
+    };
+    return call(collection.performEnvironmentAction.bind(collection), key, action, onProgress);
   });
 
   ipcMain.handle('get-theme', async () => {

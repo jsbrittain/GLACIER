@@ -110,6 +110,7 @@ interface CustomLabelProps {
   work_folder?: string;
   exitStatus?: string;
   commandError?: string;
+  cause?: string;
 }
 
 function CustomLabel({
@@ -122,7 +123,8 @@ function CustomLabel({
   progress: progressVal,
   work_folder,
   exitStatus,
-  commandError
+  commandError,
+  cause
 }: CustomLabelProps) {
   const { t } = useTranslation();
   const [showLog, setShowLog] = useState(false);
@@ -147,7 +149,11 @@ function CustomLabel({
     setAnchorEl(null);
   };
 
-  const hasCustomError = status === ProcessStatus.Error && commandError && exitStatus;
+  const errorText = commandError || cause;
+  const hasCustomError = status === ProcessStatus.Error && (errorText || exitStatus);
+  const showOomChip =
+    exitStatus === '137' ||
+    (errorText ? findErrorHint(errorText) === 'monitor.progress.hint-oom' : false);
 
   const finished = isFinished(status as ProcessStatus);
 
@@ -287,7 +293,7 @@ function CustomLabel({
             <Typography variant="subtitle2" color="error">
               {t('monitor.progress.command-error')}
             </Typography>
-            {exitStatus === '137' && (
+            {showOomChip && (
               <Chip
                 label={t('monitor.progress.oom-killed')}
                 size="small"
@@ -295,7 +301,7 @@ function CustomLabel({
                 variant="outlined"
               />
             )}
-            {exitStatus && exitStatus !== '137' && (
+            {exitStatus && !showOomChip && (
               <Chip
                 label={t('monitor.progress.exit-status', { code: exitStatus })}
                 size="small"
@@ -327,7 +333,7 @@ function CustomLabel({
                 overflow: 'auto'
               }}
             >
-              {commandError}
+              {errorText}
             </Box>
           </Collapse>
         </Box>
@@ -355,7 +361,8 @@ const CustomTreeItem = React.forwardRef(function CustomTreeItem(
           progress: item?.progress,
           work_folder: item?.work_folder,
           exitStatus: item?.exitStatus,
-          commandError: item?.commandError
+          commandError: item?.commandError,
+          cause: item?.cause
         } as CustomLabelProps
       }}
     />
@@ -498,6 +505,22 @@ const filterTree = (items: any[], query: string): any[] => {
     .filter(Boolean);
 };
 
+const collectFailureTexts = (groups: any[] = []): string[] => {
+  const texts: string[] = [];
+  const walk = (group: any) => {
+    for (const proc of group?.process || []) {
+      if (proc?.status === ProcessStatus.Error || proc?.status === 'error') {
+        if (proc.cause) texts.push(proc.cause);
+        if (proc.commandError) texts.push(proc.commandError);
+        if (proc.exitStatus) texts.push(`exit status ${proc.exitStatus}`);
+      }
+    }
+    for (const child of group?.group || []) walk(child);
+  };
+  groups.forEach(walk);
+  return texts;
+};
+
 export default function ProgressTracker({
   instance,
   onRefresh
@@ -579,6 +602,12 @@ export default function ProgressTracker({
           const failedEvent = workflowEvents.find((e: any) => e.status === WorkflowStatus.Failed);
           const cause: string | undefined = failedEvent?.cause;
           if (cause) hint = findErrorHint(cause);
+          if (!hint) {
+            for (const text of collectFailureTexts(report?.group)) {
+              hint = findErrorHint(text);
+              if (hint) break;
+            }
+          }
         }
         setHintKey(hint);
 
@@ -656,7 +685,10 @@ export default function ProgressTracker({
           onExpandAll={handleExpandAll}
         />
         {hintKey && (
-          <Alert severity="warning" sx={{ mt: 1 }}>
+          <Alert
+            severity={hintKey === 'monitor.progress.hint-oom' ? 'error' : 'warning'}
+            sx={{ mt: 1 }}
+          >
             {t(hintKey)}
           </Alert>
         )}

@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Box, Button, Typography, Stack, Paper, LinearProgress } from '@mui/material';
+import React, { useEffect, useRef } from 'react';
+import { Alert, Box, Button, Typography, Stack, Paper, LinearProgress } from '@mui/material';
 import { API } from '../../services/api.js';
 import { EnvironmentKey } from '../../../types/environment.js';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,12 @@ export default function EnvironmentPage() {
   const [nextflowStatus, setNextflowStatus] = React.useState([]);
   const [performingAction, setPerformingAction] = React.useState(null);
   const [systemResources, setSystemResources] = React.useState(null);
+  const [actionMessage, setActionMessage] = React.useState<{
+    actionId: string;
+    severity: 'info' | 'success' | 'error';
+    text: string;
+  } | null>(null);
+  const performingActionRef = useRef<string | null>(null);
 
   const getEnvironmentStatus = async () => {
     API.getEnvironmentStatus(EnvironmentKey.Nextflow).then((result) => {
@@ -27,13 +33,37 @@ export default function EnvironmentPage() {
     getSystemResources();
   }, []);
 
-  const handlePerformAction = async (id: string) => {
-    setPerformingAction(id);
-    API.performEnvironmentAction(EnvironmentKey.Nextflow, id).then((result) => {
-      if (!result.ok) console.error(result.error.message);
-      getEnvironmentStatus(); // refresh status after action
-      setPerformingAction(null);
+  useEffect(() => {
+    const unsubscribe = API.onEnvironmentActionProgress?.((data) => {
+      if (data.action === performingActionRef.current) {
+        setActionMessage((prev) => (prev ? { ...prev, text: data.message } : null));
+      }
     });
+    return () => unsubscribe?.();
+  }, []);
+
+  const handlePerformAction = async (id: string, label: string) => {
+    performingActionRef.current = id;
+    setPerformingAction(id);
+    setActionMessage({ actionId: id, severity: 'info', text: `${label} is running...` });
+    try {
+      const result = await API.performEnvironmentAction(EnvironmentKey.Nextflow, id);
+      if (!result.ok) {
+        const message = result.error?.message || 'Unknown error';
+        console.error(message);
+        setActionMessage({ actionId: id, severity: 'error', text: `${label} failed: ${message}` });
+      } else {
+        setActionMessage({ actionId: id, severity: 'success', text: `${label} completed.` });
+      }
+      getEnvironmentStatus(); // refresh status after action
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(message);
+      setActionMessage({ actionId: id, severity: 'error', text: `${label} failed: ${message}` });
+    } finally {
+      performingActionRef.current = null;
+      setPerformingAction(null);
+    }
   };
 
   const formatBytes = (bytes: number) => {
@@ -72,24 +102,35 @@ export default function EnvironmentPage() {
                   {item.description}
                 </Typography>
                 {(item?.actions || []).map((action) => (
-                  <Box
-                    sx={{
-                      display: 'inline-flex',
-                      flexDirection: 'column',
-                      alignItems: 'stretch',
-                      p: 1
-                    }}
-                  >
-                    <Button
-                      variant="contained"
-                      size="small"
-                      disabled={performingAction !== null}
-                      onClick={() => handlePerformAction(action.action)}
+                  <React.Fragment key={action.action}>
+                    <Box
+                      sx={{
+                        display: 'inline-flex',
+                        flexDirection: 'column',
+                        alignItems: 'stretch',
+                        p: 1
+                      }}
                     >
-                      {action.label}
-                    </Button>
-                    {performingAction === action.action && <LinearProgress sx={{ mt: -0.5 }} />}
-                  </Box>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        disabled={performingAction !== null}
+                        onClick={() => handlePerformAction(action.action, action.label)}
+                      >
+                        {action.label}
+                      </Button>
+                      {performingAction === action.action && <LinearProgress sx={{ mt: -0.5 }} />}
+                    </Box>
+                    {actionMessage?.actionId === action.action && (
+                      <Alert
+                        severity={actionMessage.severity}
+                        sx={{ mx: 1, mb: 1 }}
+                        onClose={() => setActionMessage(null)}
+                      >
+                        {actionMessage.text}
+                      </Alert>
+                    )}
+                  </React.Fragment>
                 ))}
               </Paper>
             ))}

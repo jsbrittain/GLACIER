@@ -191,9 +191,8 @@ export async function runWorkflow(
     console.log(`Spawning nextflow with command: ${cmd} from ${instancePath}`);
     const p = spawn('wsl.exe', ['-d', 'glacier', '-e', 'bash', '-lc', bashCmd], {
       cwd: instancePath,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true,
-      detached: true
+      stdio: 'ignore',
+      windowsHide: true
     });
 
     // Catch asynchronous child process failures (includes nextflow not found)
