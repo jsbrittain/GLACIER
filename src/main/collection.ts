@@ -2846,7 +2846,7 @@ export class Collection {
   }
 
   async importShard(filePath: string) {
-    return importShard(filePath, this.root_path);
+    return importShard(filePath, this.root_path, this.documents_root_path);
   }
 
   async queryShardStatus(shardId: string) {

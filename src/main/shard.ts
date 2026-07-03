@@ -29,11 +29,11 @@ export const queryShardStatus = async (shardId: string) => {
 
 const shardRepository: Record<string, ImportShard> = {};
 
-export const importShard = async (filePath: string, glacierPath: string) => {
+export const importShard = async (filePath: string, glacierPath: string, documentsPath: string) => {
   // New shard instance
   const shard = new ImportShard();
   shardRepository[shard.shardId] = shard;
-  void shard.importShard(filePath, glacierPath);
+  void shard.importShard(filePath, glacierPath, documentsPath);
   return shard.shardId;
 };
 
@@ -91,7 +91,7 @@ class ImportShard {
     this.shardId = `shard-${Date.now()}`;
   }
 
-  async importShard(filePath: string, glacierPath: string) {
+  async importShard(filePath: string, glacierPath: string, documentsPath?: string) {
     this.shardStatus = ShardStatus.Pending;
     console.log(`Importing shard from file ${filePath}`);
 
@@ -118,7 +118,7 @@ class ImportShard {
 
       // Import assets / data
       this.shardStatus = ShardStatus.ImportingAssets;
-      const assetsPath = path.join(glacierPath, 'data');
+      const assetsPath = path.join(documentsPath || glacierPath, 'data');
       await this.importAssets(assetsPath);
 
       // Add catalogue entry
