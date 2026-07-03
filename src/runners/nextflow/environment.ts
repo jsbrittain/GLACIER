@@ -2,6 +2,7 @@ import https from 'https';
 import { existsSync, mkdirSync, chmodSync, createWriteStream } from 'fs';
 import { execFileSync, execFile, spawn } from 'child_process';
 import path from 'path';
+import { settings } from '../../main/settings.js';
 
 const is_windows = process.platform === 'win32';
 const is_electron = process.versions?.electron !== undefined;
@@ -76,6 +77,8 @@ export async function nextflowAction(action: string, onProgress?: (msg: string) 
       return installWSL2distro(onProgress);
     case 'install.docker':
       return installDocker();
+    case 'detect.docker':
+      return detectDocker();
     default:
       throw new Error(`Unknown Nextflow action: ${action}`);
   }
@@ -243,11 +246,39 @@ function nextflowStatus_unix() {
     }
   ];
 
-  if (!checkExecutable('docker', ['--version'])) {
+  let dockerFound = checkExecutable('docker', ['--version']);
+
+  if (!dockerFound) {
+    let extraPaths = '';
+    try {
+      extraPaths = (settings.get('extraPaths') || '').trim();
+    } catch {}
+    if (extraPaths) {
+      dockerFound = checkExecutable('docker', ['--version'], {
+        PATH: `${extraPaths}:${process.env.PATH || ''}`
+      });
+    }
+  }
+
+  if (!dockerFound) {
+    // Auto-detect common Docker locations
+    const detected = detectDockerPath();
+    if (detected) {
+      try {
+        settings.set('extraPaths', detected);
+      } catch {}
+      dockerFound = checkExecutable('docker', ['--version'], {
+        PATH: `${detected}:${process.env.PATH || ''}`
+      });
+    }
+  }
+
+  if (!dockerFound) {
     if (is_electron) {
       status_list.push({
         title: 'Docker',
-        description: 'It is recommended to have Docker installed for launching workflows.',
+        description:
+          'Docker was not found. If Docker is already installed, go to Settings > Environment and add its location. Otherwise, install Docker Desktop.',
         status: 'warning',
         actions: [
           {
@@ -281,9 +312,12 @@ function isNextflowInstalled(nextflowPath: string = 'nextflow'): boolean {
   return checkExecutable(nextflowPath, ['-version']);
 }
 
-function checkExecutable(filePath: string, args: string[] = []) {
+function checkExecutable(filePath: string, args: string[] = [], env?: Record<string, string>) {
   try {
-    execFileSync(filePath, args, { stdio: 'ignore' });
+    execFileSync(filePath, args, {
+      stdio: 'ignore',
+      ...(env ? { env: { ...process.env, ...env } } : {})
+    });
     return true;
   } catch {
     return false;
@@ -482,4 +516,38 @@ async function installDocker() {
   const s = await getShell();
   await s.openExternal('https://www.docker.com/products/docker-desktop/');
   return { ok: true };
+}
+
+const COMMON_DOCKER_PATHS = [
+  '/usr/local/bin/docker',
+  '/opt/homebrew/bin/docker',
+  '/usr/bin/docker',
+  '/Applications/Docker.app/Contents/Resources/bin/docker'
+];
+
+function detectDockerPath(): string {
+  for (const dp of COMMON_DOCKER_PATHS) {
+    if (checkExecutable(dp, ['--version'])) {
+      return path.dirname(dp);
+    }
+  }
+  return '';
+}
+
+async function detectDocker() {
+  const detected = detectDockerPath();
+  if (detected) {
+    try {
+      const currentExtraPaths = (settings.get('extraPaths') || '').trim();
+      const paths = currentExtraPaths ? currentExtraPaths.split(':') : [];
+      if (!paths.includes(detected)) {
+        paths.unshift(detected);
+        settings.set('extraPaths', paths.join(':'));
+      }
+    } catch {}
+    return { ok: true, path: detected };
+  }
+  throw new Error(
+    'Could not find a Docker installation in common locations. Please install Docker Desktop or set the path manually.'
+  );
 }

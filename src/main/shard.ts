@@ -6,6 +6,7 @@ import { spawn } from 'child_process';
 import crypto from 'crypto';
 import slash from 'slash';
 import { ShardStatus, ShardStatusValue, shardStatusMessage } from '../types/shard.js';
+import { settings } from './settings.js';
 
 const is_windows = process.platform === 'win32';
 
@@ -304,6 +305,14 @@ class ImportShard {
       let stdout = '';
 
       const spawnOpts = is_windows ? { windowsHide: true, detached: true } : {};
+      let extraPaths = '';
+      try {
+        extraPaths = (settings.get('extraPaths') || '').trim();
+      } catch {}
+      const dockerEnv =
+        extraPaths && !is_windows
+          ? { ...process.env, PATH: `${extraPaths}:${process.env.PATH || ''}` }
+          : undefined;
 
       if (is_windows) {
         const posixPath = toPosixPath(imagePath);
@@ -347,7 +356,10 @@ class ImportShard {
         return;
       }
 
-      const docker = spawn('docker', ['load', '-i', imagePath], spawnOpts);
+      const docker = spawn('docker', ['load', '-i', imagePath], {
+        ...spawnOpts,
+        ...(dockerEnv ? { env: dockerEnv } : {})
+      });
       docker.stdout.on('data', (data) => {
         stdout += data.toString();
         process.stdout.write(data);
@@ -367,7 +379,7 @@ class ImportShard {
           return;
         }
         const imageId = match[1];
-        const tagProc = spawn('docker', ['tag', imageId, tag]);
+        const tagProc = spawn('docker', ['tag', imageId, tag], dockerEnv ? { env: dockerEnv } : {});
         tagProc.on('error', reject);
         tagProc.on('close', (tagCode) => {
           if (tagCode === 0) {

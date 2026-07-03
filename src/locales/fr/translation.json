@@ -134,7 +134,9 @@
       "running": "En cours",
       "completed": "Terminé",
       "closed": "Fermé",
-      "failed": "Échoué"
+      "failed": "Échoué",
+      "unknown": "Inconnu",
+      "undefined": "Indéfini"
     },
     "progress": "Progression",
     "launch_time": "Date de lancement",
@@ -299,7 +301,10 @@
       "system-resources": "Ressources système",
       "cpu-cores": "Cœurs CPU",
       "free-memory": "Mémoire libre",
-      "total-memory": "Mémoire totale"
+      "total-memory": "Mémoire totale",
+      "extra-paths": "Entrées PATH supplémentaires",
+      "extra-paths-desc": "Liste de répertoires séparés par des deux-points à ajouter au PATH lors du lancement de Nextflow. Utile si Docker (ou d'autres outils requis par Nextflow) est installé dans un emplacement personnalisé.",
+      "detect-docker": "Détecter Docker"
     },
     "licenses": "Licences"
   }

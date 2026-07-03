@@ -1,14 +1,26 @@
 import React, { useEffect, useRef } from 'react';
-import { Alert, Box, Button, Typography, Stack, Paper, LinearProgress } from '@mui/material';
+import {
+  Alert,
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Stack,
+  Paper,
+  LinearProgress
+} from '@mui/material';
 import { API } from '../../services/api.js';
 import { EnvironmentKey } from '../../../types/environment.js';
+import { SettingsKey } from '../../../types/settings.js';
 import { useTranslation } from 'react-i18next';
 
 export default function EnvironmentPage() {
   const { t } = useTranslation();
+  const isWindows = navigator.platform.startsWith('Win');
   const [nextflowStatus, setNextflowStatus] = React.useState([]);
   const [performingAction, setPerformingAction] = React.useState(null);
   const [systemResources, setSystemResources] = React.useState(null);
+  const [extraPaths, setExtraPaths] = React.useState('');
   const [actionMessage, setActionMessage] = React.useState<{
     actionId: string;
     severity: 'info' | 'success' | 'error';
@@ -31,6 +43,9 @@ export default function EnvironmentPage() {
   useEffect(() => {
     getEnvironmentStatus();
     getSystemResources();
+    API.settingsGet(SettingsKey.ExtraPaths).then((result) => {
+      if (result.ok) setExtraPaths(result.data || '');
+    });
   }, []);
 
   useEffect(() => {
@@ -42,6 +57,11 @@ export default function EnvironmentPage() {
     return () => unsubscribe?.();
   }, []);
 
+  const handleExtraPathsChange = (value: string) => {
+    setExtraPaths(value);
+    API.settingsSet(SettingsKey.ExtraPaths, value);
+  };
+
   const handlePerformAction = async (id: string, label: string) => {
     performingActionRef.current = id;
     setPerformingAction(id);
@@ -52,7 +72,23 @@ export default function EnvironmentPage() {
         const message = result.error?.message || 'Unknown error';
         console.error(message);
         setActionMessage({ actionId: id, severity: 'error', text: `${label} failed: ${message}` });
-      } else {
+      } else if (id === 'detect.docker') {
+        const path = result.data?.path;
+        if (path) {
+          setExtraPaths(path);
+          setActionMessage({
+            actionId: id,
+            severity: 'success',
+            text: `Docker detected at ${path}`
+          });
+        } else {
+          setActionMessage({
+            actionId: id,
+            severity: 'error',
+            text: 'Could not detect Docker installation.'
+          });
+        }
+      } else if (id !== 'install.docker') {
         setActionMessage({ actionId: id, severity: 'success', text: `${label} completed.` });
       }
       getEnvironmentStatus(); // refresh status after action
@@ -89,6 +125,47 @@ export default function EnvironmentPage() {
             <Typography variant="body1">
               {t('settings.environment.total-memory')}: {formatBytes(systemResources.totalMem)}
             </Typography>
+          </Paper>
+        )}
+        {!isWindows && (
+          <Paper sx={{ mb: 2, p: 2 }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>
+              {t('settings.environment.extra-paths')}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+              <TextField
+                value={extraPaths}
+                onChange={(e) => handleExtraPathsChange(e.target.value)}
+                size="small"
+                sx={{ flexGrow: 1 }}
+              />
+              <Button
+                variant="outlined"
+                size="small"
+                disabled={performingAction !== null}
+                onClick={() =>
+                  handlePerformAction('detect.docker', t('settings.environment.detect-docker'))
+                }
+                sx={{ mt: 0.5, whiteSpace: 'nowrap' }}
+              >
+                {t('settings.environment.detect-docker')}
+              </Button>
+            </Box>
+            <Typography
+              variant="caption"
+              sx={{ mt: 0.5, display: 'block', color: 'text.secondary' }}
+            >
+              {t('settings.environment.extra-paths-desc')}
+            </Typography>
+            {actionMessage?.actionId === 'detect.docker' && (
+              <Alert
+                severity={actionMessage.severity}
+                sx={{ mt: 1 }}
+                onClose={() => setActionMessage(null)}
+              >
+                {actionMessage.text}
+              </Alert>
+            )}
           </Paper>
         )}
         {nextflowStatus.length > 0 ? (
