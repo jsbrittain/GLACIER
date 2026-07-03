@@ -7,6 +7,7 @@ import rehypeSanitize from 'rehype-sanitize';
 import { defaultSchema } from 'hast-util-sanitize';
 import { remarkAdmonitions } from './remarkAdmonitions';
 import './markdown.css';
+import { useTheme } from '@mui/material/styles';
 import { API } from '../../services/api.js';
 
 const sanitizeSchema = {
@@ -20,6 +21,9 @@ const sanitizeSchema = {
 };
 
 export default function MarkdownRenderer({ content, basePath }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
   function resolveHref(href) {
     if (
       href.startsWith('http://') ||
@@ -34,41 +38,45 @@ export default function MarkdownRenderer({ content, basePath }) {
   }
 
   return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm, remarkDirective, remarkAdmonitions]}
-      rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
-      components={{
-        // Image
-        img({ src = '', alt, ...props }) {
-          const isExternal =
-            src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:');
+    <div className={isDark ? 'markdown-dark' : 'markdown-light'}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkDirective, remarkAdmonitions]}
+        rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
+        components={{
+          // Image
+          img({ src = '', alt, ...props }) {
+            const isExternal =
+              src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:');
 
-          const resolvedSrc = isExternal
-            ? src
-            : src.startsWith('/')
-              ? `${basePath}${src}`
-              : `${basePath}/${src}`;
+            const resolvedSrc = isExternal
+              ? src
+              : src.startsWith('/')
+                ? `${basePath}${src}`
+                : `${basePath}/${src}`;
 
-          return <img {...props} src={resolvedSrc} alt={alt ?? ''} style={{ maxWidth: '100%' }} />;
-        },
+            return (
+              <img {...props} src={resolvedSrc} alt={alt ?? ''} style={{ maxWidth: '100%' }} />
+            );
+          },
 
-        // Link
-        a({ href = '', children, ...props }) {
-          const handleClick = (e) => {
-            if (href.startsWith('#')) return;
-            e.preventDefault();
-            API.openWebPage(resolveHref(href));
-          };
+          // Link
+          a({ href = '', children, ...props }) {
+            const handleClick = (e) => {
+              if (href.startsWith('#')) return;
+              e.preventDefault();
+              API.openWebPage(resolveHref(href));
+            };
 
-          return (
-            <a {...props} href={href} onClick={handleClick} style={{ cursor: 'pointer' }}>
-              {children}
-            </a>
-          );
-        }
-      }}
-    >
-      {content}
-    </ReactMarkdown>
+            return (
+              <a {...props} href={href} onClick={handleClick} style={{ cursor: 'pointer' }}>
+                {children}
+              </a>
+            );
+          }
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
   );
 }
