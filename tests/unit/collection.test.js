@@ -1315,14 +1315,18 @@ describe('Collection', () => {
     it('calls taskkill with /PID and /T in graceful mode', () => {
       const result = collection.killPID(123, 'graceful');
 
-      expect(spawnSyncMock).toHaveBeenCalledWith('taskkill', ['/PID', '123', '/T'], { stdio: 'inherit' });
+      expect(spawnSyncMock).toHaveBeenCalledWith('taskkill', ['/PID', '123', '/T'], {
+        stdio: 'inherit'
+      });
       expect(result).toBe(true);
     });
 
     it('adds /F flag in kill mode', () => {
       const result = collection.killPID(123, 'kill');
 
-      expect(spawnSyncMock).toHaveBeenCalledWith('taskkill', ['/PID', '123', '/T', '/F'], { stdio: 'inherit' });
+      expect(spawnSyncMock).toHaveBeenCalledWith('taskkill', ['/PID', '123', '/T', '/F'], {
+        stdio: 'inherit'
+      });
       expect(result).toBe(true);
     });
 

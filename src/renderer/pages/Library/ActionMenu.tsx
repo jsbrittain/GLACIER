@@ -40,7 +40,7 @@ export default function ActionMenu({
     return API.getCatalogues().then((result) => {
       if (result.ok) {
         setCatalogues(result.data);
-        setRefresh(prev => !prev);
+        setRefresh((prev) => !prev);
       } else {
         throw new Error(result.error.message);
       }
