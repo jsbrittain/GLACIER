@@ -132,7 +132,6 @@ class ImportShard {
     } catch (err) {
       this.shardStatus = ShardStatus.Error;
       this.log.error(`Shard import failed: ${err}`);
-      throw err;
     } finally {
       // Clean-up staging area
       this.cleanupStagingArea(stagingPath);
@@ -332,26 +331,49 @@ class ImportShard {
             reject(new Error(`docker load failed with code ${code}`));
             return;
           }
-          const match = stdout.match(/(sha256:[a-f0-9]+)/i);
-          if (!match) {
-            reject(new Error('Could not determine loaded image ID'));
+          const shaMatch = stdout.match(/(sha256:[a-f0-9]+)/i);
+          if (shaMatch) {
+            const imageId = shaMatch[1];
+            const tagCmd = `docker tag ${imageId} ${tag}`;
+            const tagProc = spawn(
+              'wsl.exe',
+              ['-d', 'glacier', '-e', 'bash', '-lc', tagCmd],
+              spawnOpts
+            );
+            tagProc.on('error', reject);
+            tagProc.on('close', (tagCode) => {
+              if (tagCode === 0) {
+                resolve();
+              } else {
+                reject(new Error(`docker tag failed with code ${tagCode}`));
+              }
+            });
             return;
           }
-          const imageId = match[1];
-          const tagCmd = `docker tag ${imageId} ${tag}`;
-          const tagProc = spawn(
-            'wsl.exe',
-            ['-d', 'glacier', '-e', 'bash', '-lc', tagCmd],
-            spawnOpts
-          );
-          tagProc.on('error', reject);
-          tagProc.on('close', (tagCode) => {
-            if (tagCode === 0) {
+          const loadedMatch = stdout.match(/Loaded image:\s*(\S+)/i);
+          if (loadedMatch) {
+            const loadedRef = loadedMatch[1];
+            if (loadedRef === tag) {
               resolve();
-            } else {
-              reject(new Error(`docker tag failed with code ${tagCode}`));
+              return;
             }
-          });
+            const tagCmd = `docker tag ${loadedRef} ${tag}`;
+            const tagProc = spawn(
+              'wsl.exe',
+              ['-d', 'glacier', '-e', 'bash', '-lc', tagCmd],
+              spawnOpts
+            );
+            tagProc.on('error', reject);
+            tagProc.on('close', (tagCode) => {
+              if (tagCode === 0) {
+                resolve();
+              } else {
+                reject(new Error(`docker tag failed with code ${tagCode}`));
+              }
+            });
+            return;
+          }
+          reject(new Error('Could not determine loaded image ID'));
         });
         return;
       }
@@ -373,21 +395,39 @@ class ImportShard {
           reject(new Error(`docker load failed with code ${code}`));
           return;
         }
-        const match = stdout.match(/(sha256:[a-f0-9]+)/i);
-        if (!match) {
-          reject(new Error('Could not determine loaded image ID'));
+        const shaMatch = stdout.match(/(sha256:[a-f0-9]+)/i);
+        if (shaMatch) {
+          const imageId = shaMatch[1];
+          const tagProc = spawn('docker', ['tag', imageId, tag], dockerEnv ? { env: dockerEnv } : {});
+          tagProc.on('error', reject);
+          tagProc.on('close', (tagCode) => {
+            if (tagCode === 0) {
+              resolve();
+            } else {
+              reject(new Error(`docker tag failed with code ${tagCode}`));
+            }
+          });
           return;
         }
-        const imageId = match[1];
-        const tagProc = spawn('docker', ['tag', imageId, tag], dockerEnv ? { env: dockerEnv } : {});
-        tagProc.on('error', reject);
-        tagProc.on('close', (tagCode) => {
-          if (tagCode === 0) {
+        const loadedMatch = stdout.match(/Loaded image:\s*(\S+)/i);
+        if (loadedMatch) {
+          const loadedRef = loadedMatch[1];
+          if (loadedRef === tag) {
             resolve();
-          } else {
-            reject(new Error(`docker tag failed with code ${tagCode}`));
+            return;
           }
-        });
+          const tagProc = spawn('docker', ['tag', loadedRef, tag], dockerEnv ? { env: dockerEnv } : {});
+          tagProc.on('error', reject);
+          tagProc.on('close', (tagCode) => {
+            if (tagCode === 0) {
+              resolve();
+            } else {
+              reject(new Error(`docker tag failed with code ${tagCode}`));
+            }
+          });
+          return;
+        }
+        reject(new Error('Could not determine loaded image ID'));
       });
     });
   }
