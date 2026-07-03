@@ -7,20 +7,40 @@
 
 .admonition-note {
   border-color: #1976d2;
+}
+.markdown-light .admonition-note {
   background: #e3f2fd;
+}
+.markdown-dark .admonition-note {
+  background: rgba(25, 118, 210, 0.12);
 }
 
 .admonition-warning {
   border-color: #ed6c02;
+}
+.markdown-light .admonition-warning {
   background: #fff4e5;
+}
+.markdown-dark .admonition-warning {
+  background: rgba(237, 108, 2, 0.12);
 }
 
 .admonition-tip {
   border-color: #2e7d32;
+}
+.markdown-light .admonition-tip {
   background: #e8f5e9;
+}
+.markdown-dark .admonition-tip {
+  background: rgba(46, 125, 50, 0.12);
 }
 
 .admonition-important {
   border-color: #6a1b9a;
+}
+.markdown-light .admonition-important {
   background: #f3e5f5;
+}
+.markdown-dark .admonition-important {
+  background: rgba(106, 27, 154, 0.12);
 }
