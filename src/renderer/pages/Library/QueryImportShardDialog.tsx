@@ -30,7 +30,10 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
   const [selectedFile, setSelectedFile] = React.useState('');
   const [status, setStatus] = React.useState(null);
 
-  const isActive = importing && (!status || (status.status !== 'completed' && status.status !== 'failed' && status.status !== 'unknown'));
+  const isActive =
+    importing &&
+    (!status ||
+      (status.status !== 'completed' && status.status !== 'failed' && status.status !== 'unknown'));
 
   useEffect(() => {
     setImporting(false);
@@ -63,11 +66,7 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
             }
             const s = statusResult.data;
             setStatus(s);
-            if (
-              s.status === 'completed' ||
-              s.status === 'failed' ||
-              s.status === 'unknown'
-            ) {
+            if (s.status === 'completed' || s.status === 'failed' || s.status === 'unknown') {
               clearInterval(intervalId);
               if (s.status === 'failed') {
                 logMessage(`Import failed: ${s.message}`);
@@ -82,14 +81,13 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
 
   const currentStage = Math.min(status?.currentStage || 0, status?.totalStages || 5);
   const totalStages = status?.totalStages || 5;
-  const stageFraction = currentStage > 0 ? (currentStage - 1 + (status?.stageProgress || 0) / 100) / totalStages : 0;
+  const stageFraction =
+    currentStage > 0 ? (currentStage - 1 + (status?.stageProgress || 0) / 100) / totalStages : 0;
   const overallProgress = Math.min(stageFraction * 100, 100);
   const stageDone = (status?.stageProgress || 0) >= 100;
   const hasItems = (status?.stageItemsTotal || 0) > 1;
-  const isDeterminate = hasItems || stageDone;
-  const itemsLabel = hasItems
-    ? `${status.stageItemsCompleted} / ${status.stageItemsTotal}`
-    : '';
+  const isDeterminate = hasItems || stageDone || (status?.stageProgress || 0) > 0;
+  const itemsLabel = hasItems ? `${status.stageItemsCompleted} / ${status.stageItemsTotal}` : '';
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -123,14 +121,15 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
                 </Typography>
                 <LinearProgress
                   variant={isDeterminate ? 'determinate' : 'indeterminate'}
-                  value={isDeterminate ? (status?.stageProgress || 0) : undefined}
+                  value={isDeterminate ? status?.stageProgress || 0 : undefined}
                 />
               </Box>
 
               <Box>
                 {STAGES.map((label, idx) => {
                   const stageNum = idx + 1;
-                  const isDone = currentStage > stageNum || (currentStage === stageNum && stageDone);
+                  const isDone =
+                    currentStage > stageNum || (currentStage === stageNum && stageDone);
                   const isCurrent = currentStage === stageNum && !isDone;
                   return (
                     <Box
@@ -148,11 +147,7 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
                       <Typography
                         variant="body2"
                         color={
-                          isDone
-                            ? 'text.secondary'
-                            : isCurrent
-                              ? 'text.primary'
-                              : 'text.disabled'
+                          isDone ? 'text.secondary' : isCurrent ? 'text.primary' : 'text.disabled'
                         }
                       >
                         {label}

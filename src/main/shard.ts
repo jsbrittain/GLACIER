@@ -203,12 +203,25 @@ class ImportShard {
   }
 
   async extractTar(tarPath: string, destPath: string) {
-    // Extract tarball (or gzipped tarball) to destination path
     fs.mkdirSync(destPath, { recursive: true });
+    const { size: totalBytes } = fs.statSync(tarPath);
+    let bytesRead = 0;
+
     try {
-      await tar.extract({
-        file: tarPath,
-        cwd: destPath
+      await new Promise<void>((resolve, reject) => {
+        const readStream = fs.createReadStream(tarPath);
+        const extractor = tar.extract({ cwd: destPath });
+
+        readStream.on('data', (chunk) => {
+          bytesRead += chunk.length;
+          this.stageProgress = Math.round((bytesRead / totalBytes) * 100);
+        });
+
+        readStream.on('error', reject);
+        extractor.on('error', reject);
+        extractor.on('finish', resolve);
+
+        readStream.pipe(extractor);
       });
     } catch (err) {
       console.error(`Error extracting tarball ${tarPath}: ${err}`);
@@ -308,7 +321,8 @@ class ImportShard {
     // Traverse containers list in manifest
     const containers_list: ContainerInfo[] = this.manifest?.containers || [];
     const totalPlatforms = containers_list.reduce(
-      (sum, c) => sum + Object.keys(c.platforms || {}).length, 0
+      (sum, c) => sum + Object.keys(c.platforms || {}).length,
+      0
     );
     this.stageItemsTotal = totalPlatforms;
     this.log.info(`Installing ${totalPlatforms} container images from manifest`);
@@ -435,7 +449,11 @@ class ImportShard {
         const shaMatch = stdout.match(/(sha256:[a-f0-9]+)/i);
         if (shaMatch) {
           const imageId = shaMatch[1];
-          const tagProc = spawn('docker', ['tag', imageId, tag], dockerEnv ? { env: dockerEnv } : {});
+          const tagProc = spawn(
+            'docker',
+            ['tag', imageId, tag],
+            dockerEnv ? { env: dockerEnv } : {}
+          );
           tagProc.on('error', reject);
           tagProc.on('close', (tagCode) => {
             if (tagCode === 0) {
@@ -453,7 +471,11 @@ class ImportShard {
             resolve();
             return;
           }
-          const tagProc = spawn('docker', ['tag', loadedRef, tag], dockerEnv ? { env: dockerEnv } : {});
+          const tagProc = spawn(
+            'docker',
+            ['tag', loadedRef, tag],
+            dockerEnv ? { env: dockerEnv } : {}
+          );
           tagProc.on('error', reject);
           tagProc.on('close', (tagCode) => {
             if (tagCode === 0) {
