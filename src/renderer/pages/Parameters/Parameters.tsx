@@ -1,7 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Paper, Stack, Tabs, Tab, Typography, Button, Tooltip, Alert } from '@mui/material';
+import {
+  Box,
+  Paper,
+  Stack,
+  Tabs,
+  Tab,
+  Typography,
+  Button,
+  Tooltip,
+  Alert,
+  Menu,
+  MenuItem,
+  ButtonGroup
+} from '@mui/material';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { JsonForms } from '@jsonforms/react';
-import Ajv, { ErrorObject } from 'ajv'; // ajv is also used by jsonforms
+import Ajv from 'ajv'; // ajv is also used by jsonforms
 import addMetaSchema2020 from 'ajv/dist/refs/json-schema-2020-12/index.js';
 import { buildUISchema } from './buildUISchema';
 import { renderers } from './renderers';
@@ -12,13 +26,11 @@ import { API } from '../../services/api.js';
 import { useTranslation } from 'react-i18next';
 
 const ajv = new Ajv({
-  useDefaults: true, // populate all fields (if not provided)
+  useDefaults: true,
   allErrors: true,
   strict: false
 });
 addMetaSchema2020.call(ajv, false);
-
-// add custom AJV formats
 ajv.addFormat('file-path', {
   type: 'string',
   validate: (v: string) => typeof v === 'string' && v.length > 0
@@ -28,6 +40,24 @@ ajv.addFormat('directory-path', {
   validate: (v: string) => typeof v === 'string' && v.length > 0
 });
 ajv.addFormat('path', {
+  type: 'string',
+  validate: (v: string) => typeof v === 'string' && v.length > 0
+});
+
+const validationAjv = new Ajv({
+  allErrors: true,
+  strict: false
+});
+addMetaSchema2020.call(validationAjv, false);
+validationAjv.addFormat('file-path', {
+  type: 'string',
+  validate: (v: string) => typeof v === 'string' && v.length > 0
+});
+validationAjv.addFormat('directory-path', {
+  type: 'string',
+  validate: (v: string) => typeof v === 'string' && v.length > 0
+});
+validationAjv.addFormat('path', {
   type: 'string',
   validate: (v: string) => typeof v === 'string' && v.length > 0
 });
@@ -48,7 +78,8 @@ export default function ParametersPage({
   const { t } = useTranslation();
   const default_profile = 'standard';
 
-  const [disableSchemaValidation, setDisableSchemaValidation] = useState<boolean>(false);
+  const [permitOverride, setPermitOverride] = useState<boolean>(false);
+  const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
   const [params, setParams] = useState<Record<string, unknown>>({});
   const [schema, setSchema] = useState<Record<string, unknown> | null>({});
@@ -69,12 +100,12 @@ export default function ParametersPage({
   const paramsFilter = 'JSON';
   const paramsFileFilters = [{ name: paramsFilter, extensions: ['json'] }];
 
-  const onLaunch = async (instance, params) => {
+  const onLaunch = async (instance, params, ignoreValidation = false) => {
     if (!isValidWorkflow) {
       logMessage(t('parameters.no-valid-workflow'), 'error');
       return;
     }
-    if (schemaErrors !== null) {
+    if (!ignoreValidation && computedErrors !== null) {
       setTabSelected(2);
       return;
     }
@@ -138,9 +169,9 @@ export default function ParametersPage({
   };
 
   useEffect(() => {
-    const getSettings = async () => {
-      const schemaValResult = await API.settingsGet(SettingsKey.DisableSchemaValidation);
-      if (schemaValResult.ok) setDisableSchemaValidation(schemaValResult.data);
+    const getOverrideSetting = async () => {
+      const result = await API.settingsGet(SettingsKey.PermitParamOverride);
+      if (result.ok) setPermitOverride(result.data);
     };
     const get_available_profiles = async () => {
       const profilesResult = await API.getAvailableProfiles(instance);
@@ -202,7 +233,7 @@ export default function ParametersPage({
     };
 
     get_available_profiles().then((profiles) => {
-      getSettings();
+      getOverrideSetting();
       get_schema(profiles);
       get_params();
       fetchReadme();
@@ -213,45 +244,26 @@ export default function ParametersPage({
     API.getInstanceResourceCheck(instance).then((result) => {
       if (result.ok) setResourceWarning(result.data);
     });
-  }, [instance]);
+  }, [instance, startOnParamsTab]);
 
-  // Read schema and compile with AJV
-  const validate = useMemo(() => {
-    if (disableSchemaValidation) {
-      // no-op validator
-      const fn: any = () => true;
-      fn.errors = null;
-      return fn;
-    }
-    try {
-      return ajv.compile(schema);
-    } catch {
-      const fn: any = () => true;
-      fn.errors = null;
-      return fn;
-    }
-  }, [schema]);
+  const isEmpty = (obj) => {
+    return Object.keys(obj).length === 0;
+  };
 
   // Build the UI schema with stepper options
   const uischema = buildUISchema(schema, { showHidden: showHiddenParams });
   (uischema as any).options = { variant: 'stepper', showNavButtons: true };
 
-  const schemaErrors: ErrorObject[] | null = useMemo(() => {
-    if (disableSchemaValidation) {
+  const computedErrors = useMemo(() => {
+    if (!schema || isEmpty(schema)) return null;
+    try {
+      const validator = validationAjv.compile(schema);
+      validator(params);
+      return validator.errors?.length > 0 ? validator.errors : null;
+    } catch {
       return null;
     }
-
-    try {
-      validate(params);
-      return validate.errors ?? null;
-    } catch {
-      return [{ instancePath: '', keyword: 'schema', message: 'Invalid schema' } as any];
-    }
-  }, [params, validate]);
-
-  const isEmpty = (obj) => {
-    return Object.keys(obj).length === 0;
-  };
+  }, [schema, params]);
 
   const handleTabChange = (event, newValue) => {
     setTabSelected(newValue);
@@ -267,16 +279,75 @@ export default function ParametersPage({
           <Button variant="outlined" onClick={() => setTabSelected(2)}>
             {t('parameters.params-menu')}
           </Button>
-          <Tooltip
-            title={!isValidWorkflow ? t('parameters.no-valid-workflow') : ''}
-            disableHoverListener={isValidWorkflow}
-          >
-            <span>
-              <Button variant="contained" onClick={() => onLaunch(instance, params)}>
-                {t('parameters.launch-workflow')}
-              </Button>
-            </span>
-          </Tooltip>
+          {permitOverride ? (
+            <>
+              <ButtonGroup variant="contained">
+                <Tooltip
+                  title={!isValidWorkflow ? t('parameters.no-valid-workflow') : ''}
+                  disableHoverListener={isValidWorkflow}
+                >
+                  <span>
+                    <Button
+                      type="button"
+                      disabled={!isValidWorkflow}
+                      onClick={() => {
+                        if (computedErrors !== null) {
+                          setTabSelected(2);
+                          return;
+                        }
+                        onLaunch(instance, params);
+                      }}
+                    >
+                      {t('parameters.launch-workflow')}
+                    </Button>
+                  </span>
+                </Tooltip>
+                <Button
+                  type="button"
+                  size="small"
+                  disabled={!isValidWorkflow}
+                  onClick={(e) => setMenuAnchor(e.currentTarget)}
+                >
+                  <ArrowDropDownIcon />
+                </Button>
+              </ButtonGroup>
+              <Menu
+                anchorEl={menuAnchor}
+                open={Boolean(menuAnchor)}
+                onClose={() => setMenuAnchor(null)}
+              >
+                <MenuItem
+                  onClick={() => {
+                    setMenuAnchor(null);
+                    onLaunch(instance, params, true);
+                  }}
+                >
+                  {t('parameters.launch-ignore-validation')}
+                </MenuItem>
+              </Menu>
+            </>
+          ) : (
+            <Tooltip
+              title={!isValidWorkflow ? t('parameters.no-valid-workflow') : ''}
+              disableHoverListener={isValidWorkflow}
+            >
+              <span>
+                <Button
+                  variant="contained"
+                  disabled={!isValidWorkflow}
+                  onClick={() => {
+                    if (computedErrors !== null) {
+                      setTabSelected(2);
+                      return;
+                    }
+                    onLaunch(instance, params);
+                  }}
+                >
+                  {t('parameters.launch-workflow')}
+                </Button>
+              </span>
+            </Tooltip>
+          )}
           {allProfiles.includes('test') && (
             <TestRunDialog allProfiles={allProfiles} onLaunch={onTestLaunchWorkflow} />
           )}
@@ -336,8 +407,10 @@ export default function ParametersPage({
                 uischema={uischema}
                 data={params}
                 renderers={renderers}
-                onChange={({ data }) => setParams(data)}
-                ajv={disableSchemaValidation ? undefined : ajv}
+                onChange={({ data }) => {
+                  setParams(data);
+                }}
+                ajv={ajv}
               />
             ) : (
               <Typography>{t('parameters.params.no-parameters')}</Typography>

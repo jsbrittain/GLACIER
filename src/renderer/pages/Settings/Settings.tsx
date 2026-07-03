@@ -61,7 +61,7 @@ export default function SettingsPage({
 
   const [language, setLanguage] = React.useState(i18n.language?.split('-')[0] || 'en');
   const [tabValue, setTabValue] = React.useState(0);
-  const [disableSchemaValidation, setDisableSchemaValidation] = React.useState(false);
+  const [permitParamOverride, setPermitParamOverride] = React.useState(false);
   const configRef = useRef(customNextflowConfig);
   const cpuRef = useRef(resourceLimitsCpu);
   const memRef = useRef(resourceLimitsMemory);
@@ -112,9 +112,9 @@ export default function SettingsPage({
     });
   };
 
-  const handleDisableSchemaValidation = (value) => {
-    setDisableSchemaValidation(value);
-    API.settingsSet(SettingsKey.DisableSchemaValidation, value).then((result) => {
+  const handlePermitParamOverride = (value) => {
+    setPermitParamOverride(value);
+    API.settingsSet(SettingsKey.PermitParamOverride, value).then((result) => {
       if (!result.ok) console.error(result.error.message);
     });
   };
@@ -190,8 +190,8 @@ export default function SettingsPage({
     API.settingsGet(SettingsKey.PermitAddRepos).then((result) => {
       if (result.ok && result.data !== undefined) setPermitAddRepos(result.data);
     });
-    API.settingsGet(SettingsKey.DisableSchemaValidation).then((result) => {
-      if (result.ok) setDisableSchemaValidation(result.data);
+    API.settingsGet(SettingsKey.PermitParamOverride).then((result) => {
+      if (result.ok) setPermitParamOverride(result.data);
     });
   }, []);
 
@@ -411,11 +411,11 @@ export default function SettingsPage({
           <FormControlLabel
             control={
               <Switch
-                checked={disableSchemaValidation}
-                onChange={(_, checked) => handleDisableSchemaValidation(checked)}
+                checked={permitParamOverride}
+                onChange={(_, checked) => handlePermitParamOverride(checked)}
               />
             }
-            label={t('settings.disable-schema-validation')}
+            label={t('settings.permit-param-override')}
           />
           <FormControlLabel
             control={

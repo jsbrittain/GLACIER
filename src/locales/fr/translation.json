@@ -179,6 +179,7 @@
   },
   "parameters": {
     "launch-workflow": "Lancer le flux de travail",
+    "launch-ignore-validation": "Lancer en ignorant la validation",
     "info": {
       "title": "Description"
     },
@@ -272,7 +273,7 @@
     "visual-options": "Visuelles",
     "advanced-options": "Avancées",
     "disable-projects": "Désactiver la gestion des projets",
-    "disable-schema-validation": "Désactiver la validation stricte du schéma",
+    "permit-param-override": "Autoriser le remplacement des paramètres",
     "show-hidden-params": "Afficher les paramètres cachés",
     "auto-store-dir": "Résolution automatique du paramètre store_dir",
     "auto-outdir": "Résolution automatique du paramètre outdir",
