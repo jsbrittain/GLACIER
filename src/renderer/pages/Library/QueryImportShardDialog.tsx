@@ -63,7 +63,7 @@ export default function QueryImportShardDialog({ open, refresh, onClose, logMess
               return;
             }
             const status = statusResult.data;
-            logMessage(`Shard status: ${status.status} (${status.message})`);
+            logMessage(`Shard status: ${status.message}`);
             setLogs(status?.logs || []);
             if (
               status.status === 'completed' ||
