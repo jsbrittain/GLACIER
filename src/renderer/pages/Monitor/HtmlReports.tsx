@@ -15,19 +15,42 @@ export default function HtmlReports({ instance }) {
   const [source, setSource] = React.useState<'instance' | 'output'>('instance');
   const [outputPathAvailable, setOutputPathAvailable] = React.useState(false);
 
+  // Auto-select best source when instance changes: output has priority, fall back to instance.
+  // Does NOT load reports — that is handled by the second effect below.
   useEffect(() => {
-    API.getOutputPathForInstance(instance).then((result) => {
-      const available = result.ok && !!result.data;
+    let cancelled = false;
+
+    API.getOutputPathForInstance(instance).then((pathResult) => {
+      if (cancelled) return;
+      const available = pathResult.ok && !!pathResult.data;
       setOutputPathAvailable(available);
-      if (available) setSource('output');
+
+      if (!available) {
+        setSource('instance');
+        return;
+      }
+
+      API.getPathReportsList(pathResult.data).then((result) => {
+        if (cancelled) return;
+        setSource(result.ok && (result.data || []).length > 0 ? 'output' : 'instance');
+      });
     });
+
+    return () => {
+      cancelled = true;
+    };
   }, [instance]);
 
+  // Load reports for the current source (triggered by instance or manual tab switch).
+  // If no reports exist for the selected source, show the empty state.
   useEffect(() => {
     setSelected(null);
     setReportsList([]);
+    let cancelled = false;
+
     if (source === 'instance') {
       API.getInstanceReportsList(instance).then((result) => {
+        if (cancelled) return;
         if (result.ok) {
           const list = result.data || [];
           setReportsList(list);
@@ -36,8 +59,10 @@ export default function HtmlReports({ instance }) {
       });
     } else {
       API.getOutputPathForInstance(instance).then((pathResult) => {
+        if (cancelled) return;
         if (pathResult.ok && pathResult.data) {
           API.getPathReportsList(pathResult.data).then((result) => {
+            if (cancelled) return;
             if (result.ok) {
               const list = result.data || [];
               setReportsList(list);
@@ -47,6 +72,10 @@ export default function HtmlReports({ instance }) {
         }
       });
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [instance, source]);
 
   useEffect(() => {
