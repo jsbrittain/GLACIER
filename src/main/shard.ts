@@ -23,7 +23,12 @@ export const queryShardStatus = async (shardId: string) => {
   return {
     status: status,
     message: shardStatusMessage[status],
-    logs: shard?.log?.logs || []
+    logs: shard?.log?.logs || [],
+    totalStages: shard?.totalStages || 0,
+    currentStage: shard?.currentStage || 0,
+    stageProgress: shard?.stageProgress || 0,
+    stageItemsTotal: shard?.stageItemsTotal || 0,
+    stageItemsCompleted: shard?.stageItemsCompleted || 0
   };
 };
 
@@ -87,8 +92,29 @@ class ImportShard {
   log: Logger = new Logger();
   imported_workflows: Array<{ name: string; repo: string; version: string }> = [];
 
+  totalStages: number = 5;
+  currentStage: number = 0;
+  stageProgress: number = 0;
+  stageItemsTotal: number = 0;
+  stageItemsCompleted: number = 0;
+
   constructor() {
     this.shardId = `shard-${Date.now()}`;
+  }
+
+  private setStage(stage: number, status: ShardStatusValue, itemsTotal: number = 0) {
+    this.currentStage = stage;
+    this.shardStatus = status;
+    this.stageProgress = 0;
+    this.stageItemsTotal = itemsTotal;
+    this.stageItemsCompleted = 0;
+  }
+
+  private advanceItem() {
+    this.stageItemsCompleted++;
+    if (this.stageItemsTotal > 0) {
+      this.stageProgress = Math.round((this.stageItemsCompleted / this.stageItemsTotal) * 100);
+    }
   }
 
   async importShard(filePath: string, glacierPath: string, documentsPath?: string) {
@@ -100,34 +126,38 @@ class ImportShard {
 
     try {
       // Decompress filePath (.shard, which is actually a .tar.gz) into staging area
-      this.shardStatus = ShardStatus.ExtractingShard;
+      this.setStage(1, ShardStatus.ExtractingShard);
       this.shardPath = await this.extractTar(filePath, stagingPath);
 
       // Read manifest
       await this.readManifest();
 
       // Extract workflow files and move to GLACIER catalogue
-      this.shardStatus = ShardStatus.ImportingWorkflows;
+      this.setStage(2, ShardStatus.ImportingWorkflows);
       const workflowPath = path.join(glacierPath, 'workflows');
       await this.extractWorkflows(workflowPath);
 
       // Install containers
-      this.shardStatus = ShardStatus.InstallingContainers;
+      this.setStage(3, ShardStatus.InstallingContainers);
       const containersPath = path.join(glacierPath, 'containers');
       await this.installContainers(containersPath);
 
       // Import assets / data
-      this.shardStatus = ShardStatus.ImportingAssets;
+      this.setStage(4, ShardStatus.ImportingAssets);
       const assetsPath = path.join(documentsPath || glacierPath, 'data');
       await this.importAssets(assetsPath);
 
       // Add catalogue entry
-      this.shardStatus = ShardStatus.UpdatingCatalogue;
+      this.setStage(5, ShardStatus.UpdatingCatalogue);
       const cataloguePath = path.join(glacierPath, 'catalogues');
       await this.addCatalogueEntry(cataloguePath);
 
       // Finished
       this.shardStatus = ShardStatus.Completed;
+      this.currentStage = this.totalStages + 1;
+      this.stageProgress = 100;
+      this.stageItemsCompleted = 1;
+      this.stageItemsTotal = 1;
       this.log.success(`Shard import completed successfully`);
     } catch (err) {
       this.shardStatus = ShardStatus.Error;
@@ -209,7 +239,9 @@ class ImportShard {
     const workflowFiles = fs.readdirSync(shardWorkflowPath).filter((file) => !file.startsWith('.'));
     console.log(`Found workflow files: ${workflowFiles.join(', ')}`);
     this.log.info(`Extracting ${workflowFiles.length} workflows from shard`);
+    this.stageItemsTotal = workflowFiles.length;
     for (const file of workflowFiles) {
+      this.stageProgress = Math.round((this.stageItemsCompleted / this.stageItemsTotal) * 100);
       const ext = path.extname(file);
       if (ext === '.bundle') {
         // git bundle
@@ -259,8 +291,8 @@ class ImportShard {
       } else {
         // otherwise, ignore
         this.log.warning(`Ignoring unrecognized workflow file ${file}`);
-        continue;
       }
+      this.advanceItem();
     }
   }
 
@@ -275,7 +307,11 @@ class ImportShard {
     fs.mkdirSync(containersPath, { recursive: true });
     // Traverse containers list in manifest
     const containers_list: ContainerInfo[] = this.manifest?.containers || [];
-    this.log.info(`Installing ${containers_list.length} containers from manifest`);
+    const totalPlatforms = containers_list.reduce(
+      (sum, c) => sum + Object.keys(c.platforms || {}).length, 0
+    );
+    this.stageItemsTotal = totalPlatforms;
+    this.log.info(`Installing ${totalPlatforms} container images from manifest`);
     for (const container of containers_list) {
       const imageRef = container.image;
       const imageTag = imageRef.split('@')[0];
@@ -295,6 +331,7 @@ class ImportShard {
         await this.verifyFileIntegrity(destPath, sha256);
         console.log(`Loading container ${filePath} into Docker`);
         await this.loadDockerImage(destPath, imageTag);
+        this.advanceItem();
       }
     }
   }
@@ -458,16 +495,19 @@ class ImportShard {
     fs.mkdirSync(assetsPath, { recursive: true });
     const assetFiles = fs.readdirSync(shardAssetsPath);
     console.log(`Found asset files: ${assetFiles.join(', ')}`);
+    this.stageItemsTotal = assetFiles.length;
     for (const file of assetFiles) {
       // Skip hidden files
       if (file.startsWith('.')) {
         console.warn(`Skipping hidden file ${file}`);
+        this.advanceItem();
         continue;
       }
       const srcPath = path.join(shardAssetsPath, file);
       const destPath = path.join(assetsPath, file);
       console.log(`Moving asset ${file} from ${srcPath} to ${destPath}`);
       fs.renameSync(srcPath, destPath);
+      this.advanceItem();
     }
   }
 
