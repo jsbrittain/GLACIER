@@ -12,7 +12,7 @@ export interface StoreSchema {
   permitCatalogueModifications: boolean;
   permitImportShards: boolean;
   permitAddRepos: boolean;
-  disableSchemaValidation: boolean;
+  permitParamOverride: boolean;
   instanceSortBy: string;
   instanceSortDir: string;
   showLogPanel: boolean;
@@ -43,7 +43,7 @@ function getInstance() {
           permitCatalogueModifications: { type: 'boolean', default: true },
           permitImportShards: { type: 'boolean', default: true },
           permitAddRepos: { type: 'boolean', default: true },
-          disableSchemaValidation: { type: 'boolean', default: false },
+          permitParamOverride: { type: 'boolean', default: false },
           instanceSortBy: { type: 'string', default: 'name' },
           instanceSortDir: { type: 'string', default: 'asc' },
           showLogPanel: { type: 'boolean', default: false },

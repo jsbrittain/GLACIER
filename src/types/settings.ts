@@ -7,7 +7,7 @@ export const SettingsKey = {
   PermitCatalogueModifications: 'permitCatalogueModifications',
   PermitImportShards: 'permitImportShards',
   PermitAddRepos: 'permitAddRepos',
-  DisableSchemaValidation: 'disableSchemaValidation',
+  PermitParamOverride: 'permitParamOverride',
   InstanceSortBy: 'instanceSortBy',
   InstanceSortDir: 'instanceSortDir',
   ShowLogPanel: 'showLogPanel',
