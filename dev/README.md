@@ -12,6 +12,10 @@ Run `npm test` to execute the unit test suite, which also produces coverage repo
 
 End-to-end tests are managed by playwright, run `npx playwright test` to execute them. This will test both the electron build and the client-server build. You can run playwright in UI mode by appending the `--ui` flag.
 
+# Making a release
+
+Update the version number in `package.json` and tag the commit, e.g. `git tag v1.0.0`. Then, push the tag, e.g. `git push origin v1.0.0`. The CI workflow will automatically build and publish the release (as a draft) to GitHub.
+
 # Adding backend functionality
 
 Since GLACIER supports both an electron build (where the backend runs in the same process as the frontend) and a client-server build (where the backend runs in a separate server), backend functionality is abstracted through an API layer. Calls from the frontend to the backend are made through either 1) electron's Inter-Process Communication (IPC) mechanism, or 2) an HTTP server request. To add new functionality that can be called from the frontend, you need to do the following:
