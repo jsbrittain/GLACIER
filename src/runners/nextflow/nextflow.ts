@@ -93,6 +93,14 @@ const get_electron_paths = async () => {
     env.NXF_SYNTAX_PARSER = `v${syntaxParser}`;
   }
 
+  try {
+    const extraPaths = (settings.get('extraPaths') || '').trim();
+    if (extraPaths) {
+      const currentPath = env.PATH || process.env.PATH || '';
+      env.PATH = `${extraPaths}:${currentPath}`;
+    }
+  } catch {}
+
   return { is_electron, java_binary, jar_file, env };
 };
 
@@ -195,12 +203,28 @@ export async function runWorkflow(
     // Show the run name in the minimized WSL console so the user can identify it
     const titledBashCmd = `echo "GLACIER run: ${name}" && ${bashCmd}`;
 
-    const p = spawn('cmd.exe', ['/c', 'start', '/MIN', '/WAIT', 'wsl.exe', '-d', 'glacier', '-e', 'bash', '-lc', titledBashCmd], {
-      cwd: instancePath,
-      stdio: 'ignore',
-      detached: true,
-      windowsHide: true
-    });
+    const p = spawn(
+      'cmd.exe',
+      [
+        '/c',
+        'start',
+        '/MIN',
+        '/WAIT',
+        'wsl.exe',
+        '-d',
+        'glacier',
+        '-e',
+        'bash',
+        '-lc',
+        titledBashCmd
+      ],
+      {
+        cwd: instancePath,
+        stdio: 'ignore',
+        detached: true,
+        windowsHide: true
+      }
+    );
 
     // Catch asynchronous child process failures (includes nextflow not found)
     p.on('error', (err) => {
@@ -296,6 +320,12 @@ export async function runWorkflow(
       const nxfEnv = { ...process.env };
       const parserVal = settings.get('nextflowSyntaxParser');
       if (parserVal) nxfEnv.NXF_SYNTAX_PARSER = `v${parserVal}`;
+      try {
+        const extraPaths = (settings.get('extraPaths') || '').trim();
+        if (extraPaths) {
+          nxfEnv.PATH = `${extraPaths}:${nxfEnv.PATH || ''}`;
+        }
+      } catch {}
       p = spawn('nextflow', cmd, {
         cwd: instancePath,
         env: nxfEnv,

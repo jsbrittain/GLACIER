@@ -1217,7 +1217,9 @@ export class Collection {
               if (deeper) return deeper;
             }
           }
-        } catch { /* process may have exited */ }
+        } catch {
+          /* process may have exited */
+        }
         return null;
       };
 

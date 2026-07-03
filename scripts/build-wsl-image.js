@@ -142,7 +142,9 @@ async function main() {
   run(`wsl -d ${DISTRO_NAME} -u root -- apt install -y docker.io openjdk-21-jre-headless`);
   run(`wsl -d ${DISTRO_NAME} -u root -- useradd -m -s /bin/bash user`);
   run(`wsl -d ${DISTRO_NAME} -u root -- bash -c "echo 'user:user' | chpasswd"`);
-  run(`wsl -d ${DISTRO_NAME} -u root -- bash -c "printf '[user]\\ndefault=user\\n[boot]\\nsystemd=true\\n' > /etc/wsl.conf"`);
+  run(
+    `wsl -d ${DISTRO_NAME} -u root -- bash -c "printf '[user]\\ndefault=user\\n[boot]\\nsystemd=true\\n' > /etc/wsl.conf"`
+  );
   run(
     `wsl -d ${DISTRO_NAME} -u root -- bash -c "sed -i 's/127.0.1.1.*/127.0.1.1 glacier/' /etc/hosts"`
   );

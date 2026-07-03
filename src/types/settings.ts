@@ -18,7 +18,8 @@ export const SettingsKey = {
   StoreDirPath: 'storeDirPath',
   ResourceLimitsCpu: 'resourceLimitsCpu',
   ResourceLimitsMemory: 'resourceLimitsMemory',
-  CustomNextflowConfig: 'customNextflowConfig'
+  CustomNextflowConfig: 'customNextflowConfig',
+  ExtraPaths: 'extraPaths'
 } as const;
 
 export type SettingsKey = (typeof SettingsKey)[keyof typeof SettingsKey];
