@@ -100,7 +100,7 @@ export async function runRepo_NextflowDocker(repoPath: string, name: string, par
       Binds: binds
     },
     WorkingDir: dockerPath,
-    Cmd: ['nextflow', 'run', 'main.nf'],
+    Cmd: ['nextflow', 'run', '.'],
     platform: platform
   });
 
