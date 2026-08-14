@@ -619,4 +619,114 @@ describe('nextflow', () => {
       expect(calls.length).toBe(0);
     });
   });
+
+  describe('runWorkflow — profile persistence and recall', () => {
+    let profileRunWorkflow;
+    let origPlatformDarwin;
+    let configDir;
+
+    beforeEach(async () => {
+      origPlatformDarwin = Object.getOwnPropertyDescriptor(process, 'platform');
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true });
+      vi.resetModules();
+      const mod = await import('../../src/runners/nextflow/nextflow.js');
+      profileRunWorkflow = mod.runWorkflow;
+    });
+
+    afterEach(() => {
+      if (origPlatformDarwin) {
+        Object.defineProperty(process, 'platform', origPlatformDarwin);
+      }
+      if (configDir && fs.existsSync(configDir)) {
+        fs.rmSync(configDir, { recursive: true, force: true });
+      }
+    });
+
+    function instanceWithConfig(content) {
+      configDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nf-profile-'));
+      fs.writeFileSync(path.join(configDir, 'nextflow.config'), content, 'utf8');
+      return makeInstance({ workflow_version: { path: configDir, version: 'v1.0' } });
+    }
+
+    it('persists the selected profile on fresh launch', async () => {
+      const writeSpy = vi.spyOn(fs.promises, 'writeFile').mockResolvedValue(undefined);
+
+      await profileRunWorkflow(makeInstance(), {}, { profile: 'conda' });
+
+      expect(writeSpy).toHaveBeenCalledWith(
+        expect.stringContaining('glacier-profile.json'),
+        JSON.stringify({ profile: 'conda' }),
+        'utf8'
+      );
+      expect(mockSpawn).toHaveBeenCalledWith(
+        'nextflow',
+        expect.arrayContaining(['-profile', 'conda']),
+        expect.anything()
+      );
+    });
+
+    it('resume recalls the profile saved at launch', async () => {
+      makeInstance();
+      fs.writeFileSync(
+        path.resolve(DEFAULT_INSTANCE_PATH, 'glacier-profile.json'),
+        JSON.stringify({ profile: 'conda' }),
+        'utf8'
+      );
+
+      await profileRunWorkflow(makeInstance(), {}, { resume: true });
+
+      expect(mockSpawn).toHaveBeenCalledWith(
+        'nextflow',
+        expect.arrayContaining(['-profile', 'conda', '-resume']),
+        expect.anything()
+      );
+    });
+
+    it('resume defaults to docker when no profile saved and workflow defines it', async () => {
+      await profileRunWorkflow(
+        instanceWithConfig(`
+          profiles {
+            docker { }
+            standard { }
+          }
+        `),
+        {},
+        { resume: true }
+      );
+
+      expect(mockSpawn).toHaveBeenCalledWith(
+        'nextflow',
+        expect.arrayContaining(['-profile', 'docker', '-resume']),
+        expect.anything()
+      );
+    });
+
+    it('resume falls back to standard when no profile saved and no docker profile', async () => {
+      await profileRunWorkflow(makeInstance(), {}, { resume: true });
+
+      expect(mockSpawn).toHaveBeenCalledWith(
+        'nextflow',
+        expect.arrayContaining(['-profile', 'standard', '-resume']),
+        expect.anything()
+      );
+    });
+
+    it('fresh launch defaults to docker when no explicit profile and workflow defines it', async () => {
+      await profileRunWorkflow(
+        instanceWithConfig(`
+          profiles {
+            docker { }
+            standard { }
+          }
+        `),
+        {}
+      );
+
+      expect(mockSpawn).toHaveBeenCalledWith(
+        'nextflow',
+        expect.arrayContaining(['-profile', 'docker']),
+        expect.anything()
+      );
+    });
+  });
 });

@@ -22,6 +22,7 @@ import { renderers } from './renderers';
 import MarkdownRenderer from './MarkdownRenderer';
 import TestRunDialog from './TestRunDialog.js';
 import { SettingsKey } from '../../../types/settings.js';
+import { defaultProfileFrom } from '../../../types/profile.js';
 import { API } from '../../services/api.js';
 import { useTranslation } from 'react-i18next';
 
@@ -76,7 +77,6 @@ export default function ParametersPage({
   startOnParamsTab
 }) {
   const { t } = useTranslation();
-  const default_profile = 'standard';
 
   const [permitOverride, setPermitOverride] = useState<boolean>(false);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
@@ -84,6 +84,7 @@ export default function ParametersPage({
   const [params, setParams] = useState<Record<string, unknown>>({});
   const [schema, setSchema] = useState<Record<string, unknown> | null>({});
   const [allProfiles, setAllProfiles] = useState<string[]>([]);
+  const [defaultProfile, setDefaultProfile] = useState<string>('standard');
   const [tabSelected, setTabSelected] = React.useState(startOnParamsTab ? 2 : 0);
   const [readme, setReadme] = useState<string>('');
   const [license, setLicense] = useState<string>('');
@@ -111,7 +112,7 @@ export default function ParametersPage({
     }
     // Strip out profile from params before sending to backend
     const call_params = { ...params };
-    const profile = params['profile'] || default_profile;
+    const profile = params['profile'] || defaultProfile;
     delete call_params['profile'];
     // Return PID on success
     const result = await API.runWorkflow(instance, call_params, { profile: profile });
@@ -175,10 +176,11 @@ export default function ParametersPage({
     };
     const get_available_profiles = async () => {
       const profilesResult = await API.getAvailableProfiles(instance);
-      if (!profilesResult.ok) return [default_profile];
+      if (!profilesResult.ok) return ['standard'];
       const profiles = profilesResult.data;
       setAllProfiles(profiles || []);
-      return profiles || [default_profile];
+      setDefaultProfile(defaultProfileFrom(profiles || []));
+      return profiles || ['standard'];
     };
     const get_schema = async (profiles: string[]) => {
       const schemaResult = await API.getWorkflowSchema(instance.workflow_version.path);
@@ -198,11 +200,7 @@ export default function ParametersPage({
             enum: profiles
           },
           uniqueItems: true,
-          default: profiles.includes(default_profile)
-            ? [default_profile]
-            : profiles.length > 0
-              ? [profiles[0]]
-              : []
+          default: profiles.includes(defaultProfile) ? [defaultProfile] : []
         };
       }
       setSchema(schema);
