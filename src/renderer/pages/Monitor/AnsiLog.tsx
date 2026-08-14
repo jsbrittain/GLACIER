@@ -11,9 +11,15 @@ const converter = new AnsiToHtml({
   stream: false
 });
 
+// Strip terminal control sequences that ansi-to-html does not render:
+// OSC (Operating System Command) sequences (e.g. OSC 8 hyperlinks) and
+// cursor-visibility codes (e.g. \x1b[?25l). SGR colour codes are kept.
+const stripUnsupportedCodes = (text: string) =>
+  text.replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, '').replace(/\x1b\[\?[0-9]*[hl]/g, '');
+
 export default function AnsiLog({ text }) {
   const html = useMemo(() => {
-    const raw = converter.toHtml(text || '');
+    const raw = converter.toHtml(stripUnsupportedCodes(text || ''));
     return DOMPurify.sanitize(raw);
   }, [text]);
 
