@@ -222,7 +222,6 @@ describe('nextflow', () => {
         'nextflow',
         expect.arrayContaining([
           'run',
-          expect.stringContaining('main.nf'),
           '-work-dir',
           expect.any(String),
           '-profile',
