@@ -44,6 +44,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   cloneRepo: (repoUrl: string, ver: string, sourceVer?: string) =>
     ipcRenderer.invoke('clone-repo', repoUrl, ver, sourceVer),
+  updateShardWorkflow: (repoId: string, url: string, ver: string, sourceVer?: string) =>
+    ipcRenderer.invoke('update-shard-workflow', repoId, url, ver, sourceVer),
   getRepoTags: (repoUrl: string) => ipcRenderer.invoke('get-repo-tags', repoUrl),
   isRepoInstalled: (repoUrl: string, ver: string) =>
     ipcRenderer.invoke('is-repo-installed', repoUrl, ver),

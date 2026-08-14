@@ -36,6 +36,8 @@ const electronAPI = isElectron
         window.electronAPI.getWorkLog(instance, workID, logType),
       getAvailableProfiles: (instance) => window.electronAPI.getAvailableProfiles(instance),
       cloneRepo: (repoUrl, ver, sourceVer) => window.electronAPI.cloneRepo(repoUrl, ver, sourceVer),
+      updateShardWorkflow: (repoId, url, ver, sourceVer) =>
+        window.electronAPI.updateShardWorkflow(repoId, url, ver, sourceVer),
       getRepoTags: (repoUrl) => window.electronAPI.getRepoTags(repoUrl),
       isRepoInstalled: (repoUrl, ver) => window.electronAPI.isRepoInstalled(repoUrl, ver),
       isValidWorkflowRepo: (repoPath) => window.electronAPI.isValidWorkflowRepo(repoPath),
@@ -190,6 +192,8 @@ const httpAPI = {
     httpDispatch('/api/get-available-profiles', 'POST', { instance }),
   cloneRepo: async (repoUrl, ver, sourceVer) =>
     httpDispatch('/api/clone-repo', 'POST', { repoUrl, ver, sourceVer }),
+  updateShardWorkflow: async (repoId, url, ver, sourceVer) =>
+    httpDispatch('/api/update-shard-workflow', 'POST', { repoId, url, ver, sourceVer }),
   getRepoTags: async (repoUrl) => httpDispatch('/api/get-repo-tags', 'POST', { repoUrl }),
   isRepoInstalled: async (repoUrl, ver) =>
     httpDispatch('/api/is-repo-installed', 'POST', { repoUrl, ver }),

@@ -6,12 +6,60 @@ import { spawn } from 'child_process';
 import crypto from 'crypto';
 import slash from 'slash';
 import { ShardStatus, ShardStatusValue, shardStatusMessage } from '../types/shard.js';
+import { parseRepoUrl } from './repo.js';
 import { settings } from './settings.js';
 
 const is_windows = process.platform === 'win32';
 
 const toPosixPath = (base: string) => {
   return slash(base.replace(/^([A-Za-z]):\\/, (_, drive) => `/mnt/${drive.toLowerCase()}/`));
+};
+
+// Read the origin remote URL from a git repository's .git/config. Returns
+// undefined when the repo has no .git, no origin remote, or the config is
+// unreadable. Never throws — this is best-effort metadata for update checks.
+const readGitRemote = (repoPath: string): string | undefined => {
+  const configPath = path.join(repoPath, '.git', 'config');
+  if (!fs.existsSync(configPath)) return undefined;
+  let section = '';
+  try {
+    for (const line of fs.readFileSync(configPath, 'utf8').split('\n')) {
+      const trimmed = line.trim();
+      const sectionMatch = trimmed.match(/^\[([^\]]+)\]$/);
+      if (sectionMatch) {
+        const remoteMatch = sectionMatch[1].match(/^remote\s+"([^"]+)"$/);
+        section = remoteMatch ? remoteMatch[1] : '';
+        continue;
+      }
+      if (section === 'origin' && trimmed.startsWith('url')) {
+        const eq = trimmed.indexOf('=');
+        if (eq !== -1) {
+          const value = trimmed.slice(eq + 1).trim();
+          if (value) return value;
+        }
+      }
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
+};
+
+// Normalize a remote reference to short-form owner/repo (accepting GitHub
+// https URLs, git@github.com SSH URLs, or short form). Returns undefined for
+// anything invalid or non-GitHub.
+const normalizeRemote = (remote: string | undefined): string | undefined => {
+  if (!remote) return undefined;
+  let r = remote.trim();
+  if (r.startsWith('git@')) {
+    r = r.replace(/^git@([^:]+):(.*)$/, (_, host, path) => `https://${host}/${path}`);
+  }
+  try {
+    const { owner, repo } = parseRepoUrl(r);
+    return `${owner}/${repo}`;
+  } catch {
+    return undefined;
+  }
 };
 
 export const queryShardStatus = async (shardId: string) => {
@@ -90,7 +138,7 @@ class ImportShard {
   shardPath: string = '';
   manifest: any;
   log: Logger = new Logger();
-  imported_workflows: Array<{ name: string; repo: string; version: string }> = [];
+  imported_workflows: Array<{ name: string; repo: string; version: string; url?: string }> = [];
 
   totalStages: number = 5;
   currentStage: number = 0;
@@ -295,11 +343,24 @@ class ImportShard {
           target_folder = new_target_folder;
         }
         const extracted_name = path.basename(target_folder.slice(0, -5)); // remove tag
+        // Determine the source remote so the imported workflow can be checked
+        // for updates online even though it was installed offline. An explicit
+        // manifest entry overrides the origin recorded in the bundled repo's
+        // .git/config (which the shard generator already embeds).
+        const manifest_workflows = Array.isArray(this.manifest?.workflows)
+          ? this.manifest.workflows
+          : [];
+        const manifest_remote = manifest_workflows.find(
+          (w: { name: string }) => w.name === extracted_name
+        )?.repo;
+        const url =
+          normalizeRemote(manifest_remote) ?? normalizeRemote(readGitRemote(target_folder));
         // add workflow to catalogue-import list
         this.imported_workflows.push({
           name: extracted_name,
           repo: `local/${extracted_name}`,
-          version: 'main'
+          version: 'main',
+          ...(url ? { url } : {})
         });
       } else {
         // otherwise, ignore
@@ -567,11 +628,15 @@ class ImportShard {
     }
 
     for (const workflow of this.imported_workflows) {
-      js.sections[0].workflows.push({
+      const entry: { name: string; repo: string; version: string; url?: string } = {
         name: workflow.name,
         repo: workflow.repo,
         version: workflow.version
-      });
+      };
+      if (workflow.url) {
+        entry.url = workflow.url;
+      }
+      js.sections[0].workflows.push(entry);
     }
 
     fs.mkdirSync(catalogueDir, { recursive: true });

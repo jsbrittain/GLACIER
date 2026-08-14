@@ -151,6 +151,34 @@ describe('cloneRepo', () => {
     expect(result.version).toBe('v1.0');
   });
 
+  it('clones into an explicit target directory when provided', async () => {
+    const dir = wd('target-override');
+    const targetDir = path.join(dir, 'local', 'test-repo@latest');
+    git.clone.mockResolvedValue(undefined);
+    git.getRemoteInfo.mockResolvedValue(makeMockRemoteInfo());
+
+    const result = await repo.cloneRepo('owner/test-repo', dir, 'v1.0', 'latest', targetDir);
+
+    expect(git.clone).toHaveBeenCalledWith(
+      expect.objectContaining({ dir: targetDir, url: 'https://github.com/owner/test-repo.git' })
+    );
+    expect(result.path).toBe(targetDir);
+    expect(fs.existsSync(targetDir)).toBe(true);
+  });
+
+  it('re-clones into an existing explicit target directory', async () => {
+    const dir = wd('target-reclone');
+    const targetDir = path.join(dir, 'local', 'test-repo@latest');
+    fs.mkdirSync(targetDir, { recursive: true });
+    git.clone.mockResolvedValue(undefined);
+    git.getRemoteInfo.mockResolvedValue(makeMockRemoteInfo());
+
+    const result = await repo.cloneRepo('owner/test-repo', dir, 'v1.0', 'latest', targetDir);
+
+    expect(git.clone).toHaveBeenCalledWith(expect.objectContaining({ dir: targetDir }));
+    expect(result.path).toBe(targetDir);
+  });
+
   it('cleans up directory on clone failure', async () => {
     const dir = wd('fail');
     git.clone.mockRejectedValue(new Error('Network error'));
@@ -234,6 +262,17 @@ describe('getRepoTags', () => {
 
     expect(tags).toEqual([]);
   });
+
+  it('returns empty array when the remote has no tags', async () => {
+    git.getRemoteInfo.mockResolvedValue({
+      HEAD: null,
+      refs: { heads: { main: 'a' } }
+    });
+
+    const tags = await repo.getRepoTags('owner/test-repo');
+
+    expect(tags).toEqual([]);
+  });
 });
 
 describe('getRepoBranches', () => {
@@ -254,6 +293,69 @@ describe('getRepoBranches', () => {
     const branches = await repo.getRepoBranches('owner/test-repo');
 
     expect(branches).toEqual([]);
+  });
+
+  it('returns empty array when the remote has no heads', async () => {
+    git.getRemoteInfo.mockResolvedValue({
+      HEAD: null,
+      refs: { tags: {} }
+    });
+
+    const branches = await repo.getRepoBranches('owner/test-repo');
+
+    expect(branches).toEqual([]);
+  });
+});
+
+describe('remote branch helpers', () => {
+  it('getRemoteBranchHeads returns the branch-to-commit map', async () => {
+    git.getRemoteInfo.mockResolvedValue(
+      makeMockRemoteInfo({ refs: { tags: {}, heads: { main: 'abc123', dev: 'def456' } } })
+    );
+
+    const heads = await repo.getRemoteBranchHeads('owner/test-repo');
+
+    expect(heads).toEqual({ main: 'abc123', dev: 'def456' });
+  });
+
+  it('getRemoteBranchHeads returns empty map on failure', async () => {
+    git.getRemoteInfo.mockRejectedValue(new Error('Network error'));
+
+    const heads = await repo.getRemoteBranchHeads('owner/test-repo');
+
+    expect(heads).toEqual({});
+  });
+
+  it('getRepoBranch returns the current branch name', async () => {
+    git.currentBranch.mockResolvedValue('main');
+
+    const branch = await repo.getRepoBranch('/some/repo');
+
+    expect(branch).toBe('main');
+  });
+
+  it('getRepoBranch returns null when unreadable', async () => {
+    git.currentBranch.mockRejectedValue(new Error('not a git repo'));
+
+    const branch = await repo.getRepoBranch('/some/repo');
+
+    expect(branch).toBeNull();
+  });
+
+  it('getRepoHeadCommit resolves HEAD', async () => {
+    git.resolveRef.mockResolvedValue('abc123');
+
+    const commit = await repo.getRepoHeadCommit('/some/repo');
+
+    expect(commit).toBe('abc123');
+  });
+
+  it('getRepoHeadCommit returns null when unreadable', async () => {
+    git.resolveRef.mockRejectedValue(new Error('not a git repo'));
+
+    const commit = await repo.getRepoHeadCommit('/some/repo');
+
+    expect(commit).toBeNull();
   });
 });
 

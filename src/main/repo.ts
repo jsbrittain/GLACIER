@@ -66,7 +66,8 @@ export async function cloneRepo(
   repoUrl: string,
   workflowDir: string,
   ver: string | null = null,
-  dirSuffix?: string
+  dirSuffix?: string,
+  targetDir?: string
 ): Promise<ICloneRepo> {
   const { owner, repo, url } = parseRepoUrl(repoUrl);
 
@@ -84,36 +85,36 @@ export async function cloneRepo(
 
   // Determine and create the target directory
   const suffix = dirSuffix || version;
-  const targetDir = path.join(workflowDir, owner, repo + '@' + suffix);
-  if (fs.existsSync(targetDir)) {
-    if (dirSuffix === 'latest') {
+  const targetDirFinal = targetDir || path.join(workflowDir, owner, repo + '@' + suffix);
+  if (fs.existsSync(targetDirFinal)) {
+    if (dirSuffix === 'latest' || targetDir) {
       // Remove and re-clone to switch to the selected version
-      fs.rmSync(targetDir, { recursive: true, force: true });
+      fs.rmSync(targetDirFinal, { recursive: true, force: true });
     } else {
       return {
         owner: owner,
         repo: repo,
         version: version,
         url: url,
-        path: targetDir
+        path: targetDirFinal
       } as ICloneRepo;
     }
   }
-  fs.mkdirSync(targetDir, { recursive: true });
+  fs.mkdirSync(targetDirFinal, { recursive: true });
 
   // Clone
   try {
     await git.clone({
       fs,
       http,
-      dir: targetDir,
+      dir: targetDirFinal,
       url: url,
       ref: version, // branch or tag
       singleBranch: true,
       depth: 1
     });
   } catch (err: unknown) {
-    fs.rmSync(targetDir, { recursive: true, force: true }); // Clean up on failure
+    fs.rmSync(targetDirFinal, { recursive: true, force: true }); // Clean up on failure
     throw err;
   }
 
@@ -122,7 +123,7 @@ export async function cloneRepo(
     repo: repo,
     version: version,
     url: url,
-    path: targetDir
+    path: targetDirFinal
   } as ICloneRepo;
 }
 
@@ -175,7 +176,7 @@ export async function getRepoTags(url: string) {
   const { url: full_url } = parseRepoUrl(url);
   try {
     const info = await git.getRemoteInfo({ http, url: full_url });
-    return Object.keys(info.refs.tags).reverse();
+    return Object.keys(info.refs?.tags ?? {}).reverse();
   } catch {
     console.info(`Failed to fetch tags from ${url}`);
     return [];
@@ -186,10 +187,41 @@ export async function getRepoBranches(url: string) {
   const { url: full_url } = parseRepoUrl(url);
   try {
     const info = await git.getRemoteInfo({ http, url: full_url });
-    return Object.keys(info.refs.heads);
+    return Object.keys(info.refs?.heads ?? {});
   } catch {
     console.info(`Failed to fetch branches from ${url}`);
     return [];
+  }
+}
+
+// Map of remote branch name -> commit SHA for a repository URL.
+export async function getRemoteBranchHeads(url: string): Promise<Record<string, string>> {
+  const { url: full_url } = parseRepoUrl(url);
+  try {
+    const info = await git.getRemoteInfo({ http, url: full_url });
+    return info.refs?.heads ?? {};
+  } catch {
+    console.info(`Failed to fetch remote heads from ${url}`);
+    return {};
+  }
+}
+
+// Current branch name of a local repository (null when detached or unreadable).
+export async function getRepoBranch(dir: string): Promise<string | null> {
+  try {
+    const branch = await git.currentBranch({ fs, dir, fullname: false });
+    return branch || null;
+  } catch {
+    return null;
+  }
+}
+
+// Commit SHA that a local repository is currently checked out at.
+export async function getRepoHeadCommit(dir: string): Promise<string | null> {
+  try {
+    return await git.resolveRef({ fs, dir, ref: 'HEAD' });
+  } catch {
+    return null;
   }
 }
 
