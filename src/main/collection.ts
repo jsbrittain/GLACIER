@@ -13,6 +13,9 @@ import {
   ICloneRepo,
   getRepoTags,
   getRepoBranches,
+  getRemoteBranchHeads,
+  getRepoBranch,
+  getRepoHeadCommit,
   parseRepoUrl,
   sortTagsBySemver
 } from './repo.js';
@@ -75,6 +78,8 @@ export interface CatalogueWorkflow {
   version?: string;
   hidden?: boolean;
   parameters?: Record<string, any>;
+  /** Source remote for offline-imported (shard) workflows, used for update checks */
+  url?: string;
 }
 
 export enum IWorkflowType {
@@ -1704,6 +1709,87 @@ export class Collection {
     return version;
   }
 
+  // Update a shard-imported workflow in place: clone the recorded remote into
+  // workflows/local/<name>@latest so the workflow keeps its local identity, and
+  // switch the catalogue entry to track the installed 'latest' version.
+  async updateShardWorkflow(
+    repo_id: string,
+    url: string,
+    ver: string,
+    sourceVer?: string
+  ): Promise<IWorkflowVersion> {
+    // Find the catalogue entry for this shard-imported workflow
+    let targetCat: Catalogue | undefined;
+    let targetEntry: CatalogueWorkflow | undefined;
+    for (const cat of this.catalogues) {
+      for (const section of cat.sections || []) {
+        const entry = section.workflows.find((w) => w.repo === repo_id);
+        if (entry) {
+          targetCat = cat;
+          targetEntry = entry;
+          break;
+        }
+      }
+      if (targetEntry) break;
+    }
+    if (!targetCat || !targetEntry) {
+      throw new Error(`Shard workflow ${repo_id} not found in any catalogue.`);
+    }
+    const localName = targetEntry.name;
+    const isLatest = sourceVer === 'latest';
+    const targetDir = path.join(this.workflow_path, 'local', `${localName}@latest`);
+    const repo: ICloneRepo = await cloneRepo(
+      url,
+      this.workflow_path,
+      ver,
+      isLatest ? 'latest' : undefined,
+      targetDir
+    );
+    const wf_id = `local/${localName}`;
+    // Register the new version on the existing local workflow
+    let wf = this.workflows.find((w) => w.id === wf_id);
+    if (wf === undefined) {
+      wf = new Workflow({
+        id: wf_id,
+        name: localName,
+        owner: 'local',
+        repo: localName,
+        url: url,
+        versions: []
+      } as IWorkflow);
+      this.workflows.push(wf);
+    }
+    let version = wf.versions.find((v) => v.path === repo.path);
+    if (version === undefined) {
+      version = new WorkflowVersion({
+        id: `${wf_id}@${repo.version}`,
+        name: `${wf_id}@${repo.version}`,
+        type: this.determineWorkflowType(repo.path),
+        version: repo.version,
+        path: repo.path,
+        parent_id: wf.id,
+        sourceVersion: sourceVer || ver
+      });
+      wf.versions.push(version);
+    } else {
+      if (sourceVer && version.sourceVersion !== sourceVer) version.sourceVersion = sourceVer;
+      if (version.version !== repo.version) version.version = repo.version;
+    }
+    if (isLatest) {
+      safeFs.writeFileSync(path.join(repo.path, '.glacier-version'), repo.version);
+    }
+    // Track the installed version via 'latest' semantics so the card stays aligned
+    targetEntry.version = 'latest';
+    if (targetCat.base_dir) {
+      safeFs.writeFileSync(
+        path.join(targetCat.base_dir, 'catalogue.json'),
+        JSON.stringify(targetCat, null, 2)
+      );
+    }
+    this.parseCatalogues();
+    return version;
+  }
+
   async setCollectionsPath(path: string) {
     this.root_path = path;
     settings.set('configPath', path);
@@ -2356,15 +2442,42 @@ export class Collection {
       );
     }
     // Re-fetch tags and branches
-    const tags = await getRepoTags(workflow.repo);
-    const branches = await getRepoBranches(workflow.repo);
+    const remote = workflow.url || workflow.repo;
+    const tags = await getRepoTags(remote);
+    const branches = await getRepoBranches(remote);
     const all_versions = tags.concat(branches);
     if (all_versions.length === 0) {
-      throw new Error(`No tags or branches found for repository: ${workflow.repo}`);
+      throw new Error(`No tags or branches found for repository: ${remote}`);
     }
     let updated = false;
     let availableVersion: string | null = null;
-    if (workflow.version === 'latest') {
+    let branchUpdate = false;
+    if (workflow.url) {
+      // Shard-imported workflow: offer the newest remote tag so the user can
+      // install an update in place, but keep the local identity untouched
+      // until an update is actually installed. When the remote has no tags,
+      // compare the installed commit against the tracked branch's remote HEAD.
+      const sortedTags = sortTagsBySemver(tags);
+      if (sortedTags.length > 0) {
+        availableVersion = sortedTags[sortedTags.length - 1];
+        updated = true;
+      } else {
+        const wf = this.workflows.find((w) => w.id === workflow.repo);
+        const installed =
+          (wf?.versions.find((v) => v.sourceVersion === 'latest') || wf?.versions[0]) ?? undefined;
+        if (installed?.path) {
+          const branch = (await getRepoBranch(installed.path)) || 'main';
+          const remoteHeads = await getRemoteBranchHeads(remote);
+          const remoteHead = remoteHeads[branch];
+          const installedHead = await getRepoHeadCommit(installed.path);
+          if (remoteHead && installedHead && remoteHead !== installedHead) {
+            availableVersion = branch;
+            updated = true;
+            branchUpdate = true;
+          }
+        }
+      }
+    } else if (workflow.version === 'latest') {
       const wf = this.workflows.find((w) => w.id === workflow.repo);
       if (wf) {
         const sortedTags = sortTagsBySemver(tags);
@@ -2388,7 +2501,7 @@ export class Collection {
     fs.writeFileSync(cat_path, JSON.stringify(cat, null, 2));
     // Refresh catalogues
     this.parseCatalogues();
-    return { updated, availableVersion };
+    return { updated, availableVersion, ...(branchUpdate ? { branchUpdate } : {}) };
   }
 
   async checkCatalogueWorkflowUpdates(catalogue_name: string) {

@@ -57,6 +57,7 @@ function WorkflowCard({
   scheme,
   createWorkflowInstance,
   refresh,
+  setRefresh,
   requestInstallWorkflows,
   logMessage,
   updateMap
@@ -73,6 +74,11 @@ function WorkflowCard({
 
   workflow['id'] = workflow['repo'];
   workflow['version'] = workflow['version'] ?? 'latest';
+
+  // Shard-imported workflows live under local/<name>; they can be checked for
+  // updates only when a source remote was recorded at import.
+  const isShardWorkflow = workflow.repo.startsWith('local/');
+  const hasRemote = isShardWorkflow && !!workflow.url;
 
   const checkRepoInstalled = () =>
     API.isRepoInstalled(workflow.repo, workflow.version).then((result) => {
@@ -98,7 +104,7 @@ function WorkflowCard({
     if (workflow.version === 'latest') {
       setTagsLoading(true);
       setVersionSelectorOpen(true);
-      const result = await API.getRepoTags(workflow.repo);
+      const result = await API.getRepoTags(workflow.url || workflow.repo);
       setTagsLoading(false);
       if (result.ok) {
         const tags = result.data || [];
@@ -109,6 +115,7 @@ function WorkflowCard({
             {
               id: `${workflow.repo}@latest`,
               repo: workflow.repo,
+              url: workflow.url,
               version: 'latest',
               sourceVersion: 'latest'
             }
@@ -124,6 +131,7 @@ function WorkflowCard({
         {
           id: `${workflow.repo}@${workflow.version}`,
           repo: workflow.repo,
+          url: workflow.url,
           version: workflow.version
         }
       ];
@@ -137,6 +145,7 @@ function WorkflowCard({
       {
         id: `${workflow.repo}@latest`,
         repo: workflow.repo,
+        url: workflow.url,
         version: version,
         sourceVersion: 'latest'
       }
@@ -173,8 +182,24 @@ function WorkflowCard({
 
   const checkForUpdates = async () => {
     const result = await updateWorkflow();
-    if (result?.ok && result.data?.updated && result.data?.availableVersion) {
-      const tagsResult = await API.getRepoTags(workflow.repo);
+    if (result?.ok && result.data?.updated && result.data?.branchUpdate) {
+      // No tags on the remote: offer a one-click update to the latest commit
+      // on the tracked branch instead of a version selector.
+      const branch = result.data.availableVersion;
+      if (window.confirm(t('library.branch-update-confirm', { name: workflow.name, branch }))) {
+        const upd = await API.updateShardWorkflow(workflow.repo, workflow.url, branch, 'latest');
+        if (upd.ok) {
+          logMessage(
+            t('library.branch-update-success', { name: workflow.name, branch }),
+            'success'
+          );
+          setRefresh(!refresh);
+        } else {
+          logMessage(t('library.workflow-updated-failure', { name: workflow.name }), 'error');
+        }
+      }
+    } else if (result?.ok && result.data?.updated && result.data?.availableVersion) {
+      const tagsResult = await API.getRepoTags(workflow.url || workflow.repo);
       if (tagsResult.ok) {
         setAvailableTags(tagsResult.data || []);
         setVersionSelectorOpen(true);
@@ -186,7 +211,7 @@ function WorkflowCard({
   const selectVersion = async () => {
     setTagsLoading(true);
     setVersionSelectorOpen(true);
-    const result = await API.getRepoTags(workflow.repo);
+    const result = await API.getRepoTags(workflow.url || workflow.repo);
     setTagsLoading(false);
     if (result.ok) {
       const tags = result.data || [];
@@ -204,7 +229,7 @@ function WorkflowCard({
 
   const handleSourceClick = (e) => {
     e.stopPropagation();
-    API.openWebPage(repoUrl(workflow.repo));
+    API.openWebPage(repoUrl(workflow.url || workflow.repo));
   };
 
   return (
@@ -263,7 +288,7 @@ function WorkflowCard({
           {workflow['version'] === 'latest' && isRepoInstalled && (
             <MenuItem onClick={selectVersion}>{t('library.select-version')}</MenuItem>
           )}
-          {workflow['version'] === 'latest' && isRepoInstalled && (
+          {(workflow['version'] === 'latest' || hasRemote) && isRepoInstalled && (
             <MenuItem onClick={checkForUpdates}>{t('library.check-for-updates')}</MenuItem>
           )}
         </Menu>
@@ -332,6 +357,7 @@ function SectionCard({
   createWorkflowInstance,
   permitCatalogueModifications,
   refresh,
+  setRefresh,
   requestInstallWorkflows,
   logMessage,
   updateMap
@@ -460,6 +486,7 @@ function SectionCard({
                 scheme={scheme}
                 createWorkflowInstance={createWorkflowInstance}
                 refresh={refresh}
+                setRefresh={setRefresh}
                 requestInstallWorkflows={requestInstallWorkflows}
                 logMessage={logMessage}
                 updateMap={updateMap}
@@ -484,6 +511,7 @@ function CatalogueCard({
   createWorkflowInstance,
   permitCatalogueModifications,
   refresh,
+  setRefresh,
   requestInstallWorkflows,
   logMessage,
   getCatalogues,
@@ -737,6 +765,7 @@ function CatalogueCard({
               createWorkflowInstance={createWorkflowInstance}
               permitCatalogueModifications={permitCatalogueModifications}
               refresh={refresh}
+              setRefresh={setRefresh}
               requestInstallWorkflows={requestInstallWorkflows}
               logMessage={logMessage}
               updateMap={updateMap}
@@ -1017,7 +1046,15 @@ export default function LibraryPage({
     return API.updateCatalogueWorkflow(catalogue.name, section.name, workflow.name)
       .then((result) => {
         if (result.ok) {
-          if (result.data?.updated) {
+          if (result.data?.updated && result.data?.branchUpdate) {
+            logMessage(
+              t('library.branch-update-available', {
+                name: workflow.name,
+                branch: result.data.availableVersion
+              }),
+              'success'
+            );
+          } else if (result.data?.updated) {
             logMessage(t('library.workflow-updated-success', { name: workflow.name }), 'success');
           } else {
             logMessage(t('library.workflow-up-to-date', { name: workflow.name }), 'success');
@@ -1063,7 +1100,14 @@ export default function LibraryPage({
     setProgressCount(workflows.length);
     const failed_list = [];
     for (const workflow of workflows) {
-      const result = await API.cloneRepo(workflow.repo, workflow.version, workflow.sourceVersion);
+      const result = workflow.url
+        ? await API.updateShardWorkflow(
+            workflow.repo,
+            workflow.url,
+            workflow.version,
+            workflow.sourceVersion
+          )
+        : await API.cloneRepo(workflow.repo, workflow.version, workflow.sourceVersion);
       if (!result.ok) {
         failed_list.push(workflow.id);
       } else {
@@ -1153,6 +1197,7 @@ export default function LibraryPage({
             createWorkflowInstance={createWorkflowInstance}
             permitCatalogueModifications={permitCatalogueModifications}
             refresh={refresh}
+            setRefresh={setRefresh}
             requestInstallWorkflows={requestInstallWorkflows}
             logMessage={logMessage}
             getCatalogues={getCatalogues}

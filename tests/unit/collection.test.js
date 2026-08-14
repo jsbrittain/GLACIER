@@ -21,6 +21,9 @@ vi.mock('../../src/main/repo.js', async (importOriginal) => {
     cloneRepo: vi.fn(),
     getRepoTags: vi.fn(),
     getRepoBranches: vi.fn(),
+    getRemoteBranchHeads: vi.fn(),
+    getRepoBranch: vi.fn(),
+    getRepoHeadCommit: vi.fn(),
     syncRepo: vi.fn(),
     getWorkflowParams: vi.fn(),
     getWorkflowSchema: vi.fn()
@@ -1061,6 +1064,262 @@ describe('Collection', () => {
       expect(failure).toBeDefined();
       expect(failure.success).toBe(false);
       expect(failure.error).toContain('Failed to parse catalogue.json');
+    });
+  });
+
+  describe('updateCatalogueWorkflow (shard-imported)', () => {
+    function makeShardCatalogue() {
+      const catDir = path.join(tmpDir, 'catalogues', 'shards', 'local@main');
+      fs.mkdirSync(catDir, { recursive: true });
+      const catalogue = {
+        name: 'Local catalogue',
+        source: 'shards/local@main',
+        base_dir: catDir,
+        sections: [
+          {
+            name: 'artic-network',
+            workflows: [
+              {
+                name: 'artic-nf',
+                repo: 'local/artic-nf',
+                version: 'main',
+                url: 'ARTIC-Network/artic-nf'
+              }
+            ]
+          }
+        ]
+      };
+      fs.writeFileSync(
+        path.join(catDir, 'catalogue.json'),
+        JSON.stringify(catalogue, null, 2),
+        'utf8'
+      );
+      collection.catalogues = [catalogue];
+      return catalogue;
+    }
+
+    it('offers the newest remote tag without rewriting the local identity', async () => {
+      const catalogue = makeShardCatalogue();
+      vi.mocked(repo.getRepoTags).mockResolvedValue(['v0.9.0', 'v1.0.0']);
+      vi.mocked(repo.getRepoBranches).mockResolvedValue([]);
+
+      const result = await collection.updateCatalogueWorkflow(
+        'Local catalogue',
+        'artic-network',
+        'artic-nf'
+      );
+
+      expect(result).toEqual({ updated: true, availableVersion: 'v1.0.0' });
+      expect(catalogue.sections[0].workflows[0].repo).toBe('local/artic-nf');
+      expect(catalogue.sections[0].workflows[0].version).toBe('main');
+    });
+
+    it('offers a branch update when the remote HEAD differs from the installed commit', async () => {
+      makeShardCatalogue();
+      collection.workflows = [
+        {
+          id: 'local/artic-nf',
+          versions: [
+            {
+              id: 'local/artic-nf@main',
+              version: 'main',
+              path: '/installed/artic-nf@main',
+              parent_id: 'local/artic-nf',
+              sourceVersion: undefined
+            }
+          ]
+        }
+      ];
+      vi.mocked(repo.getRepoTags).mockResolvedValue([]);
+      vi.mocked(repo.getRepoBranches).mockResolvedValue(['main']);
+      vi.mocked(repo.getRemoteBranchHeads).mockResolvedValue({ main: 'remote-latest-abc' });
+      vi.mocked(repo.getRepoBranch).mockResolvedValue('main');
+      vi.mocked(repo.getRepoHeadCommit).mockResolvedValue('installed-old-123');
+
+      const result = await collection.updateCatalogueWorkflow(
+        'Local catalogue',
+        'artic-network',
+        'artic-nf'
+      );
+
+      expect(result).toEqual({
+        updated: true,
+        availableVersion: 'main',
+        branchUpdate: true
+      });
+    });
+
+    it('reports up to date when the installed commit matches the remote branch HEAD', async () => {
+      makeShardCatalogue();
+      collection.workflows = [
+        {
+          id: 'local/artic-nf',
+          versions: [
+            {
+              id: 'local/artic-nf@main',
+              version: 'main',
+              path: '/installed/artic-nf@main',
+              parent_id: 'local/artic-nf',
+              sourceVersion: undefined
+            }
+          ]
+        }
+      ];
+      vi.mocked(repo.getRepoTags).mockResolvedValue([]);
+      vi.mocked(repo.getRepoBranches).mockResolvedValue(['main']);
+      vi.mocked(repo.getRemoteBranchHeads).mockResolvedValue({ main: 'same-commit-123' });
+      vi.mocked(repo.getRepoBranch).mockResolvedValue('main');
+      vi.mocked(repo.getRepoHeadCommit).mockResolvedValue('same-commit-123');
+
+      const result = await collection.updateCatalogueWorkflow(
+        'Local catalogue',
+        'artic-network',
+        'artic-nf'
+      );
+
+      expect(result).toEqual({ updated: false, availableVersion: null });
+    });
+
+    it('reports up to date when no installed version is present', async () => {
+      makeShardCatalogue();
+      collection.workflows = [];
+      vi.mocked(repo.getRepoTags).mockResolvedValue([]);
+      vi.mocked(repo.getRepoBranches).mockResolvedValue(['main']);
+
+      const result = await collection.updateCatalogueWorkflow(
+        'Local catalogue',
+        'artic-network',
+        'artic-nf'
+      );
+
+      expect(result).toEqual({ updated: false, availableVersion: null });
+    });
+
+    it('throws when the remote has no tags or branches', async () => {
+      makeShardCatalogue();
+      vi.mocked(repo.getRepoTags).mockResolvedValue([]);
+      vi.mocked(repo.getRepoBranches).mockResolvedValue([]);
+
+      await expect(
+        collection.updateCatalogueWorkflow('Local catalogue', 'artic-network', 'artic-nf')
+      ).rejects.toThrow('No tags or branches found for repository: ARTIC-Network/artic-nf');
+    });
+  });
+
+  describe('updateShardWorkflow', () => {
+    function makeShardCatalogue() {
+      const catDir = path.join(tmpDir, 'catalogues', 'shards', 'local@main');
+      fs.mkdirSync(catDir, { recursive: true });
+      const catalogue = {
+        name: 'Local catalogue',
+        source: 'shards/local@main',
+        base_dir: catDir,
+        sections: [
+          {
+            name: 'artic-network',
+            workflows: [
+              {
+                name: 'artic-nf',
+                repo: 'local/artic-nf',
+                version: 'main',
+                url: 'ARTIC-Network/artic-nf'
+              }
+            ]
+          }
+        ]
+      };
+      fs.writeFileSync(
+        path.join(catDir, 'catalogue.json'),
+        JSON.stringify(catalogue, null, 2),
+        'utf8'
+      );
+      collection.catalogues = [catalogue];
+      return catalogue;
+    }
+
+    it('clones the remote into local/<name>@latest and tracks it', async () => {
+      const catalogue = makeShardCatalogue();
+      const targetPath = path.join(tmpDir, 'workflows', 'local', 'artic-nf@latest');
+      fs.mkdirSync(targetPath, { recursive: true });
+      vi.mocked(repo.cloneRepo).mockResolvedValue({
+        owner: 'ARTIC-Network',
+        repo: 'artic-nf',
+        version: 'v1.0.0',
+        url: 'https://github.com/ARTIC-Network/artic-nf.git',
+        path: targetPath
+      });
+
+      const version = await collection.updateShardWorkflow(
+        'local/artic-nf',
+        'ARTIC-Network/artic-nf',
+        'v1.0.0',
+        'latest'
+      );
+
+      expect(repo.cloneRepo).toHaveBeenCalledWith(
+        'ARTIC-Network/artic-nf',
+        collection.workflow_path,
+        'v1.0.0',
+        'latest',
+        path.join(tmpDir, 'workflows', 'local', 'artic-nf@latest')
+      );
+      expect(version.version).toBe('v1.0.0');
+      expect(version.parent_id).toBe('local/artic-nf');
+      // Catalogue entry now tracks 'latest'
+      expect(catalogue.sections[0].workflows[0].version).toBe('latest');
+      // Local workflow registered with the installed version
+      const wf = collection.workflows.find((w) => w.id === 'local/artic-nf');
+      expect(wf).toBeDefined();
+      expect(wf.versions.some((v) => v.version === 'v1.0.0')).toBe(true);
+      // Installed version persisted for @latest tracking
+      expect(fs.readFileSync(path.join(targetPath, '.glacier-version'), 'utf8')).toBe('v1.0.0');
+    });
+
+    it('updates an existing version in place without duplicating it', async () => {
+      const catalogue = makeShardCatalogue();
+      const targetPath = path.join(tmpDir, 'workflows', 'local', 'artic-nf@latest');
+      fs.mkdirSync(targetPath, { recursive: true });
+      vi.mocked(repo.cloneRepo)
+        .mockResolvedValueOnce({
+          owner: 'ARTIC-Network',
+          repo: 'artic-nf',
+          version: 'v1.0.0',
+          url: 'https://github.com/ARTIC-Network/artic-nf.git',
+          path: targetPath
+        })
+        .mockResolvedValueOnce({
+          owner: 'ARTIC-Network',
+          repo: 'artic-nf',
+          version: 'v1.1.0',
+          url: 'https://github.com/ARTIC-Network/artic-nf.git',
+          path: targetPath
+        });
+
+      await collection.updateShardWorkflow(
+        'local/artic-nf',
+        'ARTIC-Network/artic-nf',
+        'v1.0.0',
+        'latest'
+      );
+      const version = await collection.updateShardWorkflow(
+        'local/artic-nf',
+        'ARTIC-Network/artic-nf',
+        'v1.1.0',
+        'latest'
+      );
+
+      const wf = collection.workflows.find((w) => w.id === 'local/artic-nf');
+      expect(wf.versions).toHaveLength(1);
+      expect(version.version).toBe('v1.1.0');
+      expect(catalogue.sections[0].workflows[0].version).toBe('latest');
+    });
+
+    it('throws when the shard workflow is not in any catalogue', async () => {
+      collection.catalogues = [];
+
+      await expect(
+        collection.updateShardWorkflow('local/artic-nf', 'ARTIC-Network/artic-nf', 'v1.0.0')
+      ).rejects.toThrow('not found in any catalogue');
     });
   });
 

@@ -220,6 +220,10 @@ app.post('/api/clone-repo', async (req, res) =>
   post_response(res, call(collection.cloneRepo.bind(collection), req.body.repoUrl, req.body.ver, req.body.sourceVer))
 );
 
+app.post('/api/update-shard-workflow', async (req, res) =>
+  post_response(res, call(collection.updateShardWorkflow.bind(collection), req.body.repoId, req.body.url, req.body.ver, req.body.sourceVer))
+);
+
 app.post('/api/get-repo-tags', async (req, res) =>
   post_response(res, call(collection.getRepoTags.bind(collection), req.body.repoUrl))
 );

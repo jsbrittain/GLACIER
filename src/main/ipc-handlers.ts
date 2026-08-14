@@ -45,6 +45,7 @@ export function registerIpcHandlers(resourceRoot?: string) {
     'check-workflow-updates': collection.checkWorkflowUpdates.bind(collection),
     'add-user-workflow': collection.addUserWorkflow.bind(collection),
     'clone-repo': collection.cloneRepo.bind(collection),
+    'update-shard-workflow': collection.updateShardWorkflow.bind(collection),
     'get-repo-tags': collection.getRepoTags.bind(collection),
     'is-repo-installed': collection.isRepoInstalled.bind(collection),
     'is-valid-workflow-repo': collection.isValidWorkflowRepo.bind(collection),
