@@ -7,6 +7,7 @@ import { promises as fs } from 'fs';
 import { IWorkflowInstance } from '../../main/collection.js';
 import { getConfigPath } from '../../main/paths.js';
 import { settings } from '../../main/settings.js';
+import { defaultProfileFrom } from '../../types/profile.js';
 import { ProcessDescriptor } from '../../types/types.js';
 
 type paramsT = { [key: string]: any };
@@ -26,6 +27,28 @@ const toPosixPath = (base: string) => {
 const resolvePath = (base: string, name: string) => {
   const rtn = toPosixPath(path.resolve(base, name));
   return rtn;
+};
+
+// Read the profile saved at launch (glacier-profile.json). Returns undefined
+// when the file is missing or unreadable so callers can fall back gracefully.
+const readStoredProfile = async (file: string): Promise<string | undefined> => {
+  try {
+    const raw = await fs.readFile(file, 'utf8');
+    const parsed = JSON.parse(raw);
+    const profile = parsed?.profile;
+    if (typeof profile === 'string' && profile) return profile;
+    if (Array.isArray(profile) && profile.length > 0) return profile.join(',');
+  } catch {
+    /* missing or corrupt profile file */
+  }
+  return undefined;
+};
+
+// Resolve the default profile for a workflow from its nextflow.config
+// (docker if defined, else standard/first available).
+const resolveDefaultProfile = async (instance: IWorkflowInstance): Promise<string> => {
+  const profiles = await getAvailableProfiles(instance);
+  return defaultProfileFrom(profiles);
 };
 
 const looksLikePath = (s: string): boolean => {
@@ -107,7 +130,7 @@ const get_electron_paths = async () => {
 export async function runWorkflow(
   instance: IWorkflowInstance,
   params: paramsT,
-  { resume = false, restart = false, profile = 'standard' }: IRunWorkflowOpts = {}
+  { resume = false, restart = false, profile }: IRunWorkflowOpts = {}
 ): Promise<ProcessDescriptor | null> {
   const { is_electron, java_binary, jar_file, env } = await get_electron_paths();
 
@@ -135,6 +158,23 @@ export async function runWorkflow(
   const paramsFile = path.resolve(instancePath, 'glacier-params.json');
   if (!resume && !restart) {
     await fs.writeFile(paramsFile, JSON.stringify(params, null, 2), 'utf8');
+  }
+
+  // Resolve the execution profile: an explicit profile wins; on resume/restart
+  // reuse the profile saved at launch; otherwise fall back to the workflow's
+  // default (docker if defined, else standard). Persist it so resume remembers it.
+  const profileFile = path.resolve(instancePath, 'glacier-profile.json');
+  let effectiveProfile = profile;
+  if (effectiveProfile === undefined) {
+    if (resume || restart) {
+      effectiveProfile = await readStoredProfile(profileFile);
+    }
+    if (effectiveProfile === undefined) {
+      effectiveProfile = await resolveDefaultProfile(instance);
+    }
+  }
+  if (!resume && !restart) {
+    await fs.writeFile(profileFile, JSON.stringify({ profile: effectiveProfile }), 'utf8');
   }
 
   // Write resource limits nextflow.config if configured
@@ -176,7 +216,7 @@ export async function runWorkflow(
       '-work-dir',
       toPosixPath(workPath),
       '-profile',
-      profile,
+      effectiveProfile,
       '-params-file',
       toPosixPath(paramsFile),
       '-name',
@@ -254,7 +294,7 @@ export async function runWorkflow(
     '-work-dir',
     toPosixPath(workPath),
     '-profile',
-    profile,
+    effectiveProfile,
     '-params-file',
     toPosixPath(paramsFile),
     '-name',
