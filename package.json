@@ -17,7 +17,8 @@
     "start": "npm run build && electron .",
     "test": "vitest run  --coverage",
     "dist": "npm run build && electron-builder",
-    "server": "npm run build && cd api-server && npm install && npm run dev"
+    "server": "npm run build && cd api-server && npm install && npm run dev",
+    "serve": "cd api-server && npm install && node index.js"
   },
   "author": "ARTIC Kraemer Lab",
   "license": "ISC",

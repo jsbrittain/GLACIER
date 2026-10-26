@@ -20,6 +20,7 @@ Electron + React (Vite/TS) desktop app for orchestrating bioinformatics workflow
 | `npm run format` | `prettier --write src/ tests/ scripts/` |
 | `npm run dist` | Build + package with electron-builder |
 | `npm run server` | Build → `npm install` inside `api-server/` → start Express on port 3030 |
+| `npm run serve` | Start Express on port 3030 from the existing `dist/` (no rebuild; run `npm run build` first) |
 | `npx playwright test` | E2E tests under `tests/e2e/` (run after `npm run build`) |
 | `GLACIER_MANIFEST=artic-network npm run dist` | Build with a pre-configured manifest from `build-configs/` |
 
