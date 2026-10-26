@@ -33,7 +33,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
         with:
-          name: playwright-report-${{ matrix.os }}
+          name: playwright-report-windows-wsl
           path: |
             playwright-report/
             test-results/

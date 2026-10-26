@@ -42,7 +42,18 @@ export const test = base.extend<Fixtures>({
       await dismissStartupDialog(win);
 
       await use(win);
-      await electronApp.close();
+
+      // Electron can fail to quit on some CI runners (observed on the x64 macOS
+      // runner), which surfaces as "Worker teardown timeout of 30000ms exceeded"
+      // and eventually burns the whole job timeout. Give it a chance to close
+      // cleanly, then make sure the process is gone before the worker exits.
+      await Promise.race([
+        electronApp.close().catch(() => undefined),
+        new Promise((resolve) => setTimeout(resolve, 10_000))
+      ]);
+      if (proc.exitCode === null && !proc.killed) {
+        proc.kill('SIGKILL');
+      }
     } else {
       await page.goto('/');
       await dismissStartupDialog(page);
