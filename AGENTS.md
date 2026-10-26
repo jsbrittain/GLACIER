@@ -46,7 +46,10 @@ Electron + React (Vite/TS) desktop app for orchestrating bioinformatics workflow
 
 - `scripts/prepare_bundle.js` downloads Nextflow jar (`26.04.4`), runs `jdeps`/`jlink` to create minimal JRE (macOS/Linux); on Windows calls `scripts/build-wsl-image.js` to build a pre-configured WSL image (`bundle/wsl/glacier-wsl.tar`) with Docker, Java 17, Nextflow. Auto-downloads Temurin JDK to `.temurin/` on first run if not detected
 - `GLACIER_MANIFEST` env var copies a JSON from `build-configs/` to `bundle/manifest.json` — pre-loads catalogues on first run. `build-configs/default-theme.json` provides MUI theme overrides
-- Release builds (`v*` tag) run on macOS, Windows, Ubuntu. macOS: decompress `nextflow.jar`, sign internal native libs (`codesign`), repackage. Windows: NSIS installer. Linux: AppImage
+- Release builds (`v*` tag) run on macOS arm64, macOS Intel, Windows and Ubuntu. macOS: decompress `nextflow.jar`, sign internal native libs (`codesign`), repackage; DMGs are named `GLACIER-<version>-<arch>.dmg`. Windows: NSIS installer. Linux: AppImage. Build jobs run `electron-builder --publish never` and upload workflow artifacts; a single `publish` job then merges the two macOS `latest-mac.yml` files (`scripts/merge-update-info.js`) and uploads to the release draft. Use `workflow_dispatch` on `release.yml` for a dry run (builds + verifies, does not publish)
+- Release build jobs self-verify on macOS: `lipo -archs` on the app binary and bundled `jre/bin/java`, `codesign --verify --deep --strict`, `xcrun stapler validate`, `spctl --assess`, then mount the DMG and launch the packaged app for 45s
+- `scripts/staple.cjs` runs as electron-builder's `afterSign` hook: it staples the notarization ticket into the app bundle (retried 3x, since the ticket can lag) so Gatekeeper works offline. It runs after notarization and before the DMG is built, so the DMG and its update-info hashes contain the stapled app. The DMG itself is signed (`dmg.sign`) but not notarized/stapled
+- The bundled JRE is produced by `jlink` from the runner's JDK, so macOS arm64 and Intel must be built on native runners; they cannot share one job
 - `scripts/after-pack.cjs` runs post-package via electron-builder
 - `bundle/` is gitignored; created by the build step
 

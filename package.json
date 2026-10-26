@@ -39,16 +39,21 @@
       "bundle/**"
     ],
     "afterPack": "scripts/after-pack.cjs",
+    "afterSign": "scripts/staple.cjs",
     "files": [
       "dist/**/*",
       "package.json"
     ],
     "mac": {
       "target": "dmg",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
       "hardenedRuntime": true,
       "entitlements": "assets/entitlements.mac.plist",
       "entitlementsInherit": "assets/entitlements.mac.plist",
       "icon": "icons/mac/icon.icns"
+    },
+    "dmg": {
+      "sign": true
     },
     "win": {
       "target": "nsis",

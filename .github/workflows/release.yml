@@ -4,25 +4,53 @@ on:
   push:
     tags:
       - 'v*'
+  # Dry run: builds, verifies and uploads every platform as a workflow artifact
+  # without touching the release. Publishing only happens for v* tags, and can be
+  # forced when dispatching against a tag ref.
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish to the GitHub release (only honoured for v* tags)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
 jobs:
-  release:
-    name: Build on ${{ matrix.os }}
+  build:
+    name: Build ${{ matrix.artifact }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
 
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        include:
+          # The bundled JRE is produced by jlink on the host JDK, so each
+          # architecture has to be built on a runner of that architecture.
+          - os: macos-latest
+            artifact: mac-arm64
+            builder_args: --mac --arm64
+            lipo_arch: arm64
+          - os: macos-26-intel
+            artifact: mac-x64
+            builder_args: --mac --x64
+            lipo_arch: x86_64
+          - os: windows-latest
+            artifact: win-x64
+            builder_args: --win --x64
+            lipo_arch: ''
+          - os: ubuntu-latest
+            artifact: linux-x64
+            builder_args: --linux --x64
+            lipo_arch: ''
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      # A stripped Tumurin JRE is bundled with GLACIER
+      # A stripped Temurin JRE is bundled with GLACIER
       - name: Install Temurin JAVA
         uses: actions/setup-java@v5
         with:
@@ -38,9 +66,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Package & publish with electron-builder
+      # Build only: the publish job uploads everything afterwards, so that the two
+      # macOS builds cannot overwrite each other's latest-mac.yml. GH_TOKEN is
+      # deliberately not available here, so this job cannot publish by accident.
+      - name: Package
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_ID: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}
           APPLE_TEAM_ID: ${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.NOTARIZATION_PWD }}
@@ -50,29 +80,40 @@ jobs:
           KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
         shell: bash
         run: |
+          set -euo pipefail
           if [ "$RUNNER_OS" == "macOS" ]; then
             echo "Write signing certificate to file"
-            # This is all we need for electron-builder
-            echo $CSC_BASE64 | base64 --decode > certificate.p12
-            export CSC_LINK="certificate.p12"
+            printf '%s' "$CSC_BASE64" | base64 --decode > certificate.p12
 
             # Cannot sign app unless binaries in jar file are also signed
             # Decompress, sign and recompress jar file
-            
+
             echo "Create a keychain to hold the certificate (required for signing jar components)"
             security create-keychain -p "$KEYCHAIN_PWD" build.keychain
+            security set-keychain-settings -lut 21600 build.keychain
             security default-keychain -s build.keychain
             security unlock-keychain -p "$KEYCHAIN_PWD" build.keychain
             security import certificate.p12 -k build.keychain -P "$CSC_KEY_PASSWORD" -T /usr/bin/codesign
             security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PWD" build.keychain
-            
+
+            # Also add it to the keychain search list, so that `security find-identity`
+            # (and therefore electron-builder) can see the identity. Without this,
+            # electron-builder sets up its own temporary keychain and fails on current
+            # runner images with "SecKeychainUnlock: passphrase is not correct".
+            security list-keychains -d user -s build.keychain $(security list-keychains -d user | tr -d '"')
+
+            # Signing is driven by identity discovery + APPLE_* credentials below.
+            # CSC_LINK must stay unset: it forces electron-builder's own keychain.
+            # CSC_NAME must not carry the "Developer ID Application:" prefix.
+            export CSC_NAME="${CERTIFICATE_NAME#Developer ID Application: }"
+
             echo "Extract jar file and sign internal binaries"
             npm run build:bundle
             mkdir nextflow-jar
             cd nextflow-jar
             jar xf ../bundle/nextflow.jar
             rm ../bundle/nextflow.jar
-            
+
             echo "Sign internal components"
             codesign --force --sign "$CERTIFICATE_NAME" --options runtime --timestamp META-INF/native/osx/libjansi.jnilib
 
@@ -83,4 +124,172 @@ jobs:
             export CSC_IDENTITY_AUTO_DISCOVERY=false
             export CSC_LINK=""
           fi
-          npm run dist
+          npm run dist -- ${{ matrix.builder_args }} --publish never
+
+      # Everything below replaces testing the installer by hand on a matching Mac:
+      # it checks the architecture of the app and the bundled JVM, that the bundle
+      # is properly signed/notarized, and that the packaged app actually starts.
+      - name: Verify macOS bundle
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          EXPECTED_ARCH: ${{ matrix.lipo_arch }}
+        run: |
+          set -euo pipefail
+
+          APP=$(find dist -maxdepth 2 -type d -name 'GLACIER.app' | head -n 1)
+          if [ -z "$APP" ]; then
+            echo "::error::GLACIER.app not found under dist/"
+            exit 1
+          fi
+          echo "Bundle: $APP (expecting $EXPECTED_ARCH)"
+
+          for binary in "$APP/Contents/MacOS/GLACIER" "$APP/Contents/Resources/bundle/jre/bin/java"; do
+            archs=$(lipo -archs "$binary")
+            echo "$binary -> $archs"
+            case " $archs " in
+              *" $EXPECTED_ARCH "*) ;;
+              *)
+                echo "::error::$binary is not built for $EXPECTED_ARCH"
+                exit 1
+                ;;
+            esac
+          done
+
+          echo "Verifying code signature"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+          echo "Verifying the notarization ticket is stapled"
+          xcrun stapler validate "$APP"
+
+          echo "Verifying Gatekeeper assessment"
+          spctl -a -vvv -t exec "$APP"
+
+      - name: Smoke test macOS disk image
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DMG=$(find dist -maxdepth 1 -name '*.dmg' | head -n 1)
+          if [ -z "$DMG" ]; then
+            echo "::error::No .dmg was produced"
+            exit 1
+          fi
+          echo "Disk image: $DMG"
+
+          MOUNT=$(mktemp -d)
+          hdiutil attach "$DMG" -nobrowse -readonly -mountpoint "$MOUNT" > /dev/null
+          trap 'hdiutil detach "$MOUNT" > /dev/null 2>&1 || true' EXIT
+
+          # Launch the packaged app and make sure it stays up: this is what
+          # exercises the bundled JVM on the target architecture.
+          "$MOUNT/GLACIER.app/Contents/MacOS/GLACIER" --no-sandbox > /tmp/glacier-smoke.log 2>&1 &
+          APP_PID=$!
+          sleep 45
+          if kill -0 "$APP_PID" 2>/dev/null; then
+            echo "Packaged app is still running after 45s"
+            kill "$APP_PID" || true
+          else
+            echo "::error::Packaged app exited during the smoke test"
+            cat /tmp/glacier-smoke.log
+            exit 1
+          fi
+
+          # electron-builder notarizes but does not staple the disk image itself
+          # (only the app inside it), so Gatekeeper checks the image online.
+          # Report only, do not fail the build over it.
+          xcrun stapler validate "$DMG" || echo "::warning::$DMG is not stapled"
+
+          echo "Verifying disk image signature"
+          codesign --verify --verbose=2 "$DMG"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: glacier-${{ matrix.artifact }}
+          if-no-files-found: error
+          retention-days: 7
+          path: |
+            dist/*.dmg
+            dist/*.dmg.blockmap
+            dist/*.exe
+            dist/*.exe.blockmap
+            dist/*.AppImage
+            dist/latest*.yml
+
+  publish:
+    name: Publish release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v') && (github.event_name == 'push' || inputs.publish)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # js-yaml is the only runtime dependency needed to merge update metadata.
+      - name: Install update-info dependencies
+        run: npm ci --omit=dev --ignore-scripts
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Assemble release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          mkdir -p release
+
+          # Single-platform installers together with their update metadata
+          # (builder-debug.yml is deliberately left behind).
+          for dir in artifacts/glacier-win-x64 artifacts/glacier-linux-x64; do
+            for file in "$dir"/*.exe "$dir"/*.exe.blockmap "$dir"/*.AppImage "$dir"/latest*.yml; do
+              cp "$file" release/
+            done
+          done
+
+          # macOS: one disk image per architecture, one merged latest-mac.yml.
+          for dir in artifacts/glacier-mac-arm64 artifacts/glacier-mac-x64; do
+            for file in "$dir"/*.dmg "$dir"/*.dmg.blockmap; do
+              cp "$file" release/
+            done
+          done
+          node scripts/merge-update-info.js release/latest-mac.yml \
+            artifacts/glacier-mac-arm64/latest-mac.yml \
+            artifacts/glacier-mac-x64/latest-mac.yml
+
+          for expected in latest.yml latest-linux.yml latest-mac.yml; do
+            if [ ! -f "release/$expected" ]; then
+              echo "::error::Missing update metadata: $expected"
+              exit 1
+            fi
+          done
+
+          ls -l release
+
+      - name: Upload to release draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+
+          if ! gh release view "$tag" > /dev/null 2>&1; then
+            gh release create "$tag" --draft --verify-tag \
+              --title "${tag#v}" \
+              --notes "Automated build of ${tag}."
+          fi
+
+          gh release upload "$tag" release/* --clobber
