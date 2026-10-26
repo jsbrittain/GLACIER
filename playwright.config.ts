@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const isCI = !!process.env.CI;
 
 function hasElectron(): boolean {
   const pathFile = path.join(__dirname, 'node_modules', 'electron', 'path.txt');
@@ -16,8 +17,8 @@ function hasElectron(): boolean {
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: false, // tests inside a file must run sequentially
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  forbidOnly: isCI,
+  retries: isCI ? 2 : 0,
   workers: 1, // tests rebuild workflow library, so must run sequentially
   reporter: 'html',
   use: {
@@ -65,8 +66,11 @@ export default defineConfig({
       : [])
   ],
   webServer: {
-    command: 'npm run server',
+    // In CI the app has already been built by the preceding workflow step;
+    // rebuilding it here races the 60s webServer timeout on slow runners.
+    command: isCI ? 'npm run serve' : 'npm run server',
     url: 'http://localhost:3030',
-    reuseExistingServer: !process.env.CI
+    reuseExistingServer: !isCI,
+    timeout: 180_000
   }
 });

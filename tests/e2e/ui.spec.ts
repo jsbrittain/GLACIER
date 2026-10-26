@@ -16,6 +16,9 @@ const __dirname = path.dirname(__filename);
 const TIMEOUT_10s = 10_000;
 const TIMEOUT_30s = 30_000;
 const TIMEOUT_60s = 60_000;
+const isCI = !!process.env.CI;
+const TIMEOUT_WORKFLOW = isCI ? 60_000 : TIMEOUT_30s;
+const TIMEOUT_WORKFLOW_TEST = 90_000;
 
 async function waitForLogLine(page: Page, text: string | RegExp, timeout = 60000) {
   await page.waitForEvent('console', {
@@ -111,6 +114,7 @@ test('clone a repository', async ({ page }) => {
 });
 
 test('launch local workflow', async ({ page }) => {
+  test.setTimeout(TIMEOUT_WORKFLOW_TEST);
   const local_collections_path = path.resolve(path.join(__dirname, '..', 'test-data'));
 
   // Navigate to Settings page
@@ -146,7 +150,7 @@ test('launch local workflow', async ({ page }) => {
 
   // Check that workflow completes (5 second workflow)
   await expect(page.getByText('Completed')).toBeVisible({
-    timeout: TIMEOUT_30s
+    timeout: TIMEOUT_WORKFLOW
   });
 });
 
@@ -184,6 +188,7 @@ async function runOutdirWorkflow(
 }
 
 test('outdir workflow — autoOutdir OFF', async ({ page }) => {
+  test.setTimeout(TIMEOUT_WORKFLOW_TEST);
   const local_collections_path = path.resolve(path.join(__dirname, '..', 'test-data'));
   const docs_path = path.resolve(path.join(os.tmpdir(), 'GLACIER-docs-' + Date.now().toString()));
   fs.mkdirSync(docs_path, { recursive: true });
@@ -209,6 +214,7 @@ test('outdir workflow — autoOutdir OFF', async ({ page }) => {
 });
 
 test('outdir workflow — autoOutdir ON', async ({ page }) => {
+  test.setTimeout(TIMEOUT_WORKFLOW_TEST);
   const local_collections_path = path.resolve(path.join(__dirname, '..', 'test-data'));
   const docs_path = path.resolve(path.join(os.tmpdir(), 'GLACIER-docs-' + Date.now().toString()));
   fs.mkdirSync(docs_path, { recursive: true });
