@@ -1,0 +1,167 @@
+name: Nextflow release check
+
+on:
+  schedule:
+    # Mondays at 06:00 UTC. Stable releases arrive in April and October, with
+    # occasional patches in between.
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: nextflow-release-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fetch Nextflow releases
+        run: |
+          set -euo pipefail
+          gh release list --repo nextflow-io/nextflow --limit 200 \
+            --json tagName,isDraft,isPrerelease,publishedAt,name \
+            > "$RUNNER_TEMP/releases.json"
+
+      - name: Check for a stable update
+        id: check
+        run: |
+          set -euo pipefail
+          node scripts/check-nextflow-release.js --releases "$RUNNER_TEMP/releases.json" \
+            > "$RUNNER_TEMP/result.json"
+
+          current=$(jq -r .current "$RUNNER_TEMP/result.json")
+          target=$(jq -r '.target // empty' "$RUNNER_TEMP/result.json")
+          type=$(jq -r .type "$RUNNER_TEMP/result.json")
+          same=$(jq -r '.sameLineLatest // empty' "$RUNNER_TEMP/result.json")
+
+          {
+            echo "## Nextflow release check"
+            echo ""
+            echo "- Bundled: $current"
+            echo "- Latest stable: ${target:-none}"
+            echo "- Update: $type"
+            if [ -n "$same" ] && [ "$same" != "$target" ]; then
+              echo "- Latest patch in the current line: $same"
+            fi
+            echo ""
+            echo "<details><summary>Rejected releases (most recent 10)</summary>"
+            echo ""
+            jq -r '.rejected[:10][] | "- \(.tag): \(.reason)"' "$RUNNER_TEMP/result.json"
+            echo ""
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          echo "target=$target" >> "$GITHUB_OUTPUT"
+          echo "type=$type" >> "$GITHUB_OUTPUT"
+          echo "same=$same" >> "$GITHUB_OUTPUT"
+
+      - name: Close superseded issues
+        env:
+          CURRENT: ${{ steps.check.outputs.current }}
+        run: |
+          set -euo pipefail
+          gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 200 \
+            --json number,title \
+            | jq -r '.[] | select(.title | startswith("Nextflow update available: ")) | "\(.number)\t\(.title)"' \
+            | while IFS=$'\t' read -r number title; do
+                [ -n "$number" ] || continue
+                version="${title#Nextflow update available: }"
+                if ! comparison=$(node scripts/check-nextflow-release.js --compare "$version" "$CURRENT"); then
+                  echo "Skipping issue #$number: could not parse version $version"
+                  continue
+                fi
+                if [ "$comparison" -le 0 ]; then
+                  gh issue close "$number" --repo "$GITHUB_REPOSITORY" \
+                    --comment "Bundled Nextflow is now $CURRENT." \
+                    || echo "Could not close issue #$number; leaving it open."
+                fi
+              done
+
+      - name: Open update issue
+        if: steps.check.outputs.type != 'none' && steps.check.outputs.target != ''
+        env:
+          CURRENT: ${{ steps.check.outputs.current }}
+          TARGET: ${{ steps.check.outputs.target }}
+          TYPE: ${{ steps.check.outputs.type }}
+          SAME: ${{ steps.check.outputs.same }}
+        run: |
+          set -euo pipefail
+          jar_url="https://www.nextflow.io/releases/v${TARGET}/nextflow-${TARGET}-one.jar"
+          if ! curl -fsIL --retry 3 --retry-delay 5 "$jar_url" > /dev/null; then
+            echo "Nextflow $TARGET is not yet available at $jar_url; will retry next week." \
+              >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          title="Nextflow update available: $TARGET"
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --limit 200 \
+            --json number,title \
+            | jq -r --arg title "$title" '.[] | select(.title == $title) | .number')
+          if [ -n "$existing" ]; then
+            echo "Issue already open: #$existing" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          if [ "$TYPE" = "release" ]; then
+            type_label="new stable release"
+            bump="minor"
+            migration="- Migration notes: https://docs.seqera.io/nextflow/migrations"
+            migration_check="- [ ] Review the Nextflow migration notes for this new stable line."
+          else
+            type_label="new patch"
+            bump="patch"
+            migration=""
+            migration_check=""
+          fi
+
+          line="${CURRENT%.*}"
+          same_line=""
+          if [ -n "$SAME" ] && [ "$SAME" != "$TARGET" ]; then
+            same_line="- Latest patch in the current line ($line): $SAME (if you prefer to stay on this line)"
+          fi
+
+          {
+            echo "The bundled Nextflow is **$CURRENT**. A $type_label is available: **$TARGET**."
+            echo ""
+            echo "- Release notes: https://github.com/nextflow-io/nextflow/releases/tag/v$TARGET"
+            if [ -n "$migration" ]; then echo "$migration"; fi
+            if [ -n "$same_line" ]; then echo "$same_line"; fi
+            echo "- Suggested GLACIER version bump: **$bump**"
+            echo ""
+            echo "## Update procedure"
+            echo ""
+            echo '```bash'
+            echo "node scripts/set-nextflow-version.js $TARGET"
+            echo "npm run build                    # macOS/Linux: downloads the jar, builds the JRE, asserts the version"
+            echo "node scripts/build-wsl-image.js  # Windows: rebuilds the WSL image, asserts the version"
+            echo "npm test && npx playwright test"
+            echo '```'
+            echo ""
+            echo "## Checklist"
+            echo ""
+            echo "- [ ] Diff the Nextflow license: \`curl -fsSL https://raw.githubusercontent.com/nextflow-io/nextflow/v$TARGET/COPYING | diff - bundle/LICENSE-nextflow\` (update \`bundle/LICENSE-nextflow\` if changed)."
+            if [ -n "$migration_check" ]; then echo "$migration_check"; fi
+            echo "- [ ] Confirm the Java compatibility guard passes during the build (it fails if the jar targets more than Java 21)."
+            echo "- [ ] Check \`nextflow.log\` parsing with a representative workflow."
+            echo "- [ ] Bump GLACIER's version ($bump) and release as usual."
+          } > "$RUNNER_TEMP/issue.md"
+
+          gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" \
+            --body-file "$RUNNER_TEMP/issue.md"

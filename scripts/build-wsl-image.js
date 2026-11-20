@@ -3,11 +3,12 @@
  * Builds a pre-configured WSL image for GLACIER on Windows.
  *
  * Steps:
- *  - Skips if bundle/wsl/glacier-wsl.tar already exists (idempotent)
+ *  - Skips if bundle/wsl/glacier-wsl.tar already exists for the pinned version
  *  - Fails hard on non-Windows (image required for Windows builds)
  *  - Downloads Ubuntu 24.04 rootfs
  *  - Creates a temporary WSL distro (glacier-build)
  *  - Installs Docker, Java 21, Nextflow inside it
+ *  - Verifies the installed Nextflow version
  *  - Exports the configured distro to bundle/wsl/glacier-wsl.tar
  *  - Cleans up the temporary distro
  *
@@ -18,8 +19,9 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import https from 'https';
-import { execSync, execFileSync } from 'child_process';
+import { execSync, execFileSync, spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { NEXTFLOW_VERSION, nxfLauncherUrl } from './nextflow-version.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -92,11 +94,30 @@ async function main() {
   const bundleDir = path.resolve(process.argv[2] || path.join(__dirname, '..', 'bundle'));
   const wslDir = path.join(bundleDir, 'wsl');
   const imagePath = path.join(wslDir, 'glacier-wsl.tar');
+  const versionMarker = path.join(wslDir, '.nextflow-version');
   const cacheDir = path.join(bundleDir, '..', '.cache', 'wsl');
 
+  const markerVersion = fileExists(versionMarker)
+    ? fs.readFileSync(versionMarker, 'utf8').trim()
+    : '';
+
   if (fileExists(imagePath)) {
-    log(`WSL image already exists at ${imagePath}. Skipping.`);
-    return;
+    if (markerVersion === NEXTFLOW_VERSION) {
+      log(`WSL image already exists at ${imagePath}. Skipping.`);
+      return;
+    }
+    if (process.platform !== 'win32') {
+      throw new Error(
+        `Pre-built WSL image at ${imagePath} is for Nextflow ` +
+          `${markerVersion || 'an unknown version'}, expected ${NEXTFLOW_VERSION}. ` +
+          'Rebuild it on Windows.'
+      );
+    }
+    log(
+      `WSL image is for Nextflow ${markerVersion || 'an unknown version'}, expected ` +
+        `${NEXTFLOW_VERSION}. Rebuilding.`
+    );
+    fs.unlinkSync(imagePath);
   }
 
   // Remove any stale build distro from a previous run
@@ -156,13 +177,41 @@ async function main() {
   // Install Nextflow
   log('Installing Nextflow...');
   run(
-    `wsl -d ${DISTRO_NAME} -u user -- bash -c "curl -s https://www.nextflow.io/releases/v26.04.4/nextflow -o ~/nextflow && chmod +x ~/nextflow"`
+    `wsl -d ${DISTRO_NAME} -u user -- bash -c "curl -s ${nxfLauncherUrl()} -o ~/nextflow && chmod +x ~/nextflow"`
   );
   run(`wsl -d ${DISTRO_NAME} -u root -- mv /home/user/nextflow /usr/local/bin/`);
 
   // Verify Nextflow
   run(`wsl --shutdown`);
-  run(`wsl -d ${DISTRO_NAME} -- nextflow -version`);
+  const versionResult = spawnSync('wsl', ['-d', DISTRO_NAME, '--', 'nextflow', '-version'], {
+    encoding: 'utf8'
+  });
+  const versionOutput = `${versionResult.stdout || ''}${versionResult.stderr || ''}`.replace(
+    /\0/g,
+    ''
+  );
+  if (versionResult.error) {
+    throw new Error(
+      `Could not run 'nextflow -version' in the WSL image: ${versionResult.error.message}`
+    );
+  }
+  if (versionResult.status !== 0) {
+    throw new Error(`Could not run 'nextflow -version' in the WSL image: ${versionOutput.trim()}`);
+  }
+  log(versionOutput.trim());
+  const versionMatch = versionOutput.match(/version\s+(\S+)/i);
+  if (!versionMatch) {
+    throw new Error(
+      `Could not read the Nextflow version from the WSL image: ${versionOutput.trim()}`
+    );
+  }
+  if (versionMatch[1] !== NEXTFLOW_VERSION) {
+    throw new Error(
+      `WSL image contains Nextflow ${versionMatch[1]}, expected ${NEXTFLOW_VERSION}. ` +
+        `Check ${nxfLauncherUrl()} and scripts/nextflow-version.json.`
+    );
+  }
+  log(`Verified WSL image Nextflow version ${versionMatch[1]}.`);
 
   // Export the configured distro
   log('Exporting WSL image...');
@@ -178,6 +227,7 @@ async function main() {
     execFileSync('wsl', ['--unregister', DISTRO_NAME], { stdio: 'ignore' });
   } catch {}
   log(`WSL image built at ${imagePath}`);
+  fs.writeFileSync(versionMarker, `${NEXTFLOW_VERSION}\n`);
 }
 
 main().catch((e) => {

@@ -1,0 +1,79 @@
+[
+  {
+    "tagName": "v26.11.0-edge",
+    "isDraft": false,
+    "isPrerelease": true,
+    "publishedAt": "2026-11-17T17:19:49Z",
+    "name": "Version 26.11.0-edge"
+  },
+  {
+    "tagName": "v26.10.7",
+    "isDraft": true,
+    "isPrerelease": false,
+    "publishedAt": "2026-11-18T10:00:00Z",
+    "name": "Version 26.10.7"
+  },
+  {
+    "tagName": "v26.10.6",
+    "isDraft": false,
+    "isPrerelease": false,
+    "publishedAt": "2026-11-12T23:24:49Z",
+    "name": "Version 26.10.6"
+  },
+  {
+    "tagName": "v26.10.5",
+    "isDraft": false,
+    "isPrerelease": false,
+    "publishedAt": "2026-11-02T17:43:07Z",
+    "name": "Version 26.10.5"
+  },
+  {
+    "tagName": "v26.10.4",
+    "isDraft": false,
+    "isPrerelease": false,
+    "publishedAt": "2026-10-26T21:18:59Z",
+    "name": "Version 26.10.4"
+  },
+  {
+    "tagName": "v26.04.9",
+    "isDraft": false,
+    "isPrerelease": false,
+    "publishedAt": "2026-10-22T18:38:13Z",
+    "name": "Version 26.04.9"
+  },
+  {
+    "tagName": "v26.04.8",
+    "isDraft": false,
+    "isPrerelease": true,
+    "publishedAt": "2026-10-20T20:28:31Z",
+    "name": "Version 26.04.8"
+  },
+  {
+    "tagName": "v25.10.9",
+    "isDraft": false,
+    "isPrerelease": false,
+    "publishedAt": "2026-10-20T20:25:12Z",
+    "name": "Version 25.10.9"
+  },
+  {
+    "tagName": "v26.09.2-edge",
+    "isDraft": false,
+    "isPrerelease": true,
+    "publishedAt": "2026-10-06T10:08:23Z",
+    "name": "Version 26.09.2-edge"
+  },
+  {
+    "tagName": "v26.06.0",
+    "isDraft": false,
+    "isPrerelease": false,
+    "publishedAt": "2026-06-19T08:22:10Z",
+    "name": "Version 26.06.0"
+  },
+  {
+    "tagName": "release-26.10.6",
+    "isDraft": false,
+    "isPrerelease": false,
+    "publishedAt": "2026-11-12T23:24:49Z",
+    "name": "Not a CalVer tag"
+  }
+]

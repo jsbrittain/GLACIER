@@ -3,9 +3,10 @@
  * Steps:
  * - Exits early on Windows (no bundle required)
  * - Creates ./bundle
- * - Downloads Nextflow jar if missing
+ * - Downloads Nextflow jar if missing or if the pinned version changed
+ * - Checks that the jar targets a supported Java version
  * - Uses jdeps to determine required Java modules and jlink to create a minimal JRE
- * - Runs a smoke test: jre/bin/java -jar nextflow.jar info
+ * - Verifies the bundled Nextflow reports the version pinned in nextflow-version.json
  *
  * Requires a Temurin JDK for jlink (OpenJDK jlink uses incompatible flags).
  * On first run, Temurin is auto-downloaded to .temurin/ if a system Temurin is
@@ -16,16 +17,18 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import https from 'https';
-import { execSync, spawnSync } from 'child_process';
+import { execFileSync, execSync, spawnSync } from 'child_process';
 import { fileURLToPath } from 'url';
+import { NEXTFLOW_VERSION, nxfJarUrl } from './nextflow-version.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const bundle_full_jre = false;
 const JAVA_VERSION = process.env.JAVA_VERSION || '21';
-const NXF_URL =
-  process.env.NXF_URL || 'https://www.nextflow.io/releases/v26.04.4/nextflow-26.04.4-one.jar';
+const MAX_JAVA_CLASS_MAJOR = 65; // Java 21
+const JAVA_CLASS_MAJOR_NAMES = { 61: '17', 65: '21', 69: '25' };
+const NXF_URL = process.env.NXF_URL || nxfJarUrl();
 
 const log = (...args) => console.log(...args);
 const err = (...args) => console.error(...args);
@@ -46,6 +49,71 @@ function fileExists(p) {
   } catch {
     return false;
   }
+}
+
+function checkNextflowJava(jarPath) {
+  let classBytes;
+  try {
+    classBytes = execFileSync('unzip', ['-p', jarPath, 'nextflow/Nextflow.class'], {
+      maxBuffer: 16 * 1024 * 1024
+    });
+  } catch (e) {
+    if (e && e.code === 'ENOENT') {
+      log('WARNING: unzip not found; skipping Nextflow Java compatibility check.');
+      return;
+    }
+    throw new Error(`Could not inspect ${jarPath} for Java compatibility: ${e.message}`);
+  }
+
+  if (classBytes.length < 8 || classBytes.readUInt32BE(0) !== 0xcafebabe) {
+    throw new Error(`Unexpected class file header in ${jarPath}.`);
+  }
+
+  const major = classBytes.readUInt16BE(6);
+  const javaVersion = JAVA_CLASS_MAJOR_NAMES[major] || `class major ${major}`;
+  log(`Nextflow targets Java ${javaVersion} (class major ${major}).`);
+  if (major > MAX_JAVA_CLASS_MAJOR) {
+    throw new Error(
+      `Nextflow ${NEXTFLOW_VERSION} requires Java ${javaVersion}, but GLACIER bundles Java 21. ` +
+        'Bump JAVA_VERSION, the WSL OpenJDK package and CI setup-java together.'
+    );
+  }
+}
+
+function findJavaBinary(jreDir) {
+  for (const candidate of [
+    path.join(jreDir, 'bin', 'java'),
+    path.join(jreDir, 'jre', 'bin', 'java')
+  ]) {
+    if (fileExists(candidate)) return candidate;
+  }
+  const found = runOutput(`find "${jreDir}" -type f -name java -print -quit 2>/dev/null`).trim();
+  return found || null;
+}
+
+function verifyNextflowVersion(javaBin, jarPath) {
+  if (process.env.NXF_URL) {
+    log('NXF_URL override set; skipping bundled Nextflow version assertion.');
+    return;
+  }
+
+  const result = spawnSync(javaBin, ['-jar', jarPath, 'info'], { encoding: 'utf8' });
+  const output = `${result.stdout || ''}${result.stderr || ''}`.replace(/\0/g, '');
+  if (result.status !== 0) {
+    throw new Error(`Could not inspect the bundled Nextflow version: ${output.trim()}`);
+  }
+
+  const match = output.match(/^\s*Version:\s*(\S+)/m);
+  if (!match) {
+    throw new Error(`Could not read the Nextflow version from ${jarPath}.`);
+  }
+  if (match[1] !== NEXTFLOW_VERSION) {
+    throw new Error(
+      `Bundled Nextflow reports ${match[1]}, but scripts/nextflow-version.json pins ` +
+        `${NEXTFLOW_VERSION}. Delete bundle/ or rerun the build to refresh it.`
+    );
+  }
+  log(`Verified bundled Nextflow version ${match[1]}.`);
 }
 
 function downloadFile(url, destPath) {
@@ -229,15 +297,33 @@ async function main() {
       process.exit(0);
     }
 
-    // Download Nextflow if missing
+    // Download Nextflow if missing or if the pinned version changed
     const nextflowJar = path.join(bundleDir, 'nextflow.jar');
-    if (!fileExists(nextflowJar)) {
+    const versionMarker = path.join(bundleDir, '.nextflow-version');
+    const markerVersion = fileExists(versionMarker)
+      ? fs.readFileSync(versionMarker, 'utf8').trim()
+      : '';
+    const customUrl = Boolean(process.env.NXF_URL);
+    const needsDownload =
+      !fileExists(nextflowJar) || (!customUrl && markerVersion !== NEXTFLOW_VERSION);
+
+    if (needsDownload) {
+      if (fileExists(nextflowJar)) {
+        log(
+          `Bundled Nextflow version ${markerVersion || 'unknown'} -> ${NEXTFLOW_VERSION}; re-downloading.`
+        );
+      }
       log('Downloading Nextflow...');
       await downloadFile(NXF_URL, nextflowJar);
+      if (!customUrl) {
+        fs.writeFileSync(versionMarker, `${NEXTFLOW_VERSION}\n`);
+      }
       log('Nextflow downloaded to', nextflowJar);
     } else {
       log('Nextflow jar already exists. Skipping download.');
     }
+
+    checkNextflowJava(nextflowJar);
 
     // Prepare Java runtime
     const jreDir = path.join(bundleDir, 'jre');
@@ -312,9 +398,6 @@ async function main() {
         }
 
         log('Bundled java binary at:', javaBin);
-        log('Running smoke test with bundled JRE...');
-        run(`"${javaBin}" -jar "${nextflowJar}" info`);
-        log('Smoke test completed successfully (full JRE).');
       } else {
         // --- Minimal JRE ---
 
@@ -349,19 +432,22 @@ async function main() {
 
         log('Minimal Java runtime created.');
 
-        // Smoke test: run jre/bin/java -jar nextflow.jar info
         const javaBin = path.join(jreDir, 'bin', 'java');
         if (!fileExists(javaBin)) {
           throw new Error(`Expected java executable not found at ${javaBin}`);
         }
 
-        log('Running smoke test...');
-        run(`"${javaBin}" -jar "${nextflowJar}" info`);
-        log('Smoke test completed successfully.');
+        log('Minimal Java runtime ready.');
       }
     } else {
       log('Java runtime already exists. Skipping preparation.');
     }
+
+    const javaBin = findJavaBinary(jreDir);
+    if (!javaBin) {
+      throw new Error(`Expected a bundled java executable under ${jreDir}.`);
+    }
+    verifyNextflowVersion(javaBin, nextflowJar);
 
     log('Bundle preparation completed.');
     process.exit(0);

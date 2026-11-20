@@ -28,21 +28,30 @@ Since GLACIER supports both an electron build (where the backend runs in the sam
 
 # Upgrading Nextflow
 
-When upgrading the bundled Nextflow version, follow these steps:
+The bundled Nextflow version is defined in `scripts/nextflow-version.json`. It is the single source of truth for the jar download, the WSL image and the release checker.
 
-1. **Update the download URL** — Change `NXF_URL` in `scripts/prepare_bundle.js` (line 27) to point to the new release JAR. The URL pattern is:
+A weekly workflow (`.github/workflows/nextflow-release-check.yml`) checks the nextflow-io/nextflow releases every Monday and opens an issue when a newer stable release or stable patch is available. Only the April (`04`) and October (`10`) release lines are considered; edge (`-edge`), draft and prerelease builds are ignored. The issue suggests a GLACIER version bump: a patch for a same-line Nextflow patch, a minor bump for a new stable line.
+
+To apply an update manually:
+
+1. **Set the version** — run `node scripts/set-nextflow-version.js <version>` (for example `26.10.6`). This updates `scripts/nextflow-version.json`; the jar and launcher URLs are derived from it.
+
+2. **Build and verify** —
+   - macOS/Linux: `npm run build` (or `npm run build:bundle`) downloads `nextflow-<version>-one.jar` and builds the minimal JRE, then asserts that the bundled Nextflow reports the pinned version. The build also fails if the jar targets a Java version newer than the bundled Java 21.
+   - Windows: `node scripts/build-wsl-image.js` rebuilds `bundle/wsl/glacier-wsl.tar` and asserts the version inside the image. It also runs automatically as part of `npm run build` on Windows.
+   - Version markers (`bundle/.nextflow-version` and `bundle/wsl/.nextflow-version`) ensure a version change refreshes stale local artifacts.
+
+3. **Update the license** — diff the Nextflow license and update it if it changed:
+
    ```
-   https://www.nextflow.io/releases/v<version>/nextflow-<version>-one.jar
+   curl -fsSL https://raw.githubusercontent.com/nextflow-io/nextflow/v<version>/COPYING | diff - bundle/LICENSE-nextflow
    ```
 
-2. **Update the license file** — Verify whether Nextflow's license has changed (`bundle/LICENSE-nextflow`). If it has, replace the file with the updated version from the Nextflow source distribution.
+4. **Run tests** — `npm test` and `npx playwright test`. Pay particular attention to `nextflow.log` parsing, which relies on output that is not a documented Nextflow API and may change between releases.
 
-3. **Check JRE compatibility** — Read the Nextflow release notes to confirm the minimum Java version. If it has changed, update `JAVA_VERSION` in `scripts/prepare_bundle.js` accordingly. After the build, verify the bundled JRE:
-   ```
-   java -version
-   ```
+5. **Bump GLACIER** — use a patch bump for a same-line Nextflow patch and a minor bump for a new stable line, then tag and release as usual.
 
-4. **Run tests** to verify — particularly check that log parsing still works (it relies on `nextflow.log` output, which is not a documented API and may change between releases).
+GLACIER bundles Temurin 21. Nextflow 26.x and 27.04 target Java 17, which is within Nextflow's supported range. If a build reports that Nextflow now requires a newer Java version, bump `JAVA_VERSION` in `scripts/prepare_bundle.js`, the OpenJDK package in `scripts/build-wsl-image.js`, and `setup-java` in the CI and release workflows together.
 
 # Adding languages
 
