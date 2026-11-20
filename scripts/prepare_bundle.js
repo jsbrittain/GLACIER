@@ -51,25 +51,35 @@ function fileExists(p) {
   }
 }
 
-function checkNextflowJava(jarPath) {
-  let classBytes;
+function findJavap(repoRoot) {
   try {
-    classBytes = execFileSync('unzip', ['-p', jarPath, 'nextflow/Nextflow.class'], {
-      maxBuffer: 16 * 1024 * 1024
-    });
-  } catch (e) {
-    if (e && e.code === 'ENOENT') {
-      log('WARNING: unzip not found; skipping Nextflow Java compatibility check.');
-      return;
-    }
-    throw new Error(`Could not inspect ${jarPath} for Java compatibility: ${e.message}`);
+    execFileSync('javap', ['-version'], { stdio: 'ignore' });
+    return 'javap';
+  } catch {
+    // Fall back to a previously downloaded Temurin JDK.
   }
 
-  if (classBytes.length < 8 || classBytes.readUInt32BE(0) !== 0xcafebabe) {
-    throw new Error(`Unexpected class file header in ${jarPath}.`);
+  const cached = path.join(repoRoot, '.temurin', `jdk${JAVA_VERSION}`, 'bin', 'javap');
+  return fileExists(cached) ? cached : null;
+}
+
+function checkNextflowJava(jarPath, repoRoot) {
+  const javap = findJavap(repoRoot);
+  if (!javap) {
+    log('WARNING: javap not found; skipping Nextflow Java compatibility check.');
+    return;
   }
 
-  const major = classBytes.readUInt16BE(6);
+  const output = execFileSync(javap, ['-verbose', '-classpath', jarPath, 'nextflow.cli.Launcher'], {
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024
+  });
+  const match = output.match(/major version:\s*(\d+)/);
+  if (!match) {
+    throw new Error(`Could not read the Java class version from ${jarPath}.`);
+  }
+
+  const major = Number(match[1]);
   const javaVersion = JAVA_CLASS_MAJOR_NAMES[major] || `class major ${major}`;
   log(`Nextflow targets Java ${javaVersion} (class major ${major}).`);
   if (major > MAX_JAVA_CLASS_MAJOR) {
@@ -323,7 +333,7 @@ async function main() {
       log('Nextflow jar already exists. Skipping download.');
     }
 
-    checkNextflowJava(nextflowJar);
+    checkNextflowJava(nextflowJar, repoRoot);
 
     // Prepare Java runtime
     const jreDir = path.join(bundleDir, 'jre');
